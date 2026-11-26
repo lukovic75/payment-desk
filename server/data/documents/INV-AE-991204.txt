@@ -1,0 +1,23 @@
+From: rechnung@alpenstrom.example
+To: ap@kestrel-retail.example
+Subject: Rechnung 991204 — Stromlieferung Oktober
+
+ALPENSTROM ENERGIE AG
+Ringstraße 3, 1010 Wien, Österreich
+UID: ATU12345678
+
+RECHNUNG Nr. 991204
+Rechnungsdatum: 10.11.2026
+Fällig: 01.12.2026
+Lieferzeitraum: 01.10.2026 - 31.10.2026
+
+Energie 14.820 kWh x 0,1420 EUR            2.104,44
+Netzentgelt                                   318,10
+Summe netto                                 2.422,54
+USt 0% (Reverse Charge)
+Rechnungsbetrag EUR 2.422,54
+
+Bankverbindung:
+IBAN: AT61 1904 3002 3457 3201
+BIC: BKAUATWWXXX
+Verwendungszweck: 991204

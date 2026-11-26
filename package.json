@@ -1,0 +1,34 @@
+{
+  "name": "payment-desk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A team of concurrent Mozaik agents that turns supplier invoices into reviewed SEPA payment drafts, with a human approving anything above policy.",
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "tsx watch --env-file-if-exists=.env server/index.ts",
+    "dev:web": "vite --config web/vite.config.ts",
+    "cli": "tsx --env-file-if-exists=.env server/cli.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
+    "build": "vite build --config web/vite.config.ts",
+    "start": "NODE_ENV=production tsx --env-file-if-exists=.env server/index.ts"
+  },
+  "engines": {
+    "node": ">=20.6"
+  },
+  "dependencies": {
+    "@mozaik-ai/core": "^6.0.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.11",
+    "@types/react": "^19.3.3",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
+    "concurrently": "^10.0.7",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.8"
+  }
+}

@@ -1,0 +1,15 @@
+From: rechnung@alpenstrom.example
+To: ap@kestrel-retail.example
+Subject: Zahlungserinnerung — Rechnung 991204
+
+Sehr geehrte Damen und Herren,
+
+anbei nochmals unsere Rechnung 991204 vom 10.11.2026 über EUR 2.422,54,
+fällig am 01.12.2026. Bitte überweisen Sie den Betrag auf:
+
+IBAN: AT61 1904 3002 3457 3201
+BIC: BKAUATWWXXX
+Verwendungszweck: 991204
+
+Mit freundlichen Grüßen
+Alpenstrom Energie AG, Debitorenbuchhaltung

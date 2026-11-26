@@ -1,0 +1,22 @@
+From: invoices@tulpcloud.example
+To: ap@kestrel-retail.example
+Subject: Tulp Cloud — invoice TC-20261122 (November usage)
+
+TULP CLOUD B.V.
+Keizersgracht 100, 1015 AA Amsterdam, The Netherlands
+VAT: NL123456789B01
+
+Invoice TC-20261122
+Issued: 22 Nov 2026 · Due: 06 Dec 2026 (14 days)
+
+Compute (eu-west, 720 h)                      EUR   612.50
+Object storage (18.4 TB)                      EUR   276.00
+Egress                                        EUR    41.30
+Subtotal                                      EUR   929.80
+VAT 0% (reverse charge)
+Amount due                                    EUR   929.80
+
+Bank: ABN AMRO
+IBAN NL91 ABNA 0417 1643 00
+BIC ABNANL2AXXX
+Reference TC-20261122

@@ -1,0 +1,22 @@
+{
+  "name": "Accounts payable policy v3 (synthetic)",
+  "currency": "EUR",
+  "autoApproveLimit": 2500,
+  "dailyAutoApproveBudget": 10000,
+  "requireHumanWhen": [
+    "amount above autoApproveLimit",
+    "bank details differ from the vendor master",
+    "vendor is not in the vendor master",
+    "a possible duplicate invoice exists",
+    "the auditor found a discrepancy between the extraction and the document"
+  ],
+  "rejectWhen": [
+    "IBAN checksum is invalid",
+    "the document is not an invoice or payment request"
+  ],
+  "debtor": {
+    "name": "Kestrel Retail d.o.o.",
+    "iban": "RS35260005601001611379",
+    "bic": "RZBSRSBG"
+  }
+}

@@ -1,0 +1,23 @@
+From: office@adriatic-dev.example
+To: ap@kestrel-retail.example
+Subject: Račun 0098/2026 — razvoj, studeni
+
+ADRIATIC DEV d.o.o.
+Ulica grada Vukovara 269, 10000 Zagreb, Hrvatska
+OIB: 12345678901
+
+RAČUN br. 0098/2026
+Datum: 24.11.2026.
+Dospijeće: 24.12.2026.
+
+Opis                                         Sati    Cijena     Iznos
+Razvoj integracije skladišta (studeni)        96     85,00   8.160,00
+Code review i dokumentacija                   12     85,00   1.020,00
+                                                     Osnovica   9.180,00
+                                                     PDV 0% (prijenos porezne obveze)
+                                                     UKUPNO EUR 9.180,00
+
+Podaci za plaćanje:
+IBAN: HR12 1001 0051 8630 0016 0
+BIC: NBHRHR2XXXX
+Poziv na broj: 0098-2026

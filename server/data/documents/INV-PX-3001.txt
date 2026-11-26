@@ -1,0 +1,20 @@
+From: accounts@pixelforge-media.example
+To: ap@kestrel-retail.example
+Subject: Invoice PX-3001 — Black Friday campaign assets
+
+PIXELFORGE MEDIA LTD
+22 Clerkenwell Road, London EC1M 5PQ, United Kingdom
+Company no. 09876543
+
+INVOICE PX-3001
+Date: 23 November 2026
+Payment due: on receipt
+
+Black Friday campaign — 40 display banners           EUR 1,800.00
+Landing page hero video (30 s)                       EUR 2,200.00
+                                                      TOTAL EUR 4,000.00
+
+Bank details:
+IBAN: GB29 NWBK 6016 1331 9268 19
+BIC: NWBKGB2L
+Reference: PX-3001

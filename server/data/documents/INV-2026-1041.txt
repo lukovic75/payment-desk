@@ -1,0 +1,25 @@
+From: billing@nordlicht-logistik.example
+To: ap@kestrel-retail.example
+Subject: Invoice INV-2026-1041 — November freight
+
+NORDLICHT LOGISTIK GmbH
+Hafenstraße 12, 20457 Hamburg, Germany
+VAT ID: DE811234567
+
+INVOICE
+Invoice number: INV-2026-1041
+Invoice date: 18 November 2026
+Due date: 18 December 2026
+Customer: Kestrel Retail d.o.o., Belgrade
+
+Description                                   Qty     Unit     Total
+Freight Hamburg -> Belgrade, 3 pallets          3   410.00   1,230.00
+Customs handling                                1   185.00     185.00
+                                                    Net      1,415.00
+                                                    VAT 0% (reverse charge)
+                                                    TOTAL EUR 1,415.00
+
+Please pay to:
+IBAN: DE89 3704 0044 0532 0130 00
+BIC: COBADEFFXXX
+Payment reference: INV-2026-1041
