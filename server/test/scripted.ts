@@ -35,7 +35,7 @@ function whoAndWhat(req: InferenceInput): { agent: string; docId: string; output
 	const items = req.context.getItems() as any[]
 	const dev = text(items.find((i) => i.type === "message" && i.role === "developer"))
 	const user = text(items.find((i) => i.type === "message" && i.role === "user"))
-	const agent = /independent Auditor/.test(dev) ? "Auditor" : /Financial Investigator/.test(dev) ? "Investigator" : /Policy agent/.test(dev) ? "Policy" : /the Validator/.test(dev) ? "Validator" : "Extractor"
+	const agent = /single agent of the benchmark baseline/.test(dev) ? "Solo" : /independent Auditor/.test(dev) ? "Auditor" : /Financial Investigator/.test(dev) ? "Investigator" : /Policy agent/.test(dev) ? "Policy" : /the Validator/.test(dev) ? "Validator" : "Extractor"
 	const docId = (/Document id (\S+)/.exec(user) ?? /"(?:documentId|caseId)":\s*"([^"]+)"/.exec(user))?.[1] ?? "?"
 	return { agent, docId, outputs: items.filter((i) => i.type === "function_call_output") }
 }
@@ -50,6 +50,17 @@ export function scriptedModel(script: Script): InferenceRunner {
 			script.calls?.push({ agent, docId })
 			await new Promise((r) => setTimeout(r, script.latencyMs ?? 5))
 			if (script.fail?.includes(`${agent}:${docId}`)) throw new Error(`scripted provider failure for ${agent} on ${docId}`)
+			if (agent === "Solo") {
+				// The baseline in the tests: replays the same reading, repeats what the records returned, and recommends like the scripted Policy agent.
+				const r = script.readings[docId]
+				if (outputs.length === 0) return r ? call("record_reading", { isPaymentRequest: true, documentKind: "invoice", ...r }) : say("I have nothing to report.")
+				const seen = JSON.parse(text(outputs[0])).trustedRecords ?? {}
+				return call("submit_assessment", {
+					vendorId: seen.vendor?.found ? seen.vendor.record.id : null, ibanValid: seen.iban?.checksumValid ?? null, ibanMatchesMaster: seen.iban?.matchesVendorMaster ?? null,
+					duplicateOf: null, issues: [], conflicts: [], summary: "scripted single-agent assessment",
+					disposition: script.policy ?? "AUTO_APPROVED", rulesApplied: [], passed: [], failed: [], humanRequired: false, explanation: "scripted: approve everything", refs: [],
+				})
+			}
 			if (agent === "Extractor") {
 				const r = script.readings[docId]
 				return r ? call("submit_reading", { isPaymentRequest: true, documentKind: "invoice", ...r }) : say("I have nothing to report.")

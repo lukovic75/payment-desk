@@ -77,8 +77,8 @@ function supports(field: ReadingField | "line", normalized: string | Minor, quot
  * Builds a Reading from raw agent input. Every value gets a ledger entry that records the quote, where it sits
  * in the document, and whether the quote really contains the value. A value without input stays null: nothing is inferred.
  */
-export function buildReading(input: ReadingInput, doc: SourceDocument, by: "Extractor" | "Auditor"): { reading: Reading; entries: EvidenceEntry[] } {
-	const prefix = by === "Extractor" ? "X" : "A"
+export function buildReading(input: ReadingInput, doc: SourceDocument, by: "Extractor" | "Auditor" | "Solo"): { reading: Reading; entries: EvidenceEntry[] } {
+	const prefix = by === "Auditor" ? "A" : "X"
 	const entries: EvidenceEntry[] = []
 	const reading: Reading = {
 		isPaymentRequest: input.isPaymentRequest !== false,
@@ -368,15 +368,21 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 			].filter(Boolean)
 			add("agent_agreement", "Extractor and Auditor agree", "R14", "review", "review", `${parts.join("; ")}.`, [...refs, ...a.conflicts.flatMap((k) => k.refs)])
 		} else add("agent_agreement", "Extractor and Auditor agree", "R13", "pass", "block", "The Auditor read the document on its own and arrived at the same amount, currency, IBAN, creditor and invoice number.", (["gross", "iban"] as ReadingField[]).flatMap((f) => [ref(f), a.reading.refs[f] ?? null]))
+	} else if (c.mode === "single") {
+		// The single-agent benchmark baseline has no second reader. What the one agent noticed itself still counts.
+		const own = c.validation.result?.issues.filter((i) => i.code === "document_conflict") ?? []
+		if (own.length || c.validation.result?.disagreements.length) add("agent_agreement", "Independent second reading", "R14", "review", "review", [own.length ? `the agent found the document contradicting itself (${own.map((i) => i.message).join("; ")})` : "", c.validation.result?.disagreements.length ? "the agent's report differs from the computed checks" : ""].filter(Boolean).join("; ") + ".", own.flatMap((i) => i.refs))
+		else add("agent_agreement", "Independent second reading", null, "na", "info", "Not applicable: this is the single-agent baseline, which has no independent second reader to compare with.")
 	}
 
 	// stages: fail closed
 	const failed = (["extraction", "validation", "audit", "investigation", "decision"] as const).filter((s) => c[s].status === "error")
-	const incomplete = (["validation", "audit"] as const).filter((s) => c[s].status !== "done")
+	const required = c.mode === "single" ? (["validation"] as const) : (["validation", "audit"] as const)
+	const incomplete = required.filter((s) => c[s].status !== "done")
 	const exceptions = controls.filter((k) => (k.status === "fail" || k.status === "review") && !ROUTINE.has(k.id))
 	if (failed.length) add("stages", "Agent stages", null, "fail", "block", `Failed: ${failed.join(", ")}. A payment is never approved on an incomplete run.`)
 	else if (incomplete.length) add("stages", "Agent stages", null, "unknown", "block", `Still waiting for: ${incomplete.join(", ")}.`)
-	else add("stages", "Agent stages", null, "pass", "block", "Extraction, validation and the independent audit all completed.")
+	else add("stages", "Agent stages", null, "pass", "block", c.mode === "single" ? "The single agent completed its reading and its checks." : "Extraction, validation and the independent audit all completed.")
 
 	let floor: Disposition = "AUTO_APPROVED"
 	if (controls.some((k) => k.status === "fail" && k.severity === "block")) floor = "BLOCKED"

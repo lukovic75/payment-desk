@@ -47,7 +47,7 @@ export function loopsOf(cases: PaymentCase[]): Loop[] {
 	const loops: Loop[] = []
 	for (const c of cases) {
 		const title = titleOf(c)
-		for (const r of c.runs) loops.push({ agent: r.agent, caseId: c.id, title, start: Date.parse(r.startedAt), end: r.finishedAt ? Date.parse(r.finishedAt) : null, errored: r.status === "error" || r.status === "timeout", run: r })
+		for (const r of c.runs) if (r.agent !== "Solo") loops.push({ agent: r.agent, caseId: c.id, title, start: Date.parse(r.startedAt), end: r.finishedAt ? Date.parse(r.finishedAt) : null, errored: r.status === "error" || r.status === "timeout", run: r })
 	}
 	return loops
 }

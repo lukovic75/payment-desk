@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { ClockCounterClockwise, GearSix, ListChecks, Moon, Play, Plus, Pulse, SidebarSimple, SquaresFour, Sun, Tray } from "@phosphor-icons/react"
+import { ClockCounterClockwise, Flask, GearSix, ListChecks, Moon, Play, Plus, Pulse, SidebarSimple, SquaresFour, Sun, Tray } from "@phosphor-icons/react"
 import type { DeskSnapshot, Link } from "../lib/api"
 import { href, TITLES, type View } from "../lib/router"
 import { Spinner } from "./bits"
@@ -25,9 +25,10 @@ const NAV: { view: View; icon: ReactNode }[] = [
 	{ view: "inbox", icon: <Tray size={16} /> },
 	{ view: "queue", icon: <ListChecks size={16} /> },
 	{ view: "activity", icon: <Pulse size={16} /> },
+	{ view: "lab", icon: <Flask size={16} /> },
 	{ view: "audit", icon: <ClockCounterClockwise size={16} /> },
 ]
-const SHORT: Record<View, string> = { overview: "Overview", inbox: "Inbox", queue: "Review", activity: "Agents", audit: "Audit", settings: "Settings" }
+const SHORT: Record<View, string> = { overview: "Overview", inbox: "Inbox", queue: "Review", activity: "Agents", lab: "Lab", audit: "Audit", settings: "Settings" }
 
 export function Shell(p: ShellProps) {
 	const { snapshot, link, counts } = p

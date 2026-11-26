@@ -4,6 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { extname, join, normalize, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
+import * as lab from "./lab/manager.js"
 import { DeskError, MODELS, act, addDocument, exportDraft, getDocumentText, resetDemo, runDemo, setModelRunner, snapshot, subscribe, type Action } from "./desk.js"
 
 const PORT = Number(process.env.API_PORT ?? 8787)
@@ -16,6 +17,8 @@ if (SCRIPTED) {
 	setModelRunner(scriptedModel({ readings: READINGS, policy: "AUTO_APPROVED" }), "scripted")
 }
 const hasKey = SCRIPTED || Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)
+/** A live Stress Lab run needs a real key even when this server itself runs on the scripted model. */
+const hasLiveKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)
 const NO_KEY = "No model API key. Copy .env.example to .env and set ANTHROPIC_API_KEY, then restart."
 const ACTIONS: Action[] = ["approve", "reject", "request_verification", "verify_beneficiary", "reprocess"]
 
@@ -90,6 +93,18 @@ const server = createServer(async (req, res) => {
 		if (m === "GET" && draft) {
 			const d = exportDraft(decodeURIComponent(draft[1]!))
 			return json(res, 200, d, { "content-disposition": `attachment; filename="${d.draftId}.json"` })
+		}
+		// Financial Stress Lab: every execution runs in its own worker process and never touches the state served above.
+		if (m === "GET" && path === "/api/lab") return json(res, 200, lab.overview(hasLiveKey))
+		if (m === "POST" && path === "/api/lab/runs") return json(res, 200, lab.startRun(await readBody(req), hasLiveKey))
+		if (m === "POST" && path === "/api/lab/cancel") return json(res, 200, { cancelled: lab.cancelRun()?.id ?? null })
+		const labItem = path.match(/^\/api\/lab\/runs\/([^/]+)\/items\/([^/]+)$/)
+		if (m === "GET" && labItem) return json(res, 200, lab.detail(decodeURIComponent(labItem[1]!), decodeURIComponent(labItem[2]!)))
+		const labReport = path.match(/^\/api\/lab\/runs\/([^/]+)\/report$/)
+		if (m === "GET" && labReport) {
+			const id = decodeURIComponent(labReport[1]!)
+			const item = url.searchParams.get("item")
+			return json(res, 200, lab.report(id, item), { "content-disposition": `attachment; filename="stress-lab-${id}${item ? `-${item.replace(":", "-")}` : ""}.json"` })
 		}
 		const doc = path.match(/^\/api\/documents\/([^/]+)$/)
 		if (m === "GET" && doc) {

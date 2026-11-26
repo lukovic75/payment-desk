@@ -193,10 +193,14 @@ export type Stage =
 	| "received" | "extracting" | "checking" | "investigating" | "deciding"
 	| "awaiting_approval" | "blocked" | "approved" | "rejected" | "not_a_payment" | "error"
 
-export type AgentName = "Extractor" | "Validator" | "Auditor" | "Investigator" | "Policy"
+export type AgentName = "Extractor" | "Validator" | "Auditor" | "Investigator" | "Policy" | "Solo"
+/** "single" is the benchmark baseline: one agent (Solo) does the reading, the checking and the recommendation. Never used for the payment inbox. */
+export type Configuration = "multi" | "single"
 
 /** One agent loop on one case: the observability record behind the timeline. */
 export type AgentRun = {
+	/** Execution id: unique per loop, stable for the life of the record. */
+	id?: string
 	agent: AgentName
 	model: string
 	attempt: number
@@ -239,6 +243,27 @@ export type PaymentCase = {
 	draft: PaymentDraft | null
 	runs: AgentRun[]
 	timeline: TimelineEntry[]
+	/** Absent means "multi". */
+	mode?: Configuration
+	/** Independent re-verification of the evidence behind every reported value. Recomputed with the controls. */
+	integrity?: IntegrityReport
+}
+
+// ───────── evidence integrity ─────────
+
+export type IntegrityKind = "missing_evidence" | "broken_reference" | "unsupported_claim" | "incorrect_normalization" | "untraceable_calculation"
+export type IntegrityFinding = { kind: IntegrityKind; subject: string; ref: string | null; detail: string; critical: boolean }
+/** One checked value. `present`: a reference exists and resolves. `correct`: the referenced source really supports the value; null when that cannot be checked mechanically. */
+export type IntegrityValue = { subject: string; ref: string | null; critical: boolean; present: boolean; correct: boolean | null }
+/** Fault injection for the Stress Lab and the tests. Always labelled in the case timeline; never model behaviour. */
+export type Fault = { agent: AgentName; kind: "provider_error" | "alter_gross" }
+/** Totals over one or more integrity reports. "checkable" leaves out values whose correctness cannot be checked mechanically. */
+export type IntegrityCounts = { values: number; present: number; checkable: number; correct: number; critical: number; criticalCorrect: number; findings: number; criticalFindings: number }
+export type IntegrityReport = {
+	values: IntegrityValue[]
+	findings: IntegrityFinding[]
+	/** False when a critical value has missing, broken or unsupporting evidence. Such a payment is never approved automatically. */
+	ok: boolean
 }
 
 export type AgentInfo = { id: string; name: AgentName; role: string; model: string }

@@ -7,6 +7,7 @@ import { AddDocument } from "./components/AddDocument"
 import { Shell } from "./components/Shell"
 import { Activity } from "./views/Activity"
 import { Audit } from "./views/Audit"
+import { Lab } from "./views/Lab"
 import { Overview } from "./views/Overview"
 import { Payments } from "./views/Payments"
 import { Settings } from "./views/Settings"
@@ -80,6 +81,7 @@ export function App() {
 							{route.view === "overview" && <Overview snapshot={snapshot} canAct={canAct} starting={starting} onRun={run} onAdd={() => setAdding(true)} />}
 							{(route.view === "inbox" || route.view === "queue") && <Payments snapshot={snapshot} view={route.view} id={route.id} />}
 							{route.view === "activity" && <Activity snapshot={snapshot} id={route.id} />}
+							{route.view === "lab" && <Lab id={route.id} />}
 							{route.view === "audit" && <Audit snapshot={snapshot} />}
 							{route.view === "settings" && <Settings snapshot={snapshot} health={health} link={link} mode={mode} onMode={setMode} />}
 						</>

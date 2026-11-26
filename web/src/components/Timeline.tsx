@@ -13,6 +13,8 @@ type Props = {
 	empty?: string
 	/** A shorter chart for the overview. */
 	compact?: boolean
+	/** Fit the axis to the recorded span instead of reserving at least four seconds. For finished runs that took milliseconds. */
+	fit?: boolean
 }
 
 type Placed = Loop & { row: number }
@@ -55,6 +57,7 @@ function useWidth() {
 const tickLabel = (ms: number, step: number) => {
 	const s = ms / 1000
 	if (s >= 60) return `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`
+	if (step < 200) return `${Math.round(ms)} ms`
 	return `${step < 1000 ? s.toFixed(1) : Math.round(s)}s`
 }
 
@@ -62,7 +65,7 @@ const tickLabel = (ms: number, step: number) => {
  * Agent loops on one shared clock. One lane per agent, one bar per loop, sub-rows where loops overlap,
  * so concurrency is visible as overlap. Idle stretches longer than a few seconds are folded and labelled.
  */
-export function Timeline({ loops, scope, live, selected = null, onSelect, empty, compact = false }: Props) {
+export function Timeline({ loops, scope, live, selected = null, onSelect, empty, compact = false, fit = false }: Props) {
 	const [ref, width] = useWidth()
 	const now = useNow(live)
 	const [tip, setTip] = useState<{ x: number; y: number; loop: Placed } | null>(null)
@@ -110,7 +113,7 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty,
 		const t0 = clusters[0]!.start
 		const lastC = clusters[clusters.length - 1]!
 		const active = clusters.reduce((s, c) => s + (c.end - c.start), 0)
-		const padMs = Math.max(0, 4000 - active) + active * 0.02
+		const padMs = fit ? Math.max(1, active * 0.06) : Math.max(0, 4000 - active) + active * 0.02
 		lastC.end += padMs
 		const plotW = Math.max(40, width - LEFT - RIGHT - (clusters.length - 1) * GAP_W)
 		const pxPerMs = plotW / (active + padMs)
@@ -121,7 +124,7 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty,
 			return c.x0 + Math.max(0, Math.min(t, c.end) - c.start) * pxPerMs
 		}
 
-		const step = [200, 500, 1000, 2000, 5000, 10000, 30000, 60000].find((s) => s * pxPerMs >= 54) ?? 120000
+		const step = [1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 30000, 60000].find((s) => s * pxPerMs >= 54) ?? 120000
 		const ticks: { x: number; label: string }[] = []
 		for (const c of clusters) {
 			for (let t = Math.ceil((c.start - t0) / step) * step; t <= c.end - t0; t += step) {
@@ -133,7 +136,7 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty,
 		const clear = ticks.filter((t) => !gaps.some((g) => Math.abs(g.x - t.x) < 52))
 		const barY = (l: Placed) => laneTop.get(l.agent)! + l.row * ROW + (ROW - BAR) / 2
 		return { ROW, BAR, LEFT, RIGHT, TOP, lanes, placed, rows, liveLane, laneTop, bottom, height: bottom + 18, x, ticks: clear, gaps, t0, barY }
-	}, [loops, width, now, isCase, compact])
+	}, [loops, width, now, isCase, compact, fit])
 
 	if (loops.length === 0) return <div className="tl-empty" ref={ref}>{empty ?? "Agent activity draws here once documents are processed: one lane per agent, one bar per loop."}</div>
 

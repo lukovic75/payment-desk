@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 
-export const VIEWS = ["overview", "inbox", "queue", "activity", "audit", "settings"] as const
+export const VIEWS = ["overview", "inbox", "queue", "activity", "lab", "audit", "settings"] as const
 export type View = (typeof VIEWS)[number]
 export type Route = { view: View; id: string | null }
 
@@ -9,6 +9,7 @@ export const TITLES: Record<View, string> = {
 	inbox: "Payment inbox",
 	queue: "Review queue",
 	activity: "Agent activity",
+	lab: "Financial Stress Lab",
 	audit: "Audit trail",
 	settings: "Settings",
 }

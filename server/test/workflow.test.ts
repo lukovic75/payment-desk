@@ -244,6 +244,25 @@ test("14. a failed agent prevents approval and leaves a recoverable state", asyn
 	assert.equal(desk.peek("INV-2026-1041").attempt, 2)
 })
 
+test("14c. a loop left over from a superseded attempt stops instead of calling the model again", async () => {
+	desk.resetDesk()
+	// The Auditor fails after one slow call while the Validator, which needs two, is still running.
+	desk.setModelRunner(scriptedModel({ readings: READINGS, fail: ["Auditor:INV-2026-1041"], latencyMs: 40 }))
+	desk.addDocument("INV-2026-1041", DOCS["INV-2026-1041"]!.text, "demo", DOCS["INV-2026-1041"]!.receivedAt)
+	await desk.whenSettled(20_000)
+	assert.equal(outcomeOf(desk.peek("INV-2026-1041")), "PROCESSING_ERROR")
+	const calls: { agent: string; docId: string }[] = []
+	desk.setModelRunner(scriptedModel({ readings: READINGS, calls }))
+	desk.act("INV-2026-1041", "reprocess")
+	await desk.whenSettled(20_000)
+	assert.equal(outcomeOf(desk.peek("INV-2026-1041")), "AUTO_APPROVED")
+	const after = calls.length
+	await new Promise((r) => setTimeout(r, 250))
+	assert.equal(calls.length, after, "no model call is made once every current loop has finished")
+	assert.ok(calls.filter((k) => k.agent === "Validator").length <= 3, "the old Validator loop did not keep calling the model")
+	assert.ok(desk.peek("INV-2026-1041").runs.some((r) => r.status === "superseded"), "and its run is recorded as superseded")
+})
+
 test("14b. a failing Policy agent does not approve by default", async () => {
 	const { "INV-2026-1041": c } = await run(["INV-2026-1041"], { fail: ["Policy:INV-2026-1041"] })
 	assert.equal(outcomeOf(c!), "PROCESSING_ERROR")

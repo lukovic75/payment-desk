@@ -5,3 +5,4 @@ dist/
 *.log
 .claude/
 .desk-state.json*
+.lab-results.json*

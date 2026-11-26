@@ -38,7 +38,7 @@ const SHORT: Record<string, string> = {
 	mandatory_fields: "Missing field", evidence: "Unsupported value", vendor_known: "Unknown vendor", iban_checksum: "Invalid IBAN", beneficiary: "Bank details differ",
 	beneficiary_name: "Beneficiary name", currency: "Currency", duplicate: "Duplicate", arithmetic: "Total does not add up", line_items: "Line items", per_payment_limit: "Over limit",
 	daily_limit: "Daily budget", split_payment: "Possible split", purchase_order: "Purchase order", instruction_content: "Instruction-like text", stated_amounts: "Conflicting amounts",
-	agent_agreement: "Agents disagree", stages: "Agent failed",
+	agent_agreement: "Agents disagree", stages: "Agent failed", evidence_integrity: "Evidence not verified",
 }
 export const controlShort = (k: Control) => SHORT[k.id] ?? k.label
 

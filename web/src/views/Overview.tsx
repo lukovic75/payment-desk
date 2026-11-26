@@ -1,4 +1,5 @@
-import { ArrowRight, CheckCircle, Hourglass, Play, Plus, XCircle } from "@phosphor-icons/react"
+import { useState } from "react"
+import { ArrowRight, CaretRight, CheckCircle, Hourglass, Play, Plus, XCircle } from "@phosphor-icons/react"
 import type { DeskSnapshot } from "../lib/api"
 import { auditOf, concurrencyOf, isRunning, loopsOf, needsPerson, outcomeOf, riskRank, usageOf, type AuditEvent } from "../lib/derive"
 import { amount, clock, count, duration, money, totalsText } from "../lib/format"
@@ -31,6 +32,7 @@ export function Overview({ snapshot, canAct, starting, onRun, onAdd }: Props) {
 
 	return (
 		<main className="view">
+			<Guide snapshot={snapshot} canAct={canAct} starting={starting} onRun={onRun} />
 			<section className="kpis eight" aria-label="Financial defence summary">
 				<a className="kpi" href={href("inbox")}>
 					<span className="k">Payment requests <ArrowRight size={12} className="kpi-go" /></span>
@@ -121,6 +123,35 @@ export function Overview({ snapshot, canAct, starting, onRun, onAdd }: Props) {
 				</div>
 			)}
 		</main>
+	)
+}
+
+/**
+ * An optional path for someone opening the app for the first time. Every step is a real link or action, and a step that
+ * needs state that does not exist yet says what it is waiting for instead of pretending.
+ */
+function Guide({ snapshot, canAct, starting, onRun }: Pick<Props, "snapshot" | "canAct" | "starting" | "onRun">) {
+	const [open, setOpen] = useState(() => { try { return localStorage.getItem("pd-guide") !== "closed" } catch { return true } })
+	const { cases } = snapshot
+	const running = cases.some(isRunning)
+	const blocked = cases.find((c) => c.stage === "blocked" && c.extraction.result)
+	const approved = cases.find((c) => outcomeOf(c) === "AUTO_APPROVED")
+	const sourced = approved ?? blocked
+	const line = sourced ? Object.values(sourced.ledger).find((e) => e.id === "X:gross")?.doc?.lineStart : null
+	const wait = cases.length ? (running ? "still processing" : "none in this run") : "after step 1"
+	return (
+		<details className="panel fold guide" open={open} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; setOpen(o); try { localStorage.setItem("pd-guide", o ? "open" : "closed") } catch { /* private mode */ } }}>
+			<summary><CaretRight size={12} weight="bold" className="caret" /> First visit: a three-minute path <span className="right">optional · sandbox, synthetic data, nothing is sent to a bank</span></summary>
+			<p className="guide-lead">Companies lose money when an invoice is paid twice or paid to an account that is not the vendor's. Payment Desk has five agents read, check and investigate each payment request, and a layer of controls in code decide what is allowed through.</p>
+			<ol className="guide-steps">
+				<li><b>Run the synthetic inbox</b><span>Sixteen documents through the real workflow with live models.</span>{cases.length ? <span className="tag good"><CheckCircle size={11} weight="bold" />{cases.length} documents on the desk</span> : <button className="btn btn-sm btn-primary" disabled={!canAct || starting} onClick={onRun}>{starting ? <Spinner /> : <Play size={12} weight="fill" />} Run demo scenarios</button>}</li>
+				<li><b>Watch the agents collaborate</b><span>One lane per agent; overlap is real concurrency from recorded timestamps.</span><a className="linkish" href={href("activity")}>Agent activity <ArrowRight size={12} /></a></li>
+				<li><b>Inspect a blocked payment</b><span>No approve button exists for it, and the reason is a control in code.</span>{blocked ? <a className="linkish" href={href("queue", blocked.id)}>{blocked.id} <ArrowRight size={12} /></a> : <span className="muted">{wait}</span>}</li>
+				<li><b>Inspect an approved payment</b><span>Every control passed, so a sandbox draft exists.</span>{approved ? <a className="linkish" href={href("inbox", approved.id)}>{approved.id} <ArrowRight size={12} /></a> : <span className="muted">{wait}</span>}</li>
+				<li><b>Verify a figure at its source</b><span>In a payment, select an evidence chip{line ? <> such as <span className="mono">line {line}</span></> : ""}: the line lights up in the document.</span>{sourced ? <a className="linkish" href={href("inbox", sourced.id)}>Open {sourced.id} <ArrowRight size={12} /></a> : <span className="muted">{wait}</span>}</li>
+				<li><b>Open the Financial Stress Lab</b><span>Twelve reproducible scenarios. The deterministic path needs no API key and takes seconds.</span><a className="linkish" href={href("lab")}>Stress Lab <ArrowRight size={12} /></a></li>
+			</ol>
+		</details>
 	)
 }
 
