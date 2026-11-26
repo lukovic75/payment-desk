@@ -303,7 +303,7 @@ npm run lab:benchmark            # live models only
 
 ## Install, configure, run
 
-Requirements: Node.js 20.19 or newer in the 20 line, or 22.12 or newer (what the build tool needs). Tested on 20.20.2, 22.23.5 and 26.8.2, macOS. Nothing else: Mozaik runs in-process and needs no credentials of its own. The npm scripts set environment variables the POSIX way, so on Windows use WSL.
+Requirements: Node.js 20.19 or newer in the 20 line, or 22.12 or newer (what the build tool needs). Tested on 20.20.2 and 22.23.5 with npm 10.8.2 (the npm they ship with) and on 26.8.2 with npm 11.19.1, macOS. On Node 20 `npm ci` prints an engine warning for the dev-server launcher; it runs there all the same. Nothing else: Mozaik runs in-process and needs no credentials of its own. The npm scripts set environment variables the POSIX way, so on Windows use WSL.
 
 ```bash
 npm ci

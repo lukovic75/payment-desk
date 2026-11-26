@@ -13,8 +13,8 @@ Every claim below names the file that implements it and the evidence that it wor
 | `npm run typecheck` (server and UI) | passes |
 | `npm test` | 114 of 114 pass, about 4 seconds, nine files, on Node 20.20.2, 22.23.5 and 26.8.2 (see `QA_REPORT.md`, `AGENT_INTELLIGENCE_REPORT.md` and `TEST_MATRIX.md` for what they cover) |
 | `npm run test:browser` | 17 of 17 browser checks of the interactive showcase, headless Chrome against the scripted server |
-| Clean copy of the repository files | `npm ci`, typecheck, tests, build, lab, `npm run demo` and the browser checks all pass with no `.env`, no saved state and no build output |
-| GitHub Actions | configured (`.github/workflows/ci.yml`: Node 20 and 22); **not yet run remotely** |
+| Clean copy of the repository files | `npm ci` (npm 10.8.2 and 11.19.1), typecheck, tests, build, lab, `npm run demo` and the browser checks all pass with no `.env`, no saved state and no build output |
+| GitHub Actions | `.github/workflows/ci.yml`, Node 20 and 22. The first run failed at `npm ci` and exposed a lockfile that npm 10 rejects; fixed and re-verified locally with npm 10 and 11. Current state: the Actions tab |
 | Scripted showcase (`npm run demo`) | four scenarios, each ending as `scenarios.json` expects; looked at in dark and light, phone to wide desktop |
 | `npm run build` | passes |
 | `npm run lab` (12 stress scenarios, deterministic path) | 12 of 12 pass, 87 of 87 declared checks |
@@ -80,7 +80,7 @@ Every claim below names the file that implements it and the evidence that it wor
 
 **Evidence**: the verification summary above. A defect found by the Stress Lab itself (a leftover loop spinning until its timeout after a document was run again) was fixed and is covered by test 14c, which fails on the previous code.
 
-**Limitations**: live verification is partial and the reason is mundane (API credit). No linter. Browser coverage is a smoke suite of the showcase. CI has not run remotely yet. Tested on macOS only; the npm scripts need a POSIX shell. State is JSON files and the inbox is a single process.
+**Limitations**: live verification is partial and the reason is mundane (API credit). No linter. Browser coverage is a smoke suite of the showcase. Tested on macOS, and on Linux only through CI; the npm scripts need a POSIX shell. State is JSON files and the inbox is a single process.
 
 **Self-assessment: 20 of 25.** Everything that can be verified without a paid model call has been, repeatedly. The deduction is for the live path not having been seen end to end after the latest changes.
 
@@ -117,7 +117,7 @@ Every claim below names the file that implements it and the evidence that it wor
 | Text documents only | Financial usefulness | PDF intake was left out of the final sprint on purpose |
 | Trusted records for resolution are fixtures | Financial usefulness | Obtaining a confirmation from a vendor is outside the sandbox |
 | One synthetic company, sixteen documents | Financial usefulness, Integrity | Scope of a two-day build |
-| CI not yet observed green | Working implementation | Needs the first push |
+| CI is one workflow without the browser checks | Working implementation | The browser suite was not tried on a runner |
 
 ## Highest-impact remaining work
 

@@ -10,7 +10,7 @@
 | Live AI showcase | **BLOCKED** | One live call attempted at 22:58 CET: refused, no provider credit. Not retried |
 | Financial safety | **VERIFIED WITHIN TESTED SCOPE** | Sections C and G. Not a claim of absolute safety |
 | Local demo | **READY** | Section F |
-| GitHub submission | **CONDITIONALLY READY** | The release is committed; CI has not been observed green on GitHub |
+| GitHub submission | **CONDITIONALLY READY** | The release is on GitHub. The first CI run failed at `npm ci` and found a real defect (section F); the state after the fix is in the Actions tab |
 | Public hosted deployment | **OUT OF SCOPE** | No sign-in; the server answers on the local machine only |
 | Production banking deployment | **OUT OF SCOPE** | Synthetic data, sandbox drafts |
 
@@ -72,12 +72,14 @@ A fresh folder holding only the files that are or would be in the repository (11
 
 | Step | Result |
 |---|---|
-| `npm ci` | installs |
+| `npm ci` | installs with npm 10.8.2 on Node 20 and 22, and with npm 11.19.1 on Node 26 |
 | `npm run typecheck` | 0 errors |
 | `npm test` | 114 of 114 |
 | `npm run lab` | 12 of 12 |
 | `npm run demo` | serves the app on :8799; four scenarios run to *confirmed* over the API |
 | `npm run test:browser` | 17 of 17 |
+
+**What the first CI run found (PD-19).** `npm ci` failed on the runner: npm 10, which ships with Node 20 and 22, rejected the lockfile over an optional peer dependency inside the Mozaik packages. The clean-copy checks above had all been done with npm 11, which accepts it, so they missed this. An `overrides` entry and a lockfile regenerated with npm 10 fix it; the table above was re-run with both npm versions after the fix. Without CI this would have reached the judges.
 
 Node: `^20.19.0 || >=22.12.0` in `package.json`, which is what the build tool requires. The test suite was run on 20.20.2, 22.23.5 and 26.8.2; build and lab also on 20.20.2. The browser checks need Node 22 or newer and say so when run on 20.
 
@@ -142,7 +144,7 @@ Decisions worth knowing: text-layer PDF intake was **not** built (a parser plus 
 
 ## L. Owner actions
 
-1. Open the Actions tab on GitHub and check that the CI run for the latest commit is green on Node 20 and 22.
+1. Open the Actions tab on GitHub and check that the CI run for the latest commit is green on Node 20 and 22 (the first run, on `dba5f35`, is red by design of what it caught).
 2. Add provider credit. Then, in order and stopping at the first failure: `npm run dev` → **Start demo** → scenarios 1, 2, 3; then `npm run lab:live`; then `npm run lab:benchmark`. Record what happens, whatever it is.
 3. Resubmit the repository on build.jigjoy.ai.
 4. Rehearse the three-minute demonstration once on `npm run demo`.
