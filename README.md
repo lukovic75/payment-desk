@@ -1,6 +1,10 @@
 # Payment Desk
 
-**Payment Desk is a multi-agent financial operations system that independently verifies invoices, investigates discrepancies, and enforces payment controls before approval.** AI reads and investigates. Deterministic code controls what can be authorised.
+[![CI](https://github.com/lukovic75/payment-desk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/lukovic75/payment-desk/actions/workflows/ci.yml)
+
+**AI investigates. Code decides.**
+
+Payment Desk is a multi-agent financial operations system that independently verifies invoices, investigates discrepancies, and enforces payment controls before approval. Agents read and investigate; deterministic code controls what can be authorised.
 
 For accounts payable teams and finance managers: anyone who has to decide, invoice by invoice, whether a payment may go out. The workflow is receive, extract, verify, investigate, review, prepare an eligible payment draft.
 
@@ -362,7 +366,7 @@ A live run of the sixteen demo documents through the app on 26 November 2026 (Ha
 
 The five showcase documents of that run are in the repository (`server/data/recordings/live-2026-11-26.json`) and can be replayed in the app: three reached a decision, including the live Auditor reporting both amounts of `INV-2026-1049` on its own, and two stopped when the credit ran out. They are shown as recorded, on an earlier version of the code.
 
-Everything added after that run has been verified on the deterministic path only: reading IBANs from the quoted line, the not-applicable status, shorter agent briefs, the evidence integrity gate, the Stress Lab, the single-agent baseline, the revised prompts, the cross-check protocol, the showcase and the vendor confirmation. The last attempt to reach the provider, on 26 November at 22:58 CET, was refused for lack of credit. **No live Stress Lab run and no benchmark has completed.** A live Stress Lab scenario was started and reported, correctly, that it could not be judged because the provider refused the request.
+Everything added after that run has been verified on the deterministic path only: reading IBANs from the quoted line, the not-applicable status, shorter agent briefs, the evidence integrity gate, the Stress Lab, the single-agent baseline, the revised prompts, the cross-check protocol, the showcase and the vendor confirmation. The last attempt to reach the provider, on 26 November at 23:38 CET, was refused for lack of credit. **No live Stress Lab run and no benchmark has completed.** A live Stress Lab scenario was started and reported, correctly, that it could not be judged because the provider refused the request.
 
 One real defect was found by the Stress Lab while building it: when a document was run again after an agent failure, a loop left over from the failed attempt kept calling the model until its timeout. It now stops before its next model call, and a test covers it.
 
@@ -460,4 +464,4 @@ HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 - **Split-payment detection** groups by vendor and purchase order (or same invoice date) within a window; it does not look at history.
 - **Reference readings are hand-written** for the sixteen synthetic documents; field accuracy in the benchmark is measured against them and only on live runs.
 - **Browser coverage is a smoke suite** of seventeen checks on the showcase, outside `npm test` and outside CI. There is no linter.
-- **CI is configured, and unproven until its first run** on GitHub.
+- **CI covers install, types, tests, build and the Stress Lab** on Node 20 and 22 (Linux). It does not run the browser checks or anything with a live model. Its first run failed and caught a lockfile that npm 10 rejected; that run is still in the history.

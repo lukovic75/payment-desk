@@ -59,7 +59,7 @@ export function Overview({ snapshot, canAct, starting, onRun, onAdd }: Props) {
 			{!started ? (
 				<section className="onboard glass">
 					<div className="onboard-copy">
-						<h2>Every payment verified. Every decision accountable.</h2>
+						<h2>AI investigates. Code decides.</h2>
 						<p>Payment Desk does not trust what one AI reads from an invoice. A second agent reads the document on its own, code compares the two, exceptions are investigated, and controls in code decide what may be paid. See it on four synthetic scenarios.</p>
 						<div className="actions">
 							<a className="btn btn-primary" href={href("showcase")}><Play size={12} weight="fill" /> Start demo</a>

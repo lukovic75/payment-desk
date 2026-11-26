@@ -77,8 +77,8 @@ function Intro({ snapshot, health, canAct, recording }: { snapshot: DeskSnapshot
 			<section className="sc-hero glass">
 				<div className="sc-hero-copy">
 					<span className="sc-kicker">Payment Desk · Interactive showcase</span>
-					<h1>Every payment verified. Every decision accountable.</h1>
-					<p>Five specialised AI agents independently review each financial document, investigate discrepancies and enforce payment controls before approval.</p>
+					<h1>AI investigates. Code decides.</h1>
+					<p>Five specialised AI agents on Mozaik read each invoice, check it against trusted records and against each other, and investigate what does not agree. Controls in code decide what may be approved. Built for accounts payable teams.</p>
 					<div className="sc-actions">
 						<button type="button" className="btn btn-primary btn-lg" disabled={!canAct || busy || noKey} onClick={start}>{busy ? <Spinner /> : <Play size={13} weight="fill" />} Start demo</button>
 						<a className="btn btn-lg" href={href("overview")}>Explore workspace</a>

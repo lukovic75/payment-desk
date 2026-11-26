@@ -7,10 +7,10 @@
 | | Status | Evidence |
 |---|---|---|
 | Scripted showcase | **READY** | 17 browser checks, 114 tests, a fresh copy of the repository files runs `npm ci && npm run demo` to four confirmed scenarios |
-| Live AI showcase | **BLOCKED** | One live call attempted at 22:58 CET: refused, no provider credit. Not retried |
+| Live AI showcase | **BLOCKED** | Two single live calls, at 22:58 and 23:38 CET: both refused, no provider credit. Not retried further |
 | Financial safety | **VERIFIED WITHIN TESTED SCOPE** | Sections C and G. Not a claim of absolute safety |
 | Local demo | **READY** | Section F |
-| GitHub submission | **CONDITIONALLY READY** | The release is on GitHub. The first CI run failed at `npm ci` and found a real defect (section F); the state after the fix is in the Actions tab |
+| GitHub submission | **READY**, with live models unverified | On GitHub. CI passed on commit `4c5b2ba` (Node 20 and 22, Linux): install, types, tests, build, lab. The run before it failed at `npm ci` and found a real defect (section F) |
 | Public hosted deployment | **OUT OF SCOPE** | No sign-in; the server answers on the local machine only |
 | Production banking deployment | **OUT OF SCOPE** | Synthetic data, sandbox drafts |
 
@@ -54,7 +54,7 @@ A line of the invoice still never settles the question, and a statement without 
 | | |
 |---|---|
 | Provider and models configured | Anthropic; `claude-haiku-4-5` (Extractor, Validator, Policy) and `claude-sonnet-5-5` (Auditor, Investigator) |
-| Attempt in this pass | One live Stress Lab scenario, 26 Nov 22:58 CET: provider refused, scenario reported "could not be judged" |
+| Attempts in this pass | One live Stress Lab scenario at 22:58 CET and one at 23:38 CET on 26 Nov: provider refused both, each reported "could not be judged" |
 | Stages 1 to 3 (legitimate, account mismatch, contradictory amount) | **Not run** |
 | Live Stress Lab | **Not run** |
 | Current version verified with live models | **No** |
@@ -115,7 +115,7 @@ Not addressed, by design: authentication, roles, rate limiting, TLS. Local demo 
 |---|---|
 | README | Rewritten top: what it is, who it is for, *What to verify in three minutes* with code and test for each claim |
 | `ARCHITECTURE_PROOF.md` | New: eight claims with file, line and test |
-| `JUDGE_QA.md` | New: twenty questions |
+| `JUDGE_QA.md` | Twenty-seven questions |
 | `DEMO_GUIDE.md`, `DEMO_READINESS.md`, scorecard, QA report, test matrix | Brought in line with this release |
 | Pitch (`PITCH.md`, `PITCH-EN.md`, outside the repository) | Rewritten: 15 seconds, 60 seconds, three-minute demonstration on the showcase, and what not to say |
 | Showcase | Four acts plus an optional resolution inside the third |
@@ -144,7 +144,7 @@ Decisions worth knowing: text-layer PDF intake was **not** built (a parser plus 
 
 ## L. Owner actions
 
-1. Open the Actions tab on GitHub and check that the CI run for the latest commit is green on Node 20 and 22 (the first run, on `dba5f35`, is red by design of what it caught).
-2. Add provider credit. Then, in order and stopping at the first failure: `npm run dev` → **Start demo** → scenarios 1, 2, 3; then `npm run lab:live`; then `npm run lab:benchmark`. Record what happens, whatever it is.
-3. Resubmit the repository on build.jigjoy.ai.
+1. Add provider credit. Then, in order and stopping at the first failure: `npm run dev` → **Start demo** → scenarios 1, 2, 3; then `npm run lab:live`; then `npm run lab:benchmark`. Record what happens, whatever it is.
+2. Resubmit the repository on build.jigjoy.ai.
+3. Update the repository description on GitHub: it still says "Four concurrent Mozaik agents … SEPA payment drafts".
 4. Rehearse the three-minute demonstration once on `npm run demo`.

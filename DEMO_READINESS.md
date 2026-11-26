@@ -5,7 +5,7 @@
 | | Status |
 |---|---|
 | **Scripted showcase** | **Ready.** Verified end to end in a browser and by automated checks |
-| **Live showcase** | **Blocked, not verified on this version.** The provider account has no credit; the last live call (26 Nov, 22:58 CET) was refused |
+| **Live showcase** | **Blocked, not verified on this version.** The provider account has no credit; the last live call (26 Nov, 23:38 CET) was refused |
 | **Recorded execution** | Available. A stored live run of an earlier version, three of five scenarios complete |
 
 **Scripted showcase ready. Current live-model execution unverified.**
@@ -49,7 +49,7 @@ npm run dev              # http://localhost:5173
 | | |
 |---|---|
 | Credentials | `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` / `GEMINI_API_KEY` with matching model names) |
-| Provider credit | **None.** One attempt in the final pass, 26 Nov 22:58 CET (one live Stress Lab scenario): refused, reported as "could not be judged". Not retried |
+| Provider credit | **None.** Two single attempts in the final passes, 26 Nov 22:58 and 23:38 CET (one live Stress Lab scenario each): refused, reported as "could not be judged". Not retried further |
 | Verified on a live server | The opening screen states *Live AI*, the models and that calls cost credit; a server with no key refuses to run a scenario (503) and substitutes nothing (test) |
 | Not verified | Any scenario with live models on this version: the revised prompts, the cross-check protocol with a live Auditor, the showcase outcomes, the live Stress Lab, the benchmark |
 
@@ -81,7 +81,7 @@ It is evidence that the workflow ran with live models once. It is not verificati
 - **Trusted records are synthetic fixtures.** A contradiction about an amount is settled by a vendor confirmation and a changed account by a callback record. The desk matches a reference to a record for the right vendor, invoice or account, currency and amount; it does not contact anyone. Without a record, a person can still approve a contradiction on a written statement, recorded as *accepted by a reviewer, not verified*.
 - **Local only.** The server listens on 127.0.0.1, refuses requests from other sites and foreign hostnames, and has no sign-in. Hosting it publicly is out of scope.
 - **Browser checks are a smoke suite**, run with `npm run test:browser`, not part of `npm test` or of CI.
-- **CI is new in this release.** Its first run failed at `npm ci` and found a lockfile that npm 10 rejects, which is fixed; see the Actions tab for the current run. They need Node 22 or newer and a local Chrome or Chromium.
+- **CI** passed on commit `4c5b2ba` (Node 20 and 22, Linux): install, types, tests, build, Stress Lab. Its first run failed at `npm ci` and found a lockfile that npm 10 rejected, which is fixed. They need Node 22 or newer and a local Chrome or Chromium.
 - No sign-in; text documents only; one JSON state file; drafts are JSON, not ISO 20022.
 
 ## Recommended sequence

@@ -120,7 +120,7 @@ const base = await startServer()
 
 await check("the application starts and says what it is for", async () => {
 	await open(`${base}/#/overview`)
-	await until(`txt(".onboard h2") === "Every payment verified. Every decision accountable."`, "the opening statement on the overview")
+	await until(`txt(".onboard h2") === "AI investigates. Code decides."`, "the opening statement on the overview")
 	await until(`txt(".nav-env")?.includes("Sandbox")`, "the sandbox indicator")
 	await until(`txt(".banner.warn")?.startsWith("Scripted demo: real orchestration, predefined model responses.")`, "the scripted banner on the workspace")
 })
@@ -131,7 +131,7 @@ await check("navigation between pages works", async () => {
 await check("there is one way into the demo, and the mode is labelled as scripted, never as live", async () => {
 	await until(`$$(".bar-actions .btn-primary").length === 1 && txt(".bar-actions .btn-primary") === "Start demo"`, "one Start demo action in the top bar")
 	await click("Start demo")
-	await until(`txt(".sc-hero h1") === "Every payment verified. Every decision accountable."`, "the showcase opening")
+	await until(`txt(".sc-hero h1") === "AI investigates. Code decides."`, "the showcase opening")
 	await until(`txt(".sc-mode.current .tag") === "Scripted demo" && txt(".sc-mode.current b") === "Real orchestration, predefined model responses"`, "the scripted mode stated on the opening")
 	if (await page(`$$(".tag").some((t) => t.textContent.trim() === "Live AI")`)) throw new Error("a scripted server labelled something as Live AI")
 })

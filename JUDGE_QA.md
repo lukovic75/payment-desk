@@ -2,6 +2,12 @@
 
 Short answers, each pointing at what can be checked. Where something was not run, it says so.
 
+**Why is this a real financial problem?**
+Accounts payable pays what arrives. The two expensive mistakes are paying the same invoice twice and paying to an account that is not the vendor's because a message said the bank had changed. Catching them means comparing every invoice with the vendor master, the payment history and its own arithmetic, under time pressure. We cite no loss statistics: none were measured here.
+
+**Who would use it?**
+An accounts payable clerk or a finance controller who has to decide, invoice by invoice, whether a payment may go out, and a finance manager who has to show afterwards why it did.
+
 **Why five agents?**
 Each has one job and its own inputs. The Extractor reads the document. The Validator checks that reading against trusted records and never sees the document. The Auditor reads the document again and never sees the Extractor's reading. The Investigator runs only when a control fails or needs review. The Policy agent recommends a disposition. The split that matters is Extractor against Auditor: two readings that cannot copy each other, compared by code. See `ARCHITECTURE_PROOF.md`, proofs C and D.
 
@@ -14,11 +20,20 @@ One Mozaik runtime with a typed shared state, five agent participants plus a Des
 **Do the agents really run in parallel?**
 Validator and Auditor are two handlers on the same event, so both loops start when the reading lands. Every loop stores real start and finish times. A test asserts the overlap; the stored live run shows it on all five showcase documents (for example 3.6 s on `INV-2026-1049`). We do not quote a speed-up factor: no sequential baseline was measured.
 
+**How do agents exchange information?**
+They do not message each other. Each writes a validated result into its own slot of the shared case state through its own submit tool, and publishes a completion event. The next agent is started by that event and reads what it is allowed to read from the case. The Auditor is deliberately given less: the document only.
+
 **What happens when agents disagree?**
 Code turns the disagreement into a challenge: both values, the evidence for each, who raised it, what would settle it, a status. A different amount, currency or IBAN between the two readers blocks the payment. A document that contradicts itself is held for a person and sent to the Investigator. The challenge is kept after it ends. Showcase scenario 3 → *Inspect agent challenge*.
 
 **Can an agent approve a fraudulent payment?**
 No agent approves anything. The Policy agent recommends; code enforces the stricter of that recommendation and what the controls allow, and a blocked payment has no approve action in the API. What this does not give: detection of fraud the controls do not model. An invoice from a known vendor, to the account on file, for a plausible amount, for goods never delivered, passes. The controls catch changed accounts, duplicates, arithmetic, limits, unknown vendors, missing evidence and contradictions.
+
+**How do you prevent duplicate approvals, and decisions that land at the same time?**
+Every decision goes through one synchronous function on the server. A payment that is already approved cannot be approved again; five simultaneous approvals over HTTP give one success and four refusals. Automatic approvals take the daily budget inside the same synchronous step, so two that land together cannot both see the same remaining budget. A scenario cannot be run twice, and a duplicate invoice is blocked on vendor plus invoice number, the payment history, or the content hash. Tests: `api.test.ts`, `resolution.test.ts`, `lab.test.ts` (S08), `workflow.test.ts` 10, 11 and 11b.
+
+**Where do the financial values come from?**
+From the document, a trusted record, the policy, or a calculation over those. Every reported value has a ledger entry: a quoted line with its line number, a record id, or the inputs and method of a calculation. Select any reference in the app to open it.
 
 **What if an agent hallucinates?**
 Three layers. Output is validated against a schema; a second invalid answer fails the document closed. Every reported value needs a verbatim quote, and code checks that the quote is in the document and contains the value. A separate integrity pass re-checks every reference before anything is approved. Citations to evidence that does not exist are removed and recorded; invented policy rules change nothing. Tests: `intelligence.test.ts`.
@@ -53,11 +68,17 @@ Yes: `npm ci && npm run demo`. That is the real Mozaik runtime, loops, tools, ev
 **Has it run with live models?**
 An earlier version did, on 26 November 2026: 67 agent loops on 16 documents, 12 decided before the credit ran out. The five showcase documents of that run are replayable in the app (three decided). **The current version has not run with live models.** The last attempt, 26 November 22:58 CET, was refused for lack of credit.
 
-**Has the benchmark run?**
-No. The method and the code exist; no result does.
+**What does the benchmark establish?**
+Nothing yet: it has never completed. The method and the code exist (one agent on the stronger model against the five-agent workflow, same documents, records, controls and enforcement, with raw recommendations counted apart from enforced outcomes). If it runs, it will say how often each configuration recommends something unsafe or misses a discrepancy on ten synthetic scenarios, which is too few for statistical claims.
 
 **Does it read PDFs?**
 No. Plain-text documents only. Text-layer PDF support was considered for the final sprint and left out: it would add a parser and a new evidence-location problem (pages, reading order) with no time to test it properly.
+
+**Which parts are solid and which are sandbox only?**
+Solid within its scope: the deterministic controls, exact money arithmetic, evidence location and re-verification, the server-side decision rules, the orchestration. Sandbox only: the data, the trusted records (fixtures), the reviewer (one, no sign-in), storage (one JSON file), the payment draft (JSON, not a bank format), and hosting (local machine only).
+
+**What is the strongest advantage?**
+The authority boundary, and that it can be checked. Agents investigate and explain; code decides, and the code path is the same whether the model is live, scripted or wrong. A judge can verify it without an API key: script the Policy agent to approve everything and the controls still hold, which is what most of the workflow tests do.
 
 **What would the next commercial step be?**
 A pilot with one accounts payable team on their own approval policy: PDF intake, the vendor master and payment history from their ERP, named reviewers with four-eyes approval, and ISO 20022 output for the bank. None of that exists today.

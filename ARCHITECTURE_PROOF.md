@@ -15,6 +15,42 @@ Eight claims, each with the code that makes it true and the test or record that 
 
 No function calls the agents in sequence. Removing the Mozaik runtime removes the workflow.
 
+## One execution, from the records
+
+The same synthetic document, `INV-2026-1049`, twice. Times are the ones the desk stored; nothing is reconstructed.
+
+**Scripted Mozaik execution, current version** (the real runtime with predefined model responses; one run on the development machine, UTC):
+
+| Time | What the record says |
+|---|---|
+| 22:38:52.849 | `document.received`. Extractor loop starts, triggered by it |
+| 22:38:52.892 | Extractor calls `submit_reading`; `extraction.completed` is published at .896 |
+| 22:38:52.896 | Auditor loop starts, triggered by `extraction.completed` |
+| 22:38:52.897 | Validator loop starts, triggered by the same event |
+| 22:38:52.938 | Auditor calls `submit_independent_reading`; `audit.completed` at .939 |
+| 22:38:52.939 | Validator calls `lookup_trusted_records`, then `submit_validation` at .979; `validation.completed` |
+| 22:38:52.980 | Firewall: "exception found (stated_amounts, agent_agreement); sending to the Investigator". `investigation.requested` |
+| | Challenge on the case: `CH:contradiction:gross:1`, raised by the Auditor, `1980.00` against `1890.00` |
+| 22:38:52.981 | Investigator loop starts, triggered by the exception; `investigation.completed` at 53.023 |
+| 22:38:53.023 | Policy loop starts, triggered by `investigation.completed`; recommends NEEDS_APPROVAL |
+| 22:38:53.066 | Firewall: "held for a person". Floor NEEDS_APPROVAL, enforced NEEDS_APPROVAL |
+
+Auditor (.896 to .939) and Validator (.897 to .979) overlap for 42 ms. To reproduce: `npm run demo`, scenario 3, *Execution record*; the times will be your own.
+
+**Historical live execution, earlier version** (Haiku 4.5 and Sonnet 5.5 through Mozaik, 26 November 2026, UTC; stored in `server/data/recordings/live-2026-11-26.json`):
+
+| Agent | Model | Started | Finished | Tokens |
+|---|---|---|---|---|
+| Extractor | claude-haiku-4-5 | 13:04:55.681 | 13:05:01.283 | 3,072 |
+| Auditor | claude-sonnet-5-5 | 13:05:01.284 | 13:05:07.551 | 4,042 |
+| Validator | claude-haiku-4-5 | 13:05:01.285 | 13:05:04.878 | 3,677 |
+| Investigator | claude-sonnet-5-5 | 13:05:07.552 | 13:05:22.208 | 10,498 |
+| Policy | claude-haiku-4-5 | 13:05:22.209 | 13:05:34.410 | 5,750 |
+
+Auditor and Validator overlap for 3.6 s. The live Auditor reported both amounts (`1980.00`, `1890.00`) on its own; the payment was held. That version predates the challenge record, so the disagreement is in the Auditor's result and the control, not in a `CH:` entry.
+
+**Current-version live execution:** none. The provider account has no credit.
+
 ## Proof A: genuine orchestration
 
 | | |
@@ -102,7 +138,7 @@ Run on Node 20.20.2, 22.23.5 and 26.8.2 (macOS, Apple silicon), from a copy that
 | `npm run demo` | builds and serves the scripted showcase on http://localhost:8799 |
 | `npm run test:browser` | 17 of 17 (Node 22 or newer and a local Chrome or Chromium) |
 
-GitHub Actions runs the first five on Node 20 and 22 ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
+GitHub Actions runs the first five on Node 20 and 22, on Linux ([.github/workflows/ci.yml](.github/workflows/ci.yml)); the run on commit `4c5b2ba` passed. The run before it failed at `npm ci` and is what exposed a lockfile that npm 10 rejected.
 
 ## What is not proven here
 
