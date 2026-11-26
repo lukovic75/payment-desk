@@ -1,8 +1,8 @@
-import { CheckCircle, Hourglass, Prohibit, Tray, Warning, XCircle } from "@phosphor-icons/react"
+import { CheckCircle, Hourglass, Prohibit, Warning, XCircle } from "@phosphor-icons/react"
 import type { PaymentCase } from "./api"
 
 const MAP: Record<PaymentCase["stage"], { label: string; cls: string; icon?: React.ReactNode; live?: boolean }> = {
-	received: { label: "Received", cls: "" },
+	received: { label: "Received", cls: "chip-run", live: true },
 	extracting: { label: "Extracting", cls: "chip-run", live: true },
 	checking: { label: "Validating + auditing", cls: "chip-run", live: true },
 	deciding: { label: "Routing", cls: "chip-run", live: true },
@@ -10,11 +10,11 @@ const MAP: Record<PaymentCase["stage"], { label: string; cls: string; icon?: Rea
 	approved: { label: "Approved", cls: "chip-good", icon: <CheckCircle size={12} weight="bold" /> },
 	rejected: { label: "Rejected", cls: "chip-bad", icon: <XCircle size={12} weight="bold" /> },
 	not_a_payment: { label: "Not a payment", cls: "", icon: <Prohibit size={12} weight="bold" /> },
-	error: { label: "Error", cls: "chip-bad", icon: <Warning size={12} weight="bold" /> },
+	error: { label: "Failed", cls: "chip-bad", icon: <Warning size={12} weight="bold" /> },
 }
 
 export function StageChip({ stage }: { stage: PaymentCase["stage"] }) {
-	const m = MAP[stage] ?? { label: stage, cls: "", icon: <Tray size={12} /> }
+	const m = MAP[stage]
 	return (
 		<span className={`chip ${m.cls}`}>
 			{m.live ? <span className="dot" aria-hidden /> : m.icon}

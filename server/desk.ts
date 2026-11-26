@@ -684,6 +684,22 @@ export function getDocumentText(id: string): string | null {
 	return state.documents.get(id)?.text ?? null
 }
 
+function newCase(d: SourceDocument): PaymentCase {
+	return { id: d.id, fileName: d.fileName, receivedAt: d.receivedAt, stage: "received", extraction: emptyStep(), validation: emptyStep(), audit: emptyStep(), decision: emptyStep(), approval: null, sepa: null, timeline: [] }
+}
+
+function startExtraction(c: PaymentCase) {
+	const d = state.documents.get(c.id)!
+	c.stage = "extracting"
+	c.extraction.status = "running"
+	c.extraction.startedAt = nowIso()
+	emitCase(c)
+	startLoop(extractor, MODELS.fast, c, `Document ${c.id} (file ${d.fileName}):\n---\n${d.text}\n---\nCall submit_extraction exactly once with docId "${c.id}".`, (t) => {
+		if (t.startsWith(ERROR_MARK)) failStep(c, "extraction", t.slice(ERROR_MARK.length))
+		else if (c.extraction.status === "running") failStep(c, "extraction", "the agent finished without calling submit_extraction")
+	})
+}
+
 /** Loads the inbox and starts one Extractor loop per document, all at the same time. */
 export function runDesk(): DeskSnapshot {
 	const docs = loadDocuments()
@@ -693,21 +709,25 @@ export function runDesk(): DeskSnapshot {
 	state.tokens.clear()
 	for (const d of docs) {
 		state.documents.set(d.id, d)
-		state.cases.set(d.id, { id: d.id, fileName: d.fileName, receivedAt: d.receivedAt, stage: "received", extraction: emptyStep(), validation: emptyStep(), audit: emptyStep(), decision: emptyStep(), approval: null, sepa: null, timeline: [] })
+		state.cases.set(d.id, newCase(d))
 	}
 	emit("desk.started", snapshot())
-	for (const c of state.cases.values()) {
-		const d = state.documents.get(c.id)!
-		c.stage = "extracting"
-		c.extraction.status = "running"
-		c.extraction.startedAt = nowIso()
-		emitCase(c)
-		startLoop(extractor, MODELS.fast, c, `Document ${c.id} (file ${d.fileName}):\n---\n${d.text}\n---\nCall submit_extraction exactly once with docId "${c.id}".`, (t) => {
-			if (t.startsWith(ERROR_MARK)) failStep(c, "extraction", t.slice(ERROR_MARK.length))
-			else if (c.extraction.status === "running") failStep(c, "extraction", "the agent finished without calling submit_extraction")
-		})
-	}
+	for (const c of state.cases.values()) startExtraction(c)
 	return snapshot()
+}
+
+/** Adds one pasted document to the running desk and sends it through the same agents. */
+export function addDocument(name: string, text: string): PaymentCase {
+	const base = (name || "pasted").replace(/\.txt$/i, "").replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "pasted"
+	let id = base
+	for (let n = 2; state.cases.has(id); n++) id = `${base}-${n}`
+	const d: SourceDocument = { id, fileName: `${id}.txt`, text, receivedAt: nowIso() }
+	if (!state.startedAt) { state.startedAt = nowIso(); emit("desk.started", snapshot()) }
+	state.documents.set(id, d)
+	const c = newCase(d)
+	state.cases.set(id, c)
+	startExtraction(c)
+	return c
 }
 
 export function recordHumanDecision(id: string, decision: "approved" | "rejected", note: string | null, by = "human"): PaymentCase {

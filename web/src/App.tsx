@@ -1,133 +1,151 @@
-import { useEffect, useMemo, useState } from "react"
-import { Play, Moon, Sun, Tray, WarningCircle, Cloud } from "@phosphor-icons/react"
-import { money, startRun, useDesk, type PaymentCase } from "./api"
+import { useCallback, useEffect, useMemo, useState } from "react"
+import { CloudCheck, Moon, Play, Plus, Sun, Tray, WarningCircle } from "@phosphor-icons/react"
+import { isRunning, money, reduceMotion, startRun, useDesk, type PaymentCase } from "./api"
 import { CaseList } from "./CaseList"
 import { CaseDetail } from "./CaseDetail"
 import { Timeline } from "./Timeline"
+import { AddDocument } from "./AddDocument"
 
 export function App() {
 	const { snapshot, tokens, connected, health } = useDesk()
 	const [selected, setSelected] = useState<string | null>(null)
 	const [runErr, setRunErr] = useState<string | null>(null)
 	const [starting, setStarting] = useState(false)
+	const [adding, setAdding] = useState(false)
 	const [theme, setTheme] = useTheme()
 
 	const cases = snapshot?.cases ?? []
 	const current = useMemo(() => cases.find((c) => c.id === selected) ?? null, [cases, selected])
-	const running = cases.some((c) => ["extracting", "checking", "deciding"].includes(c.stage))
+	const running = cases.some(isRunning)
 	const awaiting = cases.filter((c) => c.stage === "awaiting_approval")
 	const approved = cases.filter((c) => c.stage === "approved")
 	const total = (list: PaymentCase[]) => list.reduce((s, c) => s + (c.extraction.result?.amount ?? 0), 0)
 	const tokenTotal = Object.values(tokens).reduce((s, t) => s + t.input + t.output, 0)
+	const calls = Object.values(tokens).reduce((s, t) => s + t.calls, 0)
+	const budgetPct = snapshot ? Math.min(100, (snapshot.dailyAutoApproved / snapshot.policy.dailyAutoApproveBudget) * 100) : 0
 
+	// The first case that needs a person is the one to open.
 	useEffect(() => {
 		if (!selected && awaiting.length > 0) setSelected(awaiting[0]!.id)
 	}, [awaiting.length, selected])
 
+	const select = useCallback((id: string) => {
+		setSelected(id)
+		if (window.innerWidth < 1024) requestAnimationFrame(() => document.getElementById("case-detail")?.scrollIntoView({ block: "start", behavior: reduceMotion() ? "auto" : "smooth" }))
+	}, [])
+
 	const run = async () => {
 		setStarting(true); setRunErr(null); setSelected(null)
-		const r = await startRun()
-		if (r.error) setRunErr(r.error)
-		setStarting(false)
+		try { await startRun() } catch (e) { setRunErr((e as Error).message) } finally { setStarting(false) }
 	}
 
-	const noKey = health && !health.hasModelKey
+	const noKey = health !== null && !health.hasModelKey
+	const canAct = !noKey && connected
 
 	return (
 		<div className="app">
-			<header className="topbar">
-				<div className="brand"><Tray size={20} weight="bold" /> Payment Desk <small>Kestrel Retail · accounts payable</small></div>
-				<div className="spacer" />
-				<div className="meta">
-					{snapshot && <span>{snapshot.models.fast} + {snapshot.models.careful}</span>}
-					{snapshot?.cloudEnabled && <span title="Mozaik Cloud trace is on: every loop is visible at app.jigjoy.ai"><Cloud size={14} style={{ verticalAlign: "-2px" }} /> Mozaik Cloud</span>}
-					<span>{connected ? "live" : "reconnecting"}</span>
+			<header className="chrome">
+				<div className="brand"><span className="mark"><Tray size={15} weight="bold" /></span>Payment Desk <span className="org">· Kestrel Retail, accounts payable</span></div>
+				<div className="grow" />
+				<div className="status">
+					{snapshot && <span className="mono">{snapshot.models.fast} + {snapshot.models.careful}</span>}
+					{snapshot?.cloudEnabled && <><span className="sep" /><span title="Mozaik Cloud trace is on: every loop is visible at app.jigjoy.ai" style={{ display: "inline-flex", gap: 6, alignItems: "center" }}><CloudCheck size={14} /> Mozaik Cloud</span></>}
+					<span className="sep" />
+					<span className={`live${connected ? "" : " off"}`}><i aria-hidden />{connected ? "live" : "reconnecting"}</span>
 				</div>
 				<button className="btn btn-icon" aria-label={theme === "dark" ? "Switch to light theme" : "Switch to dark theme"} onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
 					{theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
 				</button>
-				<button className="btn btn-primary" disabled={!!noKey || running || starting || !connected} onClick={run}>
-					<Play size={14} weight="fill" /> Process<span className="long">&nbsp;inbox{snapshot?.startedAt ? " again" : ""}</span>
+				<button className="btn" disabled={!canAct} onClick={() => setAdding(true)}><Plus size={14} weight="bold" /><span className="long">Add document</span></button>
+				<button className="btn btn-primary" disabled={!canAct || running || starting} onClick={run}>
+					<Play size={14} weight="fill" /><span>Process</span><span className="long">inbox{snapshot?.startedAt ? " again" : ""}</span>
 				</button>
 			</header>
 
 			<main className="main">
-				<aside className="list-col">
-					{noKey && (
-						<div className="banner banner-bad" style={{ marginBottom: 16 }}>
-							<WarningCircle size={18} weight="bold" />
-							<div>No model API key found, so the agents cannot think. Copy <code>.env.example</code> to <code>.env</code>, set <code>ANTHROPIC_API_KEY</code>, restart <code>npm run dev</code>.</div>
-						</div>
-					)}
-					{runErr && <div className="banner banner-bad" style={{ marginBottom: 16 }}><WarningCircle size={18} weight="bold" /><div>{runErr}</div></div>}
-
-					<div className="panel">
-						<div className="stats">
-							<div className="stat"><span className="label">Inbox</span><span className="value num">{cases.length || "9"}</span><span className="sub">documents</span></div>
-							<div className="stat"><span className="label">Needs approval</span><span className="value num">{awaiting.length}</span><span className="sub">{money(total(awaiting), "EUR")}</span></div>
-							<div className="stat"><span className="label">Approved</span><span className="value num">{approved.length}</span><span className="sub">{money(total(approved), "EUR")}</span></div>
-							<div className="stat">
-								<span className="label">Auto-approved today</span>
-								<span className="value num">{snapshot ? Math.round((snapshot.dailyAutoApproved / snapshot.policy.dailyAutoApproveBudget) * 100) : 0}%</span>
-								<span className="sub">{snapshot ? `${money(snapshot.dailyAutoApproved)} of ${money(snapshot.policy.dailyAutoApproveBudget, "EUR")}` : ""}</span>
-								<div className="budget" aria-hidden><span style={{ width: `${snapshot ? Math.min(100, (snapshot.dailyAutoApproved / snapshot.policy.dailyAutoApproveBudget) * 100) : 0}%` }} /></div>
-							</div>
-						</div>
+				{noKey && (
+					<div className="banner banner-bad">
+						<WarningCircle size={18} weight="bold" />
+						<div>No model API key found, so the agents cannot think. Copy <code>.env.example</code> to <code>.env</code>, set <code>ANTHROPIC_API_KEY</code> and restart <code>npm run dev</code>.</div>
 					</div>
+				)}
+				{runErr && <div className="banner banner-bad"><WarningCircle size={18} weight="bold" /><div>{runErr}</div></div>}
 
-					<div className="panel" style={{ marginTop: 16 }}>
+				<div className="ledger" aria-label="Desk totals">
+					<div><span className="k">Inbox</span><span className="v">{cases.length || 9} <small>documents</small></span></div>
+					<div><span className="k">Needs approval</span><span className="v">{awaiting.length} <small>{awaiting.length ? money(total(awaiting), "EUR") : ""}</small></span></div>
+					<div><span className="k">Approved</span><span className="v">{approved.length} <small>{approved.length ? money(total(approved), "EUR") : ""}</small></span></div>
+					<div>
+						<span className="k">Auto-approved today</span>
+						<span className="v">{snapshot ? money(snapshot.dailyAutoApproved) : "0.00"} <small>of {snapshot ? money(snapshot.policy.dailyAutoApproveBudget, "EUR") : ""}</small></span>
+						<span className="bar" aria-hidden><i style={{ width: `${budgetPct}%` }} /></span>
+					</div>
+					<div className="tokens"><span className="k">Model usage</span><span className="v">{tokenTotal ? `${(tokenTotal / 1000).toFixed(0)}k` : "0"} <small>tokens{calls ? ` · ${calls} calls` : ""}</small></span></div>
+				</div>
+
+				<div className="cols">
+					<aside className="panel">
 						<div className="panel-head"><h2>Cases</h2><span className="right">{running ? "processing" : snapshot?.startedAt ? "settled" : "not started"}</span></div>
 						{cases.length === 0 ? (
 							<div className="empty">
-								<Tray size={28} />
 								<h2>Nine documents are waiting</h2>
-								<p>Invoices in five languages, one payment reminder and one newsletter. Press <strong>Process inbox</strong> and four agents read them at the same time.</p>
+								<p>Invoices in five languages, a reminder that duplicates one of them, one with "new bank details", one from a vendor nobody knows, and a newsletter.</p>
+								<ol>
+									<li>Extractor reads all nine at once.</li>
+									<li>Validator and Auditor check each one in parallel.</li>
+									<li>Policy routes; you approve the exceptions.</li>
+								</ol>
+								<div className="actions">
+									<button className="btn btn-primary" disabled={!canAct || starting} onClick={run}><Play size={14} weight="fill" /> Process inbox</button>
+									<button className="btn" disabled={!canAct} onClick={() => setAdding(true)}><Plus size={14} weight="bold" /> Add your own</button>
+								</div>
 							</div>
 						) : (
-							<CaseList cases={cases} selected={selected} onSelect={(id) => { setSelected(id); if (window.innerWidth < 1024) requestAnimationFrame(() => document.getElementById("case-detail")?.scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" })) }} />
+							<CaseList cases={cases} selected={selected} onSelect={select} />
 						)}
-					</div>
-				</aside>
+					</aside>
 
-				<section style={{ display: "grid", gap: 16, minWidth: 0 }}>
-					<div className="panel">
-						<div className="panel-head">
-							<h2>Agents on one clock</h2>
-							<span className="right">{tokenTotal > 0 ? `${tokenTotal.toLocaleString()} tokens across ${Object.values(tokens).reduce((s, t) => s + t.calls, 0)} calls` : "overlapping bars ran at the same time"}</span>
+					<section style={{ display: "grid", gap: 16, minWidth: 0 }}>
+						<div className="panel">
+							<div className="panel-head">
+								<h2>Agents on one clock</h2>
+								<span className="right">{running ? "running" : snapshot?.startedAt ? "overlapping bars ran at the same time" : "one lane per agent, one bar per loop"}</span>
+							</div>
+							{snapshot && (
+								<div className="agents">
+									{snapshot.agents.map((a) => (
+										<div key={a.id} className={`agent agent-${a.name}`}>
+											<span className="swatch" />
+											<span className="name">{a.name} <small>{a.model}{tokens[a.name] ? ` · ${tokens[a.name]!.calls} calls` : ""}</small></span>
+											<span className="role">{a.role}</span>
+										</div>
+									))}
+								</div>
+							)}
+							{snapshot && <Timeline snapshot={snapshot} selected={selected} onSelect={select} />}
 						</div>
-						{snapshot && (
-							<div className="agents">
-								{snapshot.agents.map((a) => (
-									<div key={a.id} className={`agent agent-${a.name}`}>
-										<span className="agent-dot" style={{ marginTop: 6 }} />
-										<span className="name">{a.name}</span>
-										<span className="role">{a.role}</span>
-										<span className="model mono">{a.model}{tokens[a.name] ? ` · ${tokens[a.name]!.calls} calls` : ""}</span>
-									</div>
-								))}
-							</div>
-						)}
-						{snapshot && <Timeline snapshot={snapshot} />}
-					</div>
 
-					<div className="panel" style={{ minHeight: 320, scrollMarginTop: 72 }} id="case-detail">
-						{current ? (
-							<CaseDetail c={current} onChanged={() => { /* SSE delivers the update */ }} />
-						) : (
-							<div className="empty">
-								<h2>{cases.length ? "Pick a case" : "Nothing to review yet"}</h2>
-								<p>{cases.length ? "Every number in a case links back to the line of the document it came from." : "Once the inbox is processed, cases that need a human land here first."}</p>
-							</div>
-						)}
-					</div>
-				</section>
+						<div className="panel" id="case-detail" style={{ minHeight: 280, scrollMarginTop: 68 }}>
+							{current ? (
+								<CaseDetail c={current} />
+							) : (
+								<div className="empty">
+									<h2>{cases.length ? "Pick a case" : "Nothing to review yet"}</h2>
+									<p>{cases.length ? "Every number in a case links to the line of the document it came from. Use ↑ and ↓ in the list." : "Once the inbox is processed, the first case that needs a person opens here."}</p>
+								</div>
+							)}
+						</div>
+					</section>
+				</div>
 			</main>
+
+			<AddDocument open={adding} onClose={() => setAdding(false)} onAdded={(id) => { setAdding(false); select(id) }} />
 		</div>
 	)
 }
 
-function useTheme(): ["light" | "dark" | "system", (t: "light" | "dark") => void] {
-	const [theme, set] = useState<"light" | "dark" | "system">(() => {
+function useTheme(): ["light" | "dark", (t: "light" | "dark") => void] {
+	const [theme, set] = useState<"light" | "dark">(() => {
 		try { return (localStorage.getItem("pd-theme") as "light" | "dark") ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") } catch { return "light" }
 	})
 	const setTheme = (t: "light" | "dark") => {

@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { extname, join, normalize, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
-import { getDocumentText, recordHumanDecision, runDesk, snapshot, subscribe, MODELS } from "./desk.js"
+import { addDocument, getDocumentText, recordHumanDecision, runDesk, snapshot, subscribe, MODELS } from "./desk.js"
 
 const PORT = Number(process.env.API_PORT ?? 8787)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -53,6 +53,14 @@ const server = createServer(async (req, res) => {
 		if (req.method === "POST" && path === "/api/run") {
 			if (!hasKey) return json(res, 503, { error: "No model API key. Copy .env.example to .env and set ANTHROPIC_API_KEY, then restart." })
 			return json(res, 200, runDesk())
+		}
+		if (req.method === "POST" && path === "/api/documents") {
+			if (!hasKey) return json(res, 503, { error: "No model API key. Copy .env.example to .env and set ANTHROPIC_API_KEY, then restart." })
+			const body = await readBody(req)
+			const text = typeof body.text === "string" ? body.text.trim() : ""
+			if (text.length < 20) return json(res, 400, { error: "Paste the text of a document first (at least a few lines)." })
+			if (text.length > 20_000) return json(res, 400, { error: "That document is too long for the demo (max 20,000 characters)." })
+			return json(res, 200, addDocument(typeof body.name === "string" ? body.name : "", text))
 		}
 		const decision = path.match(/^\/api\/cases\/([^/]+)\/(approve|reject)$/)
 		if (req.method === "POST" && decision) {

@@ -34,7 +34,14 @@ export function useDesk(): Live {
 			es.addEventListener("desk.started", (e) => { setTokens({}); setSnapshot(JSON.parse((e as MessageEvent).data).payload) })
 			es.addEventListener("case.updated", (e) => {
 				const c: PaymentCase = JSON.parse((e as MessageEvent).data).payload
-				setSnapshot((s) => s && { ...s, cases: s.cases.map((o) => (o.id === c.id ? { ...c, timeline: c.timeline.length >= o.timeline.length ? c.timeline : o.timeline } : o)), dailyAutoApproved: dailyAuto(s.cases.map((o) => (o.id === c.id ? c : o))) })
+				setSnapshot((s) => {
+					if (!s) return s
+					const exists = s.cases.some((o) => o.id === c.id)
+					const cases = exists
+						? s.cases.map((o) => (o.id === c.id ? { ...c, timeline: c.timeline.length >= o.timeline.length ? c.timeline : o.timeline } : o))
+						: [...s.cases, c]
+					return { ...s, cases, dailyAutoApproved: dailyAuto(cases) }
+				})
 			})
 			es.addEventListener("timeline", (e) => {
 				const p = JSON.parse((e as MessageEvent).data).payload as TimelineEntry & { caseId: string }
@@ -60,15 +67,25 @@ function dailyAuto(cases: PaymentCase[]): number {
 	return cases.filter((c) => c.approval?.by === "policy" && c.approval.decision === "approved").reduce((s, c) => s + (c.extraction.result?.amount ?? 0), 0)
 }
 
-export async function startRun(): Promise<{ error?: string }> {
-	const r = await fetch("/api/run", { method: "POST" })
-	return r.ok ? {} : r.json()
+async function expectOk<T>(r: Response): Promise<T> {
+	if (!r.ok) {
+		let msg = r.statusText
+		try { msg = (await r.json()).error ?? msg } catch { /* not json */ }
+		throw new Error(msg)
+	}
+	return r.json()
+}
+
+export async function startRun(): Promise<DeskSnapshot> {
+	return expectOk(await fetch("/api/run", { method: "POST" }))
 }
 
 export async function decide(id: string, decision: "approve" | "reject", note: string): Promise<PaymentCase> {
-	const r = await fetch(`/api/cases/${encodeURIComponent(id)}/${decision}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ note }) })
-	if (!r.ok) throw new Error((await r.json()).error ?? r.statusText)
-	return r.json()
+	return expectOk(await fetch(`/api/cases/${encodeURIComponent(id)}/${decision}`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ note }) }))
+}
+
+export async function addDocument(name: string, text: string): Promise<PaymentCase> {
+	return expectOk(await fetch("/api/documents", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ name, text }) }))
 }
 
 export async function fetchDocument(id: string): Promise<string> {
@@ -78,4 +95,7 @@ export async function fetchDocument(id: string): Promise<string> {
 }
 
 export const money = (n: number | null | undefined, ccy?: string | null) =>
-	n == null ? "" : `${new Intl.NumberFormat("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)} ${ccy ?? ""}`.trim()
+	n == null ? "" : `${new Intl.NumberFormat("en-IE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)}${ccy ? ` ${ccy}` : ""}`
+
+export const isRunning = (c: PaymentCase) => ["received", "extracting", "checking", "deciding"].includes(c.stage)
+export const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches

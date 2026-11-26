@@ -20,6 +20,8 @@ Nine documents land in the inbox: invoices in five languages, a payment reminder
 
 A typical run settles all nine documents in about 20 seconds: two auto-approved, six waiting for a human, one newsletter correctly ignored.
 
+**Add document** lets you paste your own invoice (or load one of three examples: clean, changed bank details, IBAN typo) and watch the same four agents handle it live, next to the rest of the inbox.
+
 ## Run it
 
 Requirements: Node.js 20 or newer, and an API key for Anthropic (default), OpenAI or Gemini.
@@ -85,9 +87,12 @@ server/
   domain.ts      shared types (also imported by the UI)
   data/          vendors.json, policy.json, documents/*.txt (synthetic)
 web/
-  src/App.tsx          layout, stats, run control, theme
-  src/Timeline.tsx     agent loops on one clock (SVG)
-  src/CaseDetail.tsx   extraction with evidence links, validation, audit, decision, approval, SEPA, source document
+  src/App.tsx          chrome, ledger strip, run control, theme
+  src/Timeline.tsx     agent loops on one clock (SVG, hover for the case, click to open it)
+  src/CaseList.tsx     cases grouped by what they need; ↑/↓ moves through them
+  src/CaseDetail.tsx   verdict strip with approve/reject, extraction with evidence links, validation, audit, routing, SEPA, source document
+  src/AddDocument.tsx  paste a document, it runs through the desk immediately
+DESIGN.md              tokens, type, color, motion rules the UI follows
 ```
 
 ## Honest limitations
