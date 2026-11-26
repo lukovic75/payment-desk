@@ -31,6 +31,9 @@ import {
 	type SituationHandler,
 	type Tool,
 } from "@mozaik-ai/core"
+import { existsSync } from "node:fs"
+import { homedir } from "node:os"
+import { join as joinPath } from "node:path"
 import type {
 	AgentInfo, Audit, Decision, DeskSnapshot, Discrepancy, Evidence, Extraction, Issue, PaymentCase, Policy, Route,
 	SourceDocument, TimelineEntry, Validation, Vendor,
@@ -130,6 +133,21 @@ const num = (v: unknown): number | null => {
 	return null
 }
 
+/** Models name fields loosely ("Total amount", "creditor"); evidence is stored under the extraction's own keys. */
+function canonicalField(raw: string): string {
+	const k = raw.toLowerCase().replace(/[^a-z]/g, "")
+	if (/invoice|number|no$/.test(k) && !/amount/.test(k)) return "invoiceNumber"
+	if (/creditor|vendor|supplier|payee|beneficiary|name/.test(k)) return "creditorName"
+	if (/amount|total|sum|due(?!date)/.test(k) && !/date/.test(k)) return "amount"
+	if (/currency|ccy/.test(k)) return "currency"
+	if (/iban|account/.test(k)) return "iban"
+	if (/bic|swift/.test(k)) return "bic"
+	if (/due|date|deadline|echeance|fallig|dospijece|vencimiento/.test(k)) return "dueDate"
+	if (/ref|purpose|verwendungszweck|poziv/.test(k)) return "reference"
+	if (/kind|type|document/.test(k)) return "documentKind"
+	return raw
+}
+
 function freshContext(agent: Agent): ModelContext {
 	return ModelContext.create().addContextItem(DeveloperMessageItem.create(agent.getDeveloperMessage()))
 }
@@ -212,7 +230,14 @@ const submitExtraction: Tool = {
 			reference: { type: ["string", "null"], description: "payment reference the creditor asks for" },
 			evidence: {
 				type: "array",
-				items: { type: "object", properties: { field: { type: "string" }, quote: { type: "string", description: "copied verbatim from the document" } }, required: ["field", "quote"] },
+				items: {
+					type: "object",
+					properties: {
+						field: { type: "string", enum: ["invoiceNumber", "creditorName", "amount", "currency", "iban", "bic", "dueDate", "reference", "documentKind"] },
+						quote: { type: "string", description: "copied verbatim from the document" },
+					},
+					required: ["field", "quote"],
+				},
 			},
 			note: { type: "string", description: "one sentence on anything unusual" },
 		},
@@ -222,7 +247,7 @@ const submitExtraction: Tool = {
 		const c = getCase(String(args.docId))
 		const doc = getDoc(c.id)
 		const evidence: Evidence[] = Array.isArray(args.evidence)
-			? args.evidence.filter((e: any) => str(e?.field) && str(e?.quote)).map((e: any) => ({ field: e.field, quote: e.quote, line: findLine(doc.text, e.quote) }))
+			? args.evidence.filter((e: any) => str(e?.field) && str(e?.quote)).map((e: any) => ({ field: canonicalField(e.field), quote: e.quote, line: findLine(doc.text, e.quote) }))
 			: []
 		const unlocated = evidence.filter((e) => e.line === null).map((e) => e.field)
 		const x: Extraction = {
@@ -651,11 +676,7 @@ export function snapshot(): DeskSnapshot {
 }
 
 function cloudPaired(): boolean {
-	try {
-		const { existsSync } = require("node:fs") as typeof import("node:fs")
-		const { homedir } = require("node:os") as typeof import("node:os")
-		return existsSync(`${homedir()}/.mozaik/credentials.json`)
-	} catch { return false }
+	try { return existsSync(joinPath(homedir(), ".mozaik", "credentials.json")) } catch { return false }
 }
 
 export function getDocumentText(id: string): string | null {

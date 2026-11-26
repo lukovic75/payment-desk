@@ -5,7 +5,7 @@ import { extname, join, normalize, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
 import { getDocumentText, recordHumanDecision, runDesk, snapshot, subscribe, MODELS } from "./desk.js"
 
-const PORT = Number(process.env.PORT ?? 8787)
+const PORT = Number(process.env.API_PORT ?? 8787)
 const here = dirname(fileURLToPath(import.meta.url))
 const WEB_DIST = join(here, "..", "web", "dist")
 const hasKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)
