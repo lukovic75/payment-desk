@@ -4,6 +4,8 @@ A team of four Mozaik agents that turns a messy accounts-payable inbox into revi
 
 Built for the JigJoy Black Friday AI Hackathon (track: Agents in Finance), 26-27 November 2026.
 
+![Payment Desk after one run: nine Extractor loops, then Validator and Auditor side by side, then Policy](docs/payment-desk.jpg)
+
 ## What it does
 
 Nine documents land in the inbox: invoices in five languages, a payment reminder that duplicates an invoice, an invoice whose "new bank details" differ from the vendor master (the classic invoice-fraud pattern), an invoice from an unknown vendor, and a newsletter. Press **Process inbox** and:
