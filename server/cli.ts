@@ -1,4 +1,5 @@
 /** Headless run: processes the inbox, prints what each agent found, exits. `npm run cli` */
+import "dotenv/config"
 import { isSettled, runDesk, snapshot, subscribe, MODELS } from "./desk.js"
 
 if (!process.env.ANTHROPIC_API_KEY && !process.env.OPENAI_API_KEY && !process.env.GEMINI_API_KEY) {

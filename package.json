@@ -6,19 +6,20 @@
   "description": "A team of concurrent Mozaik agents that turns supplier invoices into reviewed SEPA payment drafts, with a human approving anything above policy.",
   "scripts": {
     "dev": "concurrently -n server,web -c blue,magenta \"npm:dev:server\" \"npm:dev:web\"",
-    "dev:server": "tsx watch --env-file-if-exists=.env server/index.ts",
+    "dev:server": "tsx watch server/index.ts",
     "dev:web": "vite --config web/vite.config.ts",
-    "cli": "tsx --env-file-if-exists=.env server/cli.ts",
+    "cli": "tsx server/cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
     "build": "vite build --config web/vite.config.ts",
-    "start": "NODE_ENV=production tsx --env-file-if-exists=.env server/index.ts"
+    "start": "NODE_ENV=production tsx server/index.ts"
   },
   "engines": {
-    "node": ">=20.6"
+    "node": ">=20"
   },
   "dependencies": {
     "@mozaik-ai/core": "^6.0.0",
     "@phosphor-icons/react": "^2.1.10",
+    "dotenv": "^18.0.10",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

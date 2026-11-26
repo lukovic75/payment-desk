@@ -22,7 +22,7 @@ A typical run settles all nine documents in about 20 seconds: two auto-approved,
 
 ## Run it
 
-Requirements: Node.js 20.6 or newer, and an API key for Anthropic (default), OpenAI or Gemini.
+Requirements: Node.js 20 or newer, and an API key for Anthropic (default), OpenAI or Gemini.
 
 ```bash
 npm install

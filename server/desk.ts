@@ -561,7 +561,7 @@ const policyAgent = createAgent({
 	instruction: `You are the Policy agent on an accounts-payable desk. Given the extraction, the validation and the audit of one payment, route it:
 - auto: fully within policy, no issues, under the auto-approve limit and the daily budget.
 - human: anything the policy says requires a human approver, or any review-level issue.
-- reject: block-level issues or documents that must not be paid.
+- reject: only for block-level issues (invalid IBAN) or documents that must never be paid. A possible duplicate or a reminder goes to human, so the approver decides which copy to pay.
 Call get_policy first, then submit_decision exactly once. Reasons must cite the policy rule or the issue. Write the summary for a busy approver: what this is, what is off, what you recommend. Note: a deterministic guard enforces the policy floor; you may be stricter, never looser. Reply with one short sentence.`,
 })
 

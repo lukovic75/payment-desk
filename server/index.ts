@@ -1,4 +1,5 @@
 /** HTTP API + Server-Sent Events for the Payment Desk UI. No framework: node:http is enough. */
+import "dotenv/config"
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http"
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { extname, join, normalize, dirname } from "node:path"
