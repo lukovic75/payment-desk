@@ -1,0 +1,20 @@
+From: office@adriatic-dev.example
+To: ap@kestrel-retail.example
+Subject: Invoice 0102/2026 - warehouse integration, milestone 3
+
+ADRIATIC DEV d.o.o.
+Ulica grada Vukovara 269, 10000 Zagreb, Croatia
+OIB: 12345678901
+
+INVOICE 0102/2026
+Invoice date: 24 November 2026
+Due date: 24 December 2026
+Purchase order: PO-7781
+
+Warehouse integration, milestone 3                    1  1,800.00   1,800.00
+                                                          TOTAL EUR 1,800.00
+
+Payment details:
+IBAN: HR12 1001 0051 8630 0016 0
+BIC: NBHRHR2XXXX
+Payment reference: 0102-2026

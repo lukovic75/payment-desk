@@ -48,7 +48,7 @@ export function Shell(p: ShellProps) {
 							{icon}
 							<span data-short={SHORT[view]}>{TITLES[view]}</span>
 							{view === "inbox" && counts.inbox > 0 && <i className="nav-count">{counts.inbox}</i>}
-							{view === "queue" && counts.queue > 0 && <i className="nav-count attn" aria-label={`${counts.queue} waiting for approval`}>{counts.queue}</i>}
+							{view === "queue" && counts.queue > 0 && <i className="nav-count attn" aria-label={`${counts.queue} blocked or waiting for approval`}>{counts.queue}</i>}
 							{view === "activity" && counts.running && <i className="nav-live" aria-label="agents are running" />}
 						</a>
 					))}
@@ -74,7 +74,7 @@ export function Shell(p: ShellProps) {
 							<i aria-hidden />Server <b>{link.state === "live" ? "live" : link.state === "connecting" ? "connecting" : "reconnecting"}</b>
 						</span>
 						{snapshot && (
-							<span className={`sys ${live ? "ok" : ""}`} title="The Mozaik runtime runs inside the desk server: four agents, the desk and an observer are joined to it. Cloud trace shows whether this machine is paired with Mozaik Cloud.">
+							<span className={`sys ${live ? "ok" : ""}`} title="The Mozaik runtime runs inside the desk server: five agents, the firewall, the desk and an observer are joined to it. Cloud trace shows whether this machine is paired with Mozaik Cloud.">
 								<i aria-hidden />Mozaik <b>{live ? `${snapshot.runtime.participants} participants` : "unknown"}</b>
 								<span className="muted sys-extra">· cloud trace {snapshot.cloudEnabled ? "on" : "off"}</span>
 							</span>
@@ -93,7 +93,7 @@ export function Shell(p: ShellProps) {
 						</button>
 						<button className="btn" disabled={!p.canAct} onClick={p.onAdd}><Plus size={14} weight="bold" /><span className="wide">Add document</span></button>
 						<button className="btn btn-primary" disabled={!p.canAct || counts.running || p.starting} onClick={p.onRun}>
-							{p.starting ? <Spinner /> : <Play size={13} weight="fill" />}<span>Process<span className="wide"> inbox{snapshot?.startedAt ? " again" : ""}</span></span>
+							{p.starting ? <Spinner /> : <Play size={13} weight="fill" />}<span>Run<span className="wide"> demo scenarios{counts.inbox ? " again" : ""}</span></span>
 						</button>
 					</div>
 				</header>

@@ -9,7 +9,7 @@ import { Prov } from "../components/bits"
 const ACTORS: { key: "all" | ActorKind; label: string }[] = [
 	{ key: "all", label: "Everyone" },
 	{ key: "agent", label: "Agents" },
-	{ key: "guard", label: "Policy guard" },
+	{ key: "firewall", label: "Firewall" },
 	{ key: "human", label: "People" },
 	{ key: "desk", label: "Desk" },
 ]
@@ -24,8 +24,9 @@ export function Audit({ snapshot }: { snapshot: DeskSnapshot }) {
 	const shown = all.filter((e) => (actor === "all" || e.actorKind === actor) && (pay === "all" || e.caseId === pay) && (!needle || `${e.actor} ${e.title} ${e.caseId} ${e.detail}`.toLowerCase().includes(needle)))
 
 	const exportJson = () => {
+		const body = { exportedAt: new Date().toISOString(), note: "Synthetic data. Sandbox demonstration.", events: shown, reviews: snapshot.cases.flatMap((c) => c.review.map((r) => ({ caseId: c.id, ...r }))) }
 		const a = document.createElement("a")
-		a.href = URL.createObjectURL(new Blob([JSON.stringify(shown, null, 2)], { type: "application/json" }))
+		a.href = URL.createObjectURL(new Blob([JSON.stringify(body, null, 2)], { type: "application/json" }))
 		a.download = `payment-desk-audit-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`
 		a.click()
 		URL.revokeObjectURL(a.href)
@@ -47,7 +48,7 @@ export function Audit({ snapshot }: { snapshot: DeskSnapshot }) {
 					<button className="btn" onClick={exportJson} disabled={shown.length === 0}><DownloadSimple size={14} /> Export JSON</button>
 				</div>
 				{all.length === 0 ? (
-					<div className="empty"><h2>No events yet</h2><p>Once documents are processed, every agent step, guard decision and human approval is recorded here with its time and actor.</p></div>
+					<div className="empty"><h2>No events yet</h2><p>Once documents are processed, every agent step, firewall decision and human action is recorded here with its time and actor.</p></div>
 				) : shown.length === 0 ? (
 					<div className="empty"><h2>No events match</h2><p>Nothing in the trail matches this search and these filters.</p><div className="actions"><button className="btn" onClick={() => { setQ(""); setActor("all"); setPay("all") }}>Clear search and filters</button></div></div>
 				) : (
@@ -57,7 +58,7 @@ export function Audit({ snapshot }: { snapshot: DeskSnapshot }) {
 							<div className={`tr${e.kind === "error" ? " err" : ""}`} key={i}>
 								<span className="t">{clock(e.at)}</span>
 								<span className={`who agent-${e.actor}`}>
-									{e.actorKind === "agent" ? <><span className="swatch" />{e.actor}</> : e.actorKind === "human" ? <Prov kind="human" label="Human" /> : e.actorKind === "guard" ? <Prov kind="computed" label="Policy guard" /> : <span className="muted">Desk</span>}
+									{e.actorKind === "agent" ? <><span className="swatch" />{e.actor}</> : e.actorKind === "human" ? <Prov kind="human" label={e.actor} /> : e.actorKind === "firewall" ? <Prov kind="computed" label="Firewall" /> : <span className="muted">Desk</span>}
 								</span>
 								<a className="pay truncate" href={href("inbox", e.caseId)}>{e.title}</a>
 								<span className="wide soft">{e.detail}</span>
@@ -66,7 +67,7 @@ export function Audit({ snapshot }: { snapshot: DeskSnapshot }) {
 					</div>
 				)}
 			</section>
-			<p className="muted" style={{ fontSize: "var(--fs-12)", maxWidth: "80ch" }}>The trail lives in the desk server's memory for this run. Processing the inbox again starts a new one, so export what you need to keep.</p>
+			<p className="muted" style={{ fontSize: "var(--fs-12)", maxWidth: "84ch" }}>{snapshot.persisted ? "The trail is saved with the case state on this machine and survives a server restart." : "The trail lives in memory for this run."} Running the demo scenarios again replaces the demo cases, so export what you need to keep. Human actions are recorded as “{snapshot.reviewer}”: this build has no sign-in.</p>
 		</main>
 	)
 }

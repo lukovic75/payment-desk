@@ -11,7 +11,9 @@
     "cli": "tsx server/cli.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",
     "build": "vite build --config web/vite.config.ts",
-    "start": "NODE_ENV=production tsx server/index.ts"
+    "start": "NODE_ENV=production tsx server/index.ts",
+    "test": "node --import tsx --test server/test/*.test.ts",
+    "dev:scripted": "DESK_SCRIPTED=1 DESK_PERSIST=off MOZAIK_CREDENTIALS_FILE=/nonexistent API_PORT=8799 tsx server/index.ts"
   },
   "engines": {
     "node": ">=20"
@@ -23,7 +25,8 @@
     "@phosphor-icons/react": "^2.1.10",
     "dotenv": "^18.0.10",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^26.6.11",

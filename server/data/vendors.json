@@ -1,68 +1,9 @@
 [
-  {
-    "id": "V-001",
-    "name": "Nordlicht Logistik GmbH",
-    "country": "DE",
-    "iban": "DE89370400440532013000",
-    "bic": "COBADEFFXXX",
-    "vatId": "DE811234567",
-    "currency": "EUR",
-    "paymentTermsDays": 30,
-    "approvedSince": "2023-02-14"
-  },
-  {
-    "id": "V-002",
-    "name": "Atelier Lumière SAS",
-    "country": "FR",
-    "iban": "FR7630006000011234567890189",
-    "bic": "AGRIFRPPXXX",
-    "vatId": "FR12345678901",
-    "currency": "EUR",
-    "paymentTermsDays": 45,
-    "approvedSince": "2022-09-01"
-  },
-  {
-    "id": "V-003",
-    "name": "Tulp Cloud B.V.",
-    "country": "NL",
-    "iban": "NL91ABNA0417164300",
-    "bic": "ABNANL2AXXX",
-    "vatId": "NL123456789B01",
-    "currency": "EUR",
-    "paymentTermsDays": 14,
-    "approvedSince": "2024-05-20"
-  },
-  {
-    "id": "V-004",
-    "name": "Iberia Office Supplies S.L.",
-    "country": "ES",
-    "iban": "ES9121000418450200051332",
-    "bic": "CAIXESBBXXX",
-    "vatId": "ESB12345678",
-    "currency": "EUR",
-    "paymentTermsDays": 30,
-    "approvedSince": "2021-11-03"
-  },
-  {
-    "id": "V-005",
-    "name": "Alpenstrom Energie AG",
-    "country": "AT",
-    "iban": "AT611904300234573201",
-    "bic": "BKAUATWWXXX",
-    "vatId": "ATU12345678",
-    "currency": "EUR",
-    "paymentTermsDays": 21,
-    "approvedSince": "2020-01-15"
-  },
-  {
-    "id": "V-006",
-    "name": "Adriatic Dev d.o.o.",
-    "country": "HR",
-    "iban": "HR1210010051863000160",
-    "bic": "NBHRHR2XXXX",
-    "vatId": "HR12345678901",
-    "currency": "EUR",
-    "paymentTermsDays": 30,
-    "approvedSince": "2024-10-10"
-  }
+  { "id": "V-001", "name": "Nordlicht Logistik GmbH", "country": "DE", "iban": "DE89370400440532013000", "bic": "COBADEFFXXX", "vatId": "DE811234567", "currency": "EUR", "paymentTermsDays": 30, "approvedSince": "2023-02-14" },
+  { "id": "V-002", "name": "Atelier Lumière SAS", "country": "FR", "iban": "FR7630006000011234567890189", "bic": "AGRIFRPPXXX", "vatId": "FR12345678901", "currency": "EUR", "paymentTermsDays": 45, "approvedSince": "2022-09-01" },
+  { "id": "V-003", "name": "Tulp Cloud B.V.", "country": "NL", "iban": "NL91ABNA0417164300", "bic": "ABNANL2AXXX", "vatId": "NL123456789B01", "currency": "EUR", "paymentTermsDays": 14, "approvedSince": "2024-05-20" },
+  { "id": "V-004", "name": "Iberia Office Supplies S.L.", "country": "ES", "iban": "ES9121000418450200051332", "bic": "CAIXESBBXXX", "vatId": "ESB12345678", "currency": "EUR", "paymentTermsDays": 30, "approvedSince": "2021-11-03" },
+  { "id": "V-005", "name": "Alpenstrom Energie AG", "country": "AT", "iban": "AT611904300234573201", "bic": "BKAUATWWXXX", "vatId": "ATU12345678", "currency": "EUR", "paymentTermsDays": 21, "approvedSince": "2020-01-15" },
+  { "id": "V-006", "name": "Adriatic Dev d.o.o.", "country": "HR", "iban": "HR1210010051863000160", "bic": "NBHRHR2XXXX", "vatId": "HR12345678901", "currency": "EUR", "paymentTermsDays": 30, "approvedSince": "2024-10-10" },
+  { "id": "V-007", "name": "Baltic Print OÜ", "country": "EE", "iban": "EE382200221020145685", "bic": "HABAEE2XXXX", "vatId": "EE101234567", "currency": "EUR", "paymentTermsDays": 30, "approvedSince": "2025-03-04" }
 ]

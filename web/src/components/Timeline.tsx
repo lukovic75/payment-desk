@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import { AGENTS, overlapMs, type AgentName, type Loop } from "../lib/derive"
-import { clock, duration } from "../lib/format"
+import { clock, count, duration } from "../lib/format"
 
 type Props = {
-	/** Loops to draw: the whole inbox, or one payment's. All come from recorded orchestration events. */
+	/** Loops to draw: the whole inbox, or one payment's. All come from the run records the server keeps. */
 	loops: Loop[]
 	scope: "inbox" | "case"
 	live: boolean
@@ -11,6 +11,8 @@ type Props = {
 	selected?: string | null
 	onSelect?: (caseId: string) => void
 	empty?: string
+	/** A shorter chart for the overview. */
+	compact?: boolean
 }
 
 type Placed = Loop & { row: number }
@@ -60,7 +62,7 @@ const tickLabel = (ms: number, step: number) => {
  * Agent loops on one shared clock. One lane per agent, one bar per loop, sub-rows where loops overlap,
  * so concurrency is visible as overlap. Idle stretches longer than a few seconds are folded and labelled.
  */
-export function Timeline({ loops, scope, live, selected = null, onSelect, empty }: Props) {
+export function Timeline({ loops, scope, live, selected = null, onSelect, empty, compact = false }: Props) {
 	const [ref, width] = useWidth()
 	const now = useNow(live)
 	const [tip, setTip] = useState<{ x: number; y: number; loop: Placed } | null>(null)
@@ -68,18 +70,20 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty 
 
 	const model = useMemo(() => {
 		if (loops.length === 0 || width < 120) return null
-		const ROW = isCase ? 26 : 10
-		const BAR = isCase ? 12 : 6
+		// many loops per lane: thinner rows, so the whole inbox stays on one screen
+		const dense = !isCase && (compact || loops.length > 36)
+		const ROW = isCase ? 24 : dense ? (compact ? 5 : 7) : 10
+		const BAR = isCase ? 12 : dense ? (compact ? 3 : 5) : 6
 		const PAD = isCase ? 0 : 10
-		const LEFT = width < 520 ? 74 : 92
+		const LEFT = width < 520 ? 82 : 100
 		const RIGHT = isCase ? 58 : 10
 		const TOP = isCase ? 14 : 6
+		const lanes = AGENTS.filter((a) => !isCase || a !== "Investigator" || loops.some((l) => l.agent === "Investigator"))
 
-		// pack each lane's overlapping loops into sub-rows
 		const placed: Placed[] = []
 		const rows = new Map<AgentName, number>()
 		const liveLane = new Map<AgentName, boolean>()
-		for (const lane of AGENTS) {
+		for (const lane of lanes) {
 			const mine = loops.filter((l) => l.agent === lane).sort((a, b) => a.start - b.start)
 			const ends: number[] = []
 			for (const l of mine) {
@@ -93,10 +97,9 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty 
 		}
 		const laneTop = new Map<AgentName, number>()
 		let y = TOP
-		for (const lane of AGENTS) { laneTop.set(lane, y); y += rows.get(lane)! * ROW + PAD }
+		for (const lane of lanes) { laneTop.set(lane, y); y += rows.get(lane)! * ROW + PAD }
 		const bottom = y - PAD + 2
 
-		// time scale with folded idle gaps
 		const spans = loops.map((l) => [l.start, l.end ?? now] as [number, number]).sort((a, b) => a[0] - b[0])
 		const clusters: Cluster[] = []
 		for (const [s, e] of spans) {
@@ -129,18 +132,18 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty 
 		const gaps = clusters.slice(1).map((c, i) => ({ x: c.x0 - GAP_W / 2, idle: c.start - clusters[i]!.end }))
 		const clear = ticks.filter((t) => !gaps.some((g) => Math.abs(g.x - t.x) < 52))
 		const barY = (l: Placed) => laneTop.get(l.agent)! + l.row * ROW + (ROW - BAR) / 2
-		return { ROW, BAR, LEFT, RIGHT, TOP, placed, rows, liveLane, laneTop, bottom, height: bottom + 18, x, ticks: clear, gaps, t0, barY }
-	}, [loops, width, now, isCase])
+		return { ROW, BAR, LEFT, RIGHT, TOP, lanes, placed, rows, liveLane, laneTop, bottom, height: bottom + 18, x, ticks: clear, gaps, t0, barY }
+	}, [loops, width, now, isCase, compact])
 
 	if (loops.length === 0) return <div className="tl-empty" ref={ref}>{empty ?? "Agent activity draws here once documents are processed: one lane per agent, one bar per loop."}</div>
 
 	const focus = isCase ? loops[0]!.caseId : tip?.loop.caseId ?? selected
 	const m = model
-	// dependencies of the focused payment: Extractor → Validator + Auditor → Policy (last loop per agent)
+	// dependencies of the focused payment (latest loop per agent): Extractor → Validator + Auditor → [Investigator] → Policy
 	const dep = (() => {
 		if (!m || !focus) return null
 		const of = (a: AgentName) => m.placed.filter((l) => l.caseId === focus && l.agent === a).pop()
-		return { e: of("Extractor"), v: of("Validator"), a: of("Auditor"), p: of("Policy") }
+		return { e: of("Extractor"), v: of("Validator"), a: of("Auditor"), i: of("Investigator"), p: of("Policy") }
 	})()
 	const mid = (l: Placed) => m!.barY(l) + m!.BAR / 2
 	const curve = (from: Placed, to: Placed) => {
@@ -148,6 +151,11 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty 
 		const dy = y2 - y1
 		return `M ${x1} ${y1} C ${x1 + 6} ${y1 + dy * 0.55}, ${x2 - 6} ${y1 + dy * 0.45}, ${x2} ${y2}`
 	}
+	const links: [Placed, Placed][] = []
+	if (dep?.e) for (const to of [dep.v, dep.a]) if (to) links.push([dep.e, to])
+	const next = dep?.i ?? dep?.p
+	if (next) for (const from of [dep?.v, dep?.a]) if (from && from.end != null) links.push([from, next])
+	if (dep?.i && dep.p && dep.i.end != null) links.push([dep.i, dep.p])
 	const par = dep && isCase && dep.v && dep.a ? { ms: overlapMs(dep.v, dep.a, now), x1: m!.x(Math.max(dep.v.start, dep.a.start)), x2: m!.x(Math.min(dep.v.end ?? now, dep.a.end ?? now)) } : null
 
 	return (
@@ -167,20 +175,22 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty 
 								<text className="gap-l" x={g.x} y={m.height - 4} textAnchor="middle">idle {duration(g.idle)}</text>
 							</g>
 						))}
-						{AGENTS.map((lane, i) => {
+						{m.lanes.map((lane, i) => {
 							const top = m.laneTop.get(lane)!
 							const h = m.rows.get(lane)! * m.ROW
 							const n = m.placed.filter((l) => l.agent === lane).length
+							const two = n > 1 && !isCase
 							return (
 								<g key={lane} className={`agent-${lane}`}>
 									{i > 0 && !isCase && <line className="sep" x1={m.LEFT} x2={width - m.RIGHT} y1={top - 5} y2={top - 5} />}
-									<circle className={`lane-dot${m.liveLane.get(lane) ? " on" : ""}`} cx={4} cy={top + h / 2 - (n > 1 && !isCase ? 5 : 0)} r={3} />
-									<text className="lane" x={13} y={top + h / 2 + (n > 1 && !isCase ? -1 : 4)}>{lane}</text>
-									{n > 1 && !isCase && <text className="lane-n" x={13} y={top + h / 2 + 11}>{n} loops</text>}
+									<circle className={`lane-dot${m.liveLane.get(lane) ? " on" : ""}`} cx={4} cy={top + h / 2 - (two ? 5 : 0)} r={3} />
+									<text className="lane" x={13} y={top + h / 2 + (two ? -1 : 4)}>{lane}</text>
+									{two && <text className="lane-n" x={13} y={top + h / 2 + 11}>{n} loops</text>}
+									{n === 0 && !isCase && <text className="lane-n" x={m.LEFT + 4} y={top + h / 2 + 3}>{lane === "Investigator" ? "called only on an exception" : ""}</text>}
 								</g>
 							)
 						})}
-						{par && par.ms > 0 && dep?.v && dep.a && (
+						{par && par.ms > 0 && (
 							<g>
 								<rect className="par" x={par.x1} y={m.laneTop.get("Validator")! + 2} width={Math.max(1, par.x2 - par.x1)} height={m.ROW * 2 - 4} rx={3} />
 								<line className="par-edge" x1={par.x1} x2={par.x1} y1={m.laneTop.get("Validator")!} y2={m.laneTop.get("Auditor")! + m.ROW} />
@@ -200,11 +210,8 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty 
 								</g>
 							)
 						})}
-						{dep?.e && [dep.v, dep.a].map((to, i) => to && (
-							<g key={`ea${i}`}><path className="dep" d={curve(dep.e!, to)} /><circle className="dep-dot" cx={m.x(to.start)} cy={mid(to)} r={2} /></g>
-						))}
-						{dep?.p && [dep.v, dep.a].map((from, i) => from && from.end != null && (
-							<g key={`vp${i}`}><path className="dep" d={curve(from, dep.p!)} /><circle className="dep-dot" cx={m.x(dep.p!.start)} cy={mid(dep.p!)} r={2} /></g>
+						{links.map(([from, to], i) => (
+							<g key={`d${i}`}><path className="dep" d={curve(from, to)} /><circle className="dep-dot" cx={m.x(to.start)} cy={mid(to)} r={2} /></g>
 						))}
 						{par && par.ms > 0 && par.x2 - par.x1 > 96 && <text className="par-l" x={par.x1 + 14} y={m.laneTop.get("Auditor")! + 3}>in parallel {duration(par.ms)}</text>}
 						{live && <line className="now" x1={m.x(now)} x2={m.x(now)} y1={m.TOP - 2} y2={m.bottom} />}
@@ -214,8 +221,9 @@ export function Timeline({ loops, scope, live, selected = null, onSelect, empty 
 			{tip && m && (
 				<div className="tip" style={{ left: tip.x, top: tip.y }} role="tooltip">
 					<div><b>{tip.loop.agent}</b> · {tip.loop.title}</div>
-					<span>started {clock(new Date(tip.loop.start).toISOString())} (+{duration(tip.loop.start - m.t0)})</span>
-					<span>{tip.loop.end ? `finished ${clock(new Date(tip.loop.end).toISOString())} · ran ${duration(tip.loop.end - tip.loop.start)}` : `running for ${duration(now - tip.loop.start)}`}{tip.loop.errored ? " · failed" : ""}</span>
+					<span>started {clock(new Date(tip.loop.start).toISOString())} (+{duration(tip.loop.start - m.t0)}) · {tip.loop.run.model}</span>
+					<span>{tip.loop.end ? `finished ${clock(new Date(tip.loop.end).toISOString())} · ran ${duration(tip.loop.end - tip.loop.start)}` : `running for ${duration(now - tip.loop.start)}`}{tip.loop.errored ? ` · ${tip.loop.run.status}` : ""}</span>
+					<span>triggered by {tip.loop.run.trigger.slice(0, 60)} · {tip.loop.run.tokens ? `${count(tip.loop.run.tokens.input + tip.loop.run.tokens.output)} tokens` : "token usage unavailable"}</span>
 				</div>
 			)}
 		</div>

@@ -1,90 +1,58 @@
-/** Everything the UI derives from desk state. Pure functions over real events; nothing here invents a value. */
-import type { PaymentCase } from "./api"
+/** Everything the UI derives from desk state. Pure functions over what the server recorded; nothing here invents a value. */
+import type { AgentRun, Control, PaymentCase } from "./api"
 import { cap, plain } from "./format"
 
-export const AGENTS = ["Extractor", "Validator", "Auditor", "Policy"] as const
+export const AGENTS = ["Extractor", "Validator", "Auditor", "Investigator", "Policy"] as const
 export type AgentName = (typeof AGENTS)[number]
 
-export const isRunning = (c: PaymentCase) => ["received", "extracting", "checking", "deciding"].includes(c.stage)
+export const isRunning = (c: PaymentCase) => ["received", "extracting", "checking", "investigating", "deciding"].includes(c.stage)
+export const needsPerson = (c: PaymentCase) => c.stage === "awaiting_approval" || c.stage === "blocked"
 
 export function titleOf(c: PaymentCase): string {
+	const vendor = Object.values(c.ledger).find((e) => e.category === "vendor_record" && e.id.startsWith("V:"))
+	if (vendor?.record?.fields.name) return vendor.record.fields.name
 	const x = c.extraction.result
-	return c.checks?.vendorName ?? x?.creditorName ?? (x ? cap(x.documentKind) : c.id)
+	if (x?.creditorName) return x.creditorName
+	const same = Object.values(c.ledger).find((e) => e.id.startsWith("D:same:"))
+	if (same?.record) return `Copy of ${same.record.recordId}`
+	return x ? cap(x.documentKind) : c.id
 }
 
-// ───────── exceptions ─────────
-
-export type Exception = {
-	code: string
-	label: string
-	detail: string
-	severity: "block" | "review"
-	/** Who established it: a deterministic check or an agent's finding. */
-	by: "computed" | "agent"
+/** The outcome a case shows, including the ones that are not dispositions. */
+export function outcomeOf(c: PaymentCase): string {
+	if (c.stage === "not_a_payment") return "NOT_A_PAYMENT"
+	if (c.stage === "error") return "PROCESSING_ERROR"
+	if (c.stage === "rejected") return "REJECTED"
+	if (c.stage === "approved") return c.review.some((r) => r.action === "approve" && r.outcome === "applied") ? "APPROVED_BY_HUMAN" : "AUTO_APPROVED"
+	if (c.stage === "blocked") return "BLOCKED"
+	if (c.stage === "awaiting_approval") return "NEEDS_APPROVAL"
+	return "PROCESSING"
 }
 
-export function exceptionsOf(c: PaymentCase): Exception[] {
-	const out: Exception[] = []
-	const k = c.checks
-	if (k) {
-		if (k.ibanValid === false) out.push({ code: "iban_invalid", label: "Invalid IBAN", detail: "The IBAN fails the ISO 13616 checksum.", severity: "block", by: "computed" })
-		if (k.ibanMatchesMaster === false) out.push({ code: "bank_mismatch", label: "Bank details differ", detail: "The IBAN on the document is not the one on file for this vendor.", severity: "review", by: "computed" })
-		if (!k.vendorId) out.push({ code: "vendor_unknown", label: "Unknown vendor", detail: "The creditor is not in the vendor master.", severity: "review", by: "computed" })
-		if (k.duplicateOf) out.push({ code: "duplicate", label: "Duplicate", detail: `Same invoice as the earlier document ${k.duplicateOf}.`, severity: "review", by: "computed" })
-		if (k.duplicatedBy.length) out.push({ code: "has_duplicate", label: "Has a duplicate", detail: `A later document repeats this invoice: ${k.duplicatedBy.join(", ")}.`, severity: "review", by: "computed" })
-		if (k.overLimit) out.push({ code: "over_limit", label: "Over limit", detail: `Above the auto-approve limit of ${k.limit.toFixed(2)}.`, severity: "review", by: "computed" })
-		if (k.currencyOk === false) out.push({ code: "currency", label: "Currency", detail: "Not in the policy currency.", severity: "review", by: "computed" })
-		if (k.unsourced.length) out.push({ code: "unsourced", label: "Unsourced value", detail: `No located quote in the document for: ${k.unsourced.join(", ")}.`, severity: "review", by: "computed" })
-	}
-	if (c.audit.result && !c.audit.result.ok) out.push({ code: "audit_mismatch", label: "Audit mismatch", detail: "The Auditor found a difference between the extraction and the document.", severity: "review", by: "agent" })
-	if (c.validation.result?.disagreements.length) out.push({ code: "disagreement", label: "Agent disagreement", detail: "The Validator's report differs from the computed checks.", severity: "review", by: "computed" })
-	return out.sort((a, b) => (WEIGHT[b.code] ?? 1) - (WEIGHT[a.code] ?? 1))
-}
+// ───────── exceptions: the firewall controls that did not pass ─────────
 
-const WEIGHT: Record<string, number> = { iban_invalid: 8, bank_mismatch: 7, disagreement: 6, audit_mismatch: 5, unsourced: 5, vendor_unknown: 4, duplicate: 4, has_duplicate: 3, currency: 2, over_limit: 1 }
+export const flagged = (c: PaymentCase): Control[] =>
+	c.controls.filter((k) => k.status === "fail" || k.status === "review").sort((a, b) => rank(b) - rank(a))
+const rank = (k: Control) => (k.status === "fail" && k.severity === "block" ? 10 : k.status === "fail" ? 5 : k.id === "per_payment_limit" || k.id === "daily_limit" ? 1 : 3)
+export const isBlocking = (k: Control) => k.status === "fail" && k.severity === "block"
 /** An ordering key for the review queue, not a score shown to anyone. */
-export const riskRank = (c: PaymentCase) => exceptionsOf(c).reduce((s, e) => s + (WEIGHT[e.code] ?? 1), 0)
+export const riskRank = (c: PaymentCase) => flagged(c).reduce((s, k) => s + rank(k), 0)
 
 // ───────── agent loops ─────────
 
-export type Loop = { agent: AgentName; caseId: string; title: string; start: number; end: number | null; errored: boolean }
+export type Loop = { agent: AgentName; caseId: string; title: string; start: number; end: number | null; errored: boolean; run: AgentRun }
 
-/** One entry per agent loop, read from the timeline events the server recorded (loop.started → answer | error). */
+/** One entry per agent loop, straight from the run records the server keeps (start, finish, status, model, tokens). */
 export function loopsOf(cases: PaymentCase[]): Loop[] {
 	const loops: Loop[] = []
 	for (const c of cases) {
-		const open = new Map<string, Loop>()
 		const title = titleOf(c)
-		for (const e of c.timeline) {
-			if (!(AGENTS as readonly string[]).includes(e.agent)) continue
-			const t = Date.parse(e.at)
-			if (e.kind === "loop.started") {
-				const l: Loop = { agent: e.agent as AgentName, caseId: c.id, title, start: t, end: null, errored: false }
-				open.set(e.agent, l)
-				loops.push(l)
-			} else if ((e.kind === "answer" || e.kind === "error") && open.has(e.agent)) {
-				const l = open.get(e.agent)!
-				l.end = t
-				l.errored = e.kind === "error"
-				open.delete(e.agent)
-			}
-		}
+		for (const r of c.runs) loops.push({ agent: r.agent, caseId: c.id, title, start: Date.parse(r.startedAt), end: r.finishedAt ? Date.parse(r.finishedAt) : null, errored: r.status === "error" || r.status === "timeout", run: r })
 	}
 	return loops
 }
 
-export type Concurrency = {
-	loops: number
-	running: number
-	/** Most loops in flight at one instant. */
-	peak: number
-	/** Time during which at least one loop was running. */
-	wallMs: number
-	/** Sum of all loop durations: what a sequential run would have taken. */
-	agentMs: number
-	/** agentMs / wallMs, null until there is something to divide. */
-	speedup: number | null
-}
+export type Concurrency = { loops: number; running: number; peak: number; wallMs: number; agentMs: number; speedup: number | null }
 
 export function concurrencyOf(loops: Loop[], now: number): Concurrency {
 	const edges: [number, number][] = []
@@ -107,25 +75,36 @@ export function concurrencyOf(loops: Loop[], now: number): Concurrency {
 	return { loops: loops.length, running, peak, wallMs, agentMs, speedup: wallMs > 0 && loops.length > 1 ? agentMs / wallMs : null }
 }
 
-/** How long two loops of one case ran at the same time. */
 export function overlapMs(a: Loop | undefined, b: Loop | undefined, now: number): number {
 	if (!a || !b) return 0
 	return Math.max(0, Math.min(a.end ?? now, b.end ?? now) - Math.max(a.start, b.start))
 }
 
+/** Token usage as the provider reported it per loop. Loops without a report are counted apart, never as zero. */
+export function usageOf(loops: Loop[]): { byAgent: Record<string, { tokens: number; reported: number; loops: number }>; tokens: number; reported: number; unreported: number } {
+	const byAgent: Record<string, { tokens: number; reported: number; loops: number }> = {}
+	let tokens = 0, reported = 0, unreported = 0
+	for (const l of loops) {
+		const a = (byAgent[l.agent] ??= { tokens: 0, reported: 0, loops: 0 })
+		a.loops++
+		if (l.run.tokens) { const n = l.run.tokens.input + l.run.tokens.output; a.tokens += n; a.reported++; tokens += n; reported++ } else if (l.end != null) unreported++
+	}
+	return { byAgent, tokens, reported, unreported }
+}
+
 // ───────── audit trail ─────────
 
-export type ActorKind = "agent" | "guard" | "human" | "desk"
+export type ActorKind = "agent" | "firewall" | "human" | "desk"
 export type AuditEvent = { at: string; caseId: string; title: string; actor: string; actorKind: ActorKind; kind: string; detail: string }
 
 const actorKind = (actor: string): ActorKind =>
-	(AGENTS as readonly string[]).includes(actor) ? "agent" : actor === "PolicyGuard" ? "guard" : actor === "human" ? "human" : "desk"
+	(AGENTS as readonly string[]).includes(actor) ? "agent" : actor === "Firewall" ? "firewall" : actor === "Demo reviewer" ? "human" : "desk"
 
 export function auditOf(cases: PaymentCase[]): AuditEvent[] {
 	const out: AuditEvent[] = []
 	for (const c of cases) {
 		const title = titleOf(c)
-		out.push({ at: c.receivedAt, caseId: c.id, title, actor: "Desk", actorKind: "desk", kind: "info", detail: `document received (${c.fileName})` })
+		out.push({ at: c.receivedAt, caseId: c.id, title, actor: "Desk", actorKind: "desk", kind: "info", detail: `document received (${c.fileName}, content hash ${c.hash.slice(0, 12)}…)` })
 		for (const e of c.timeline) {
 			if (e.kind === "inference") continue
 			out.push({ at: e.at, caseId: c.id, title, actor: e.agent, actorKind: actorKind(e.agent), kind: e.kind, detail: plain(e.detail) })

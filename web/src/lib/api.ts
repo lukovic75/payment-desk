@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react"
-import type { Checks, DeskSnapshot, PaymentCase, Policy, TimelineEntry, Vendor } from "../../../server/domain"
+import type { AgentRun, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, ReviewEntry, Scenario, TimelineEntry, Vendor } from "../../../server/domain"
 
-export type { Checks, DeskSnapshot, PaymentCase, Policy, TimelineEntry, Vendor }
+export type { AgentRun, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, ReviewEntry, Scenario, TimelineEntry, Vendor }
 export type Tokens = Record<string, { input: number; output: number; calls: number }>
 export type Health = { ok: boolean; hasModelKey: boolean; models: { fast: string; careful: string } }
 export type Link = { state: "connecting" | "live" | "reconnecting"; attempts: number }
+export type Action = "approve" | "reject" | "request_verification" | "verify_beneficiary" | "reprocess"
 
 export type Desk = {
 	/** null until the first snapshot arrives. */
@@ -51,11 +52,10 @@ export function useDesk(): Desk {
 				const c: PaymentCase = data(e).payload
 				setSnapshot((s) => {
 					if (!s) return s
-					const exists = s.cases.some((o) => o.id === c.id)
-					const cases = exists
-						? s.cases.map((o) => (o.id === c.id ? { ...c, timeline: c.timeline.length >= o.timeline.length ? c.timeline : o.timeline } : o))
-						: [...s.cases, c]
-					return { ...s, cases, inboxWaiting: 0, dailyAutoApproved: dailyAuto(cases) }
+					const old = s.cases.find((o) => o.id === c.id)
+					if (old && old.version > c.version && old.attempt >= c.attempt) return s
+					const cases = old ? s.cases.map((o) => (o.id === c.id ? c : o)) : [...s.cases, c]
+					return { ...s, cases, inboxWaiting: cases.some((k) => k.origin === "demo") ? 0 : s.inboxWaiting }
 				})
 			})
 			es.addEventListener("timeline", (e) => {
@@ -78,10 +78,6 @@ export function useDesk(): Desk {
 	return { snapshot, tokens, link, health }
 }
 
-function dailyAuto(cases: PaymentCase[]): number {
-	return cases.filter((c) => c.approval?.by === "policy" && c.approval.decision === "approved").reduce((s, c) => s + (c.extraction.result?.amount ?? 0), 0)
-}
-
 async function expectOk<T>(r: Response): Promise<T> {
 	if (!r.ok) {
 		let msg = `${r.status} ${r.statusText}`
@@ -93,10 +89,12 @@ async function expectOk<T>(r: Response): Promise<T> {
 const post = (url: string, body?: unknown) =>
 	fetch(url, { method: "POST", headers: body ? { "content-type": "application/json" } : undefined, body: body ? JSON.stringify(body) : undefined })
 
-export const startRun = async (): Promise<DeskSnapshot> => expectOk(await post("/api/run"))
-export const decide = async (id: string, decision: "approve" | "reject", note: string): Promise<PaymentCase> => expectOk(await post(`/api/cases/${encodeURIComponent(id)}/${decision}`, { note }))
-export const retryCase = async (id: string): Promise<PaymentCase> => expectOk(await post(`/api/cases/${encodeURIComponent(id)}/retry`))
+export const runDemo = async (): Promise<DeskSnapshot> => expectOk(await post("/api/run"))
+export const resetDemo = async (): Promise<DeskSnapshot> => expectOk(await post("/api/reset"))
+export const act = async (id: string, action: Action, input: { reason?: string; callbackRef?: string } = {}): Promise<PaymentCase> =>
+	expectOk(await post(`/api/cases/${encodeURIComponent(id)}/actions`, { action, ...input }))
 export const addDocument = async (name: string, text: string): Promise<PaymentCase> => expectOk(await post("/api/documents", { name, text }))
+export const draftUrl = (id: string) => `/api/cases/${encodeURIComponent(id)}/draft`
 
 export async function fetchDocument(id: string): Promise<string> {
 	const r = await fetch(`/api/documents/${encodeURIComponent(id)}`)

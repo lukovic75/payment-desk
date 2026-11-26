@@ -1,0 +1,5 @@
+[
+  { "id": "H-0001", "vendorId": "V-002", "invoiceNumber": "7701", "gross": "1120.00", "currency": "EUR", "paidAt": "2026-10-28", "iban": "FR7630006000011234567890189" },
+  { "id": "H-0002", "vendorId": "V-001", "invoiceNumber": "INV-2026-0977", "gross": "1385.00", "currency": "EUR", "paidAt": "2026-10-19", "iban": "DE89370400440532013000" },
+  { "id": "H-0003", "vendorId": "V-005", "invoiceNumber": "988017", "gross": "2391.10", "currency": "EUR", "paidAt": "2026-10-30", "iban": "AT611904300234573201" }
+]

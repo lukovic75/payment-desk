@@ -1,0 +1,17 @@
+From: invoices@tulpcloud.example
+To: ap@kestrel-retail.example
+Subject: Tulp Cloud - invoice TC-20261124 (domain renewals)
+
+TULP CLOUD B.V.
+Keizersgracht 100, 1015 AA Amsterdam, The Netherlands
+VAT: NL123456789B01
+
+Invoice TC-20261124
+Issued: 24 Nov 2026 · Due: 08 Dec 2026 (14 days)
+
+Domain renewals, 10 domains x EUR 31.00               EUR   310.00
+VAT 0% (reverse charge)
+Amount due                                            EUR   310.00
+
+Please pay to our usual account.
+Reference TC-20261124

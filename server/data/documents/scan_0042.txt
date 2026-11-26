@@ -1,0 +1,23 @@
+From: compta@atelier-lumiere.example
+To: ap@kestrel-retail.example
+Subject: Facture 7733 — Luminaires collection hiver
+
+ATELIER LUMIÈRE SAS
+14 rue des Arts, 69001 Lyon, France
+TVA: FR12345678901
+
+FACTURE N° 7733
+Date: 20/11/2026
+Échéance: 04/01/2027
+
+Désignation                              Quantité    PU HT      Total HT
+Suspension "Aurore" laiton                   12    320.00     3,840.00
+Applique murale "Brume"                      20    145.00     2,900.00
+                                                   Total HT    6,740.00
+                                                   TVA 0% (livraison intracommunautaire)
+                                                   NET À PAYER EUR 6,740.00
+
+Coordonnées bancaires:
+IBAN: FR76 3000 6000 0112 3456 7890 189
+BIC: AGRIFRPPXXX
+Référence: 7733

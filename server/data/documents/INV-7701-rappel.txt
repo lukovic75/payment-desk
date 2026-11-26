@@ -1,0 +1,22 @@
+From: compta@atelier-lumiere.example
+To: ap@kestrel-retail.example
+Subject: Rappel - facture 7701
+
+ATELIER LUMIÈRE SAS
+14 rue des Arts, 69001 Lyon, France
+TVA: FR12345678901
+
+FACTURE N° 7701 (RAPPEL)
+Date: 12/10/2026
+Échéance: 26/11/2026
+
+Désignation                              Quantité    PU HT      Total HT
+Lampe de table "Brume"                        8    140.00     1,120.00
+                                                   Total HT    1,120.00
+                                                   TVA 0% (livraison intracommunautaire)
+                                                   NET À PAYER EUR 1,120.00
+
+Coordonnées bancaires:
+IBAN: FR76 3000 6000 0112 3456 7890 189
+BIC: AGRIFRPPXXX
+Référence: 7701

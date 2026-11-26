@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { ArrowsClockwise, WarningCircle } from "@phosphor-icons/react"
-import { startRun, useDesk } from "./lib/api"
-import { isRunning } from "./lib/derive"
+import { runDemo, useDesk } from "./lib/api"
+import { isRunning, needsPerson } from "./lib/derive"
 import { go, TITLES, useRoute } from "./lib/router"
 import { AddDocument } from "./components/AddDocument"
 import { Shell } from "./components/Shell"
@@ -14,7 +14,7 @@ import { Settings } from "./views/Settings"
 export type ThemeMode = "system" | "light" | "dark"
 
 export function App() {
-	const { snapshot, tokens, link, health } = useDesk()
+	const { snapshot, link, health } = useDesk()
 	const route = useRoute()
 	const [mode, setMode, theme] = useTheme()
 	const [collapsed, setCollapsed] = usePersisted("pd-nav", false)
@@ -33,7 +33,7 @@ export function App() {
 	const run = useCallback(async () => {
 		if (starting) return
 		setStarting(true); setRunErr(null)
-		try { await startRun(); if (route.view === "inbox" || route.view === "queue") go(route.view, null, true) }
+		try { await runDemo(); if (route.view === "inbox" || route.view === "queue") go(route.view, null, true) }
 		catch (e) { setRunErr((e as Error).message) }
 		finally { setStarting(false) }
 	}, [starting, route.view])
@@ -42,12 +42,15 @@ export function App() {
 		<>
 			<Shell
 				view={route.view} snapshot={snapshot} link={link}
-				counts={{ inbox: cases.length, queue: cases.filter((c) => c.stage === "awaiting_approval").length, settled: cases.filter((c) => !isRunning(c)).length, running }}
+				counts={{ inbox: cases.length, queue: cases.filter(needsPerson).length, settled: cases.filter((c) => !isRunning(c)).length, running }}
 				collapsed={collapsed} onToggleNav={() => setCollapsed(!collapsed)}
 				theme={theme} onToggleTheme={() => setMode(theme === "dark" ? "light" : "dark")}
 				canAct={canAct} starting={starting} onRun={run} onAdd={() => setAdding(true)}
 			>
 				<div style={{ minWidth: 0, display: "grid", alignContent: "start" }}>
+					{snapshot?.modelMode === "scripted" && (
+						<div style={{ padding: "12px 20px 0" }}><div className="banner warn" role="status"><WarningCircle size={16} weight="bold" /><div><b>Scripted model.</b> This server was started with the test fixture instead of a live model (<code>npm run dev:scripted</code>). The workflow, the firewall and the timings are real; the agents' words are fixed.</div></div></div>
+					)}
 					{(link.state === "reconnecting" || noKey || runErr) && (
 						<div style={{ display: "grid", gap: 8, padding: "12px 20px 0" }}>
 							{link.state === "reconnecting" && (
@@ -66,7 +69,7 @@ export function App() {
 							{runErr && (
 								<div className="banner bad" role="alert">
 									<WarningCircle size={16} weight="bold" />
-									<div><b>The inbox could not be processed.</b> {runErr}</div>
+									<div><b>The demo scenarios could not be started.</b> {runErr}</div>
 									<button className="btn btn-sm" onClick={() => setRunErr(null)}>Dismiss</button>
 								</div>
 							)}
@@ -74,9 +77,9 @@ export function App() {
 					)}
 					{snapshot == null ? <Loading failed={link.state === "reconnecting"} /> : (
 						<>
-							{route.view === "overview" && <Overview snapshot={snapshot} tokens={tokens} canAct={canAct} starting={starting} onRun={run} onAdd={() => setAdding(true)} />}
+							{route.view === "overview" && <Overview snapshot={snapshot} canAct={canAct} starting={starting} onRun={run} onAdd={() => setAdding(true)} />}
 							{(route.view === "inbox" || route.view === "queue") && <Payments snapshot={snapshot} view={route.view} id={route.id} />}
-							{route.view === "activity" && <Activity snapshot={snapshot} tokens={tokens} id={route.id} />}
+							{route.view === "activity" && <Activity snapshot={snapshot} id={route.id} />}
 							{route.view === "audit" && <Audit snapshot={snapshot} />}
 							{route.view === "settings" && <Settings snapshot={snapshot} health={health} link={link} mode={mode} onMode={setMode} />}
 						</>

@@ -1,0 +1,23 @@
+From: arved@balticprint.example
+To: ap@kestrel-retail.example
+Subject: Invoice BP-2291 - Black Friday catalogue print run
+
+BALTIC PRINT OÜ
+Telliskivi 60a, 10412 Tallinn, Estonia
+VAT: EE101234567
+
+INVOICE BP-2291
+Invoice date: 20 November 2026
+Due date: 20 December 2026
+
+Description                                   Qty     Unit       Total
+Catalogue A5, 32 pages, 1,000 copies            3   400.00    1,200.00
+Shelf talkers, set of 500                       2   150.00      300.00
+                                                    Net       1,500.00
+                                                    VAT 20%     300.00
+                                                    TOTAL EUR 1,900.00
+
+Bank details:
+IBAN: EE38 2200 2210 2014 5685
+BIC: HABAEE2XXXX
+Payment reference: BP-2291

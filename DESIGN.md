@@ -20,7 +20,7 @@ Components never hold a literal colour, size, radius, duration or curve. Colours
 | Ink | `--ink`, `--ink-2`, `--ink-3` (all at or above 4.5:1 on every surface they sit on) |
 | Accent | `--accent` (primary action, selection, running), `--accent-soft`, `--accent-line` |
 | Status | `--good`, `--warn`, `--bad` and their `-soft` backgrounds. Reserved for state |
-| Agents | `--agent-extractor / validator / auditor / policy`. The only categorical palette |
+| Agents | `--agent-extractor / validator / auditor / investigator / policy`. The only categorical palette |
 | Type | Geist and Geist Mono, self-hosted. Fixed rem scale 11 / 12 / 13 / 14 / 16 / 20 / 28 |
 | Space | 4 / 8 / 12 / 16 / 20 / 24 / 32 / 48 |
 | Radius | 6 / 8 / 10 / 12 |
@@ -35,11 +35,12 @@ Typography: body 13 px, tabular numerals everywhere, Geist Mono only for identif
 ## Structure
 
 - **Navigation.** Six destinations, each a real view. Collapsible to icons; on phones it becomes a tab bar. The review-queue badge and the "agents running" dot are live.
-- **Command bar.** Page title, real system status (event-stream state backed by a heartbeat, Mozaik runtime participants, processing progress), theme, Add document, Process inbox. One primary button.
-- **Financial summary.** Six figures in one hairline-divided strip, not six cards. Four of them link to the view that explains them.
+- **Command bar.** Page title, real system status (event-stream state backed by a heartbeat, Mozaik runtime participants, processing progress), theme, Add document, Run demo scenarios. One primary button.
+- **Financial summary.** Eight figures in one hairline-divided strip, not eight cards: processed, approved automatically, awaiting review, blocked, blocked payment exposure, duplicates and beneficiary conflicts detected, daily budget, model usage. Exposure is listed per currency and never called savings. Most link to the view that explains them.
 - **Payment list.** Two-line rows: vendor and amount, then status, the most severe exception, the invoice reference and the due date. Search, status filter, sort, ↑/↓.
-- **Payment workspace.** Identity and amount; the verdict with its reasons and the approve/reject action; payment details with a source button per value; computed checks with the conflicting IBANs side by side and the differing groups marked; the Validator's and Auditor's findings as agent statements; the policy guard's reasons apart from the Policy agent's; the source document in a sticky rail with cited lines marked; the per-payment timeline.
-- **Agent activity.** One lane per agent, one bar per loop, sub-rows where loops overlap. Hover names the payment and the times; the focused payment's dependencies are drawn (Extractor to Validator and Auditor, both to Policy) and in the one-payment view the parallel window is shaded and measured. Idle stretches are folded and labelled. Peak concurrency, agent time, wall time and their ratio are computed from the same events. A table repeats the data for keyboard and screen-reader users.
+- **Payment workspace.** Identity and amount; the verdict and only the actions the server allows (a blocked payment has no approve button; a changed beneficiary has a callback-reference form); the decision chain in three parts, never merged: what the Policy agent recommended, what the controls allow, what is in force; every firewall control with its status (pass, fail, review, unknown, not applicable), its rule id and its evidence chips; trusted record against incoming document with the differing IBAN groups marked; the Investigator's verified facts, conflicts, unknowns and steps; both agents' readings in one table; review history; the sandbox draft; the source document in a sticky rail. There are no confidence percentages anywhere: a control has a status and evidence, not a score.
+- **Evidence inspector.** Every reference is a chip. Selecting one shows the ledger entry (category, source, value as written, value as normalised, or the calculation with its inputs) and marks the line in the document. A reference that does not resolve says "no evidence".
+- **Agent activity.** One lane per agent, one bar per loop, sub-rows where loops overlap. Hover names the payment and the times; the focused payment's dependencies are drawn (Extractor to Validator and Auditor, both to the Investigator when there is an exception, then Policy) and in the one-payment view the parallel window is shaded and measured. Idle stretches are folded and labelled. Peak concurrency, agent time, wall time and their ratio are computed from the same events. A table repeats the data for keyboard and screen-reader users.
 
 ## Motion
 
@@ -58,7 +59,7 @@ Only `transform` and `opacity` animate. `prefers-reduced-motion` removes movemen
 
 ## States
 
-Initial load (skeleton in the shape of the overview), empty inbox, upload (drop, pick, paste, with size and type errors), active processing, settled, agent failure (the provider's message and "Run this document again"), partial failure (the failed step shows its error, the others keep their results), missing evidence ("no source", "quote not found"), lost server connection (banner, actions paused, status shown as unknown), no search results (with a clear-filters action), no model key.
+Initial load (skeleton in the shape of the overview), empty inbox, blocked (what blocks it and what would clear it), processing error (nothing approved, run again), scripted-model mode (a banner says the model is a test fixture), upload (drop, pick, paste, with size and type errors), active processing, settled, agent failure (the provider's message and "Run this document again"), partial failure (the failed step shows its error, the others keep their results), missing evidence ("no source", "quote not found"), lost server connection (banner, actions paused, status shown as unknown), no search results (with a clear-filters action), no model key.
 
 ## Responsive
 

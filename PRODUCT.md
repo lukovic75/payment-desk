@@ -1,10 +1,10 @@
 # Payment Desk · product context
 
-Written from the hackathon brief and the design brief supplied on 26 November 2026. Where something is an assumption rather than stated in those briefs, it says so.
+Written from the hackathon brief, the design brief and the payment-firewall brief supplied on 26 November 2026. Where something is an assumption rather than stated in those briefs, it says so.
 
 ## What it is
 
-A multi-agent accounts-payable desk. Four agents on the Mozaik runtime (Extractor, Validator, Auditor, Policy) read inbound supplier documents, extract the payment, check it against the vendor master and the original document, and route it: approve automatically, hold for a person, or reject. A deterministic guard enforces the policy floor. Approved payments become SEPA drafts; nothing is ever sent.
+A payment firewall for accounts payable. Five agents on the Mozaik runtime (Extractor, Validator, an independent Auditor, an Investigator called only on exceptions, Policy) read inbound payment requests, check them against trusted records and against each other, and recommend a disposition. A deterministic control layer decides what is allowed: approve automatically, hold for a person, or block. The stricter of the agent's recommendation and the controls is enforced. An approved payment becomes a sandbox draft; nothing is ever sent.
 
 ## Who uses it
 
@@ -18,11 +18,13 @@ Institutional, precise, fast, trustworthy. References for quality, not for copyi
 ## Hard constraints
 
 - Synthetic or public data only; no real money moves.
-- Every number has a source; nothing is fabricated, including metrics and status indicators.
+- Every number has a source; nothing is fabricated, including metrics and status indicators. No confidence scores.
+- An agent never has the authority to approve a payment the controls stop. Uncertainty is never treated as approval.
+- Suspicion is worded as suspicion: "confirmed discrepancy" or "suspected", never an accusation of fraud.
 - Not financial advice.
 - Every visible control works; no placeholder pages.
 - Dark and light themes, reduced motion, keyboard access.
 
 ## Not in scope
 
-PDF or image parsing, persistence, editing the policy or the vendor master from the UI, sending payments to a bank.
+PDF or image parsing, authentication (one "Demo reviewer"), ISO 20022 XML, editing the policy or the vendor master from the UI, sending payments to a bank.

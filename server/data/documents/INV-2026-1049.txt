@@ -1,0 +1,28 @@
+From: billing@nordlicht-logistik.example
+To: ap@kestrel-retail.example
+Subject: Invoice INV-2026-1049 - express freight
+
+Dear accounts payable team,
+
+please pay EUR 1,980.00 for the express shipment by the end of the week.
+
+NORDLICHT LOGISTIK GmbH
+Hafenstraße 12, 20457 Hamburg, Germany
+VAT ID: DE811234567
+
+INVOICE
+Invoice number: INV-2026-1049
+Invoice date: 21 November 2026
+Due date: 21 December 2026
+
+Description                                   Qty     Unit     Total
+Express freight Hamburg -> Belgrade, 4 pallets   4   410.00   1,640.00
+Express surcharge                                1   250.00     250.00
+                                                    Net      1,890.00
+                                                    VAT 0% (reverse charge)
+                                                    TOTAL EUR 1,890.00
+
+Please pay to:
+IBAN: DE89 3704 0044 0532 0130 00
+BIC: COBADEFFXXX
+Payment reference: INV-2026-1049

@@ -149,6 +149,8 @@ code, .mono { font-family: var(--font-mono); font-size: 0.94em; font-feature-set
 .tag.run { background: var(--accent-soft); color: var(--accent); }
 .tag .dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; animation: pulse 1.2s ease-in-out infinite; }
 .tag.line { background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); }
+/* A tag whose text comes from an agent can be any length: it shortens instead of widening its section. */
+.tag.fit { display: block; flex: 0 1 auto; min-width: 0; max-width: 100%; line-height: 20px; overflow: hidden; text-overflow: ellipsis; }
 .prov { display: inline-flex; align-items: center; gap: 4px; font-size: var(--fs-11); color: var(--ink-3); white-space: nowrap; font-weight: 400; }
 .prov svg { flex: none; }
 
@@ -156,6 +158,10 @@ code, .mono { font-family: var(--font-mono); font-size: 0.94em; font-feature-set
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-xl); min-width: 0; }
 .panel-head { display: flex; align-items: center; gap: var(--sp-2); min-height: 42px; padding: 0 var(--sp-4); border-bottom: 1px solid var(--line); min-width: 0; }
 .panel-head h2 { font-size: var(--fs-13); white-space: nowrap; }
+.panel-head .select { min-width: 0; }
+.panel-head .seg + .select { max-width: 240px; }
+/* On a phone a head with controls becomes two rows: the title, then its controls at full width. */
+@media (max-width: 719.98px) { .panel-head:has(.seg) { flex-wrap: wrap; row-gap: var(--sp-2); padding-block: var(--sp-2); } .panel-head:has(.seg) .right { margin-left: 0; flex: 1 1 100%; } .panel-head:has(.seg) .select { flex: 1 1 0; max-width: none; } }
 .panel-head .right { margin-left: auto; display: flex; align-items: center; gap: var(--sp-2); color: var(--ink-3); font-size: var(--fs-12); min-width: 0; }
 .panel-body { padding: var(--sp-4); }
 .linkish { display: inline-flex; align-items: center; gap: 4px; color: var(--ink-2); font-size: var(--fs-12); font-weight: 500; border-radius: var(--r-sm); transition: color var(--d-hover) ease; }

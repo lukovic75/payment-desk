@@ -1,22 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { MagnifyingGlass } from "@phosphor-icons/react"
 import type { PaymentCase } from "../lib/api"
-import { exceptionsOf, isRunning, riskRank, titleOf } from "../lib/derive"
-import { dueLabel } from "../lib/format"
+import { flagged, isRunning, needsPerson, riskRank, titleOf } from "../lib/derive"
+import { amount, dueLabel } from "../lib/format"
 import { go, href, type View } from "../lib/router"
-import { ExceptionTags, Money, StageTag } from "./bits"
+import { ControlTags, Money, StageTag, controlShort } from "./bits"
 
-type Status = "all" | "awaiting_approval" | "approved" | "rejected" | "processing" | "not_a_payment" | "error"
+type Status = "all" | "awaiting_approval" | "blocked" | "approved" | "rejected" | "processing" | "not_a_payment" | "error"
 type Sort = "received" | "risk" | "amount" | "due" | "vendor"
 
 const STATUS: { key: Status; label: string; test: (c: PaymentCase) => boolean }[] = [
 	{ key: "all", label: "All statuses", test: () => true },
+	{ key: "blocked", label: "Blocked", test: (c) => c.stage === "blocked" },
 	{ key: "awaiting_approval", label: "Needs approval", test: (c) => c.stage === "awaiting_approval" },
 	{ key: "approved", label: "Approved", test: (c) => c.stage === "approved" },
 	{ key: "rejected", label: "Rejected", test: (c) => c.stage === "rejected" },
 	{ key: "processing", label: "Processing", test: isRunning },
 	{ key: "not_a_payment", label: "Not a payment", test: (c) => c.stage === "not_a_payment" },
-	{ key: "error", label: "Failed", test: (c) => c.stage === "error" },
+	{ key: "error", label: "Processing error", test: (c) => c.stage === "error" },
 ]
 const SORTS: { key: Sort; label: string }[] = [
 	{ key: "received", label: "Received" },
@@ -28,20 +29,19 @@ const SORTS: { key: Sort; label: string }[] = [
 
 function haystack(c: PaymentCase): string {
 	const x = c.extraction.result
-	return [titleOf(c), x?.creditorName, x?.invoiceNumber, x?.reference, x?.iban, x?.amount?.toFixed(2), c.id, c.fileName, ...exceptionsOf(c).map((e) => e.label)].filter(Boolean).join(" ").toLowerCase()
+	return [titleOf(c), x?.creditorName, x?.invoiceNumber, x?.reference, x?.iban, x?.poReference, c.exposure ? amount(c.exposure.minor) : "", c.id, c.fileName, ...flagged(c).map(controlShort)].filter(Boolean).join(" ").toLowerCase()
 }
 
 export function PaymentRow({ c, view, current }: { c: PaymentCase; view: View; current?: boolean }) {
 	const x = c.extraction.result
-	const ex = exceptionsOf(c)
 	const due = x?.isPaymentRequest ? dueLabel(x.dueDate) : null
 	return (
 		<a className="row" href={href(view, c.id)} data-id={c.id} aria-current={current ? "true" : undefined}>
 			<span className="name">{titleOf(c)}</span>
-			<span className="amt"><Money value={x?.amount} ccy={x?.currency} /></span>
+			<span className="amt"><Money value={c.exposure?.minor} ccy={c.exposure?.currency} /></span>
 			<span className="meta">
 				<StageTag stage={c.stage} />
-				<ExceptionTags list={ex} max={1} />
+				<ControlTags list={flagged(c)} max={1} />
 				<span className="ref">{x?.invoiceNumber ?? c.id}</span>
 				{due && <span className={`due${due.overdue ? " over" : ""}`}>{due.text}</span>}
 			</span>
@@ -49,7 +49,7 @@ export function PaymentRow({ c, view, current }: { c: PaymentCase; view: View; c
 	)
 }
 
-/** The transaction list: search, status filter, sort, keyboard navigation. `queue` locks the filter to what needs a person. */
+/** The transaction list: search, status filter, sort, keyboard navigation. `queue` holds what needs a person: blocked and waiting. */
 export function PaymentList({ cases, view, selected }: { cases: PaymentCase[]; view: "inbox" | "queue"; selected: string | null }) {
 	const queue = view === "queue"
 	const [q, setQ] = useState("")
@@ -57,15 +57,15 @@ export function PaymentList({ cases, view, selected }: { cases: PaymentCase[]; v
 	const [sort, setSort] = useState<Sort>(queue ? "risk" : "received")
 	const ref = useRef<HTMLDivElement>(null)
 
-	const pool = useMemo(() => (queue ? cases.filter((c) => c.stage === "awaiting_approval") : cases), [cases, queue])
+	const pool = useMemo(() => (queue ? cases.filter(needsPerson) : cases), [cases, queue])
 	const shown = useMemo(() => {
 		const needle = q.trim().toLowerCase()
 		const test = STATUS.find((s) => s.key === status)!.test
 		const list = pool.filter((c) => test(c) && (!needle || haystack(c).includes(needle)))
-		const amt = (c: PaymentCase) => c.extraction.result?.amount ?? -1
+		const amt = (c: PaymentCase) => c.exposure?.minor ?? -1
 		const due = (c: PaymentCase) => c.extraction.result?.dueDate ?? "9999"
 		const by: Record<Sort, (a: PaymentCase, b: PaymentCase) => number> = {
-			received: (a, b) => a.receivedAt.localeCompare(b.receivedAt),
+			received: (a, b) => a.receivedAt.localeCompare(b.receivedAt) || a.id.localeCompare(b.id),
 			risk: (a, b) => riskRank(b) - riskRank(a) || amt(b) - amt(a),
 			amount: (a, b) => amt(b) - amt(a),
 			due: (a, b) => due(a).localeCompare(due(b)),
@@ -92,6 +92,7 @@ export function PaymentList({ cases, view, selected }: { cases: PaymentCase[]; v
 	}, [shown, selected, view])
 
 	const filtered = q.trim() !== "" || status !== "all"
+	const options = queue ? STATUS.filter((s) => ["all", "blocked", "awaiting_approval"].includes(s.key)) : STATUS
 	return (
 		<div className="list-pane" ref={ref}>
 			<div className="list-tools">
@@ -101,11 +102,9 @@ export function PaymentList({ cases, view, selected }: { cases: PaymentCase[]; v
 					<input className="input" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Vendor, invoice, IBAN, amount" spellCheck={false} />
 				</label>
 				<div className="filters">
-					{!queue && (
-						<select className="select" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value as Status)}>
-							{STATUS.map((s) => <option key={s.key} value={s.key}>{s.label} ({pool.filter(s.test).length})</option>)}
-						</select>
-					)}
+					<select className="select" aria-label="Filter by status" value={status} onChange={(e) => setStatus(e.target.value as Status)}>
+						{options.map((s) => <option key={s.key} value={s.key}>{s.label} ({pool.filter(s.test).length})</option>)}
+					</select>
 					<select className="select" aria-label="Sort" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
 						{SORTS.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
 					</select>
@@ -114,7 +113,7 @@ export function PaymentList({ cases, view, selected }: { cases: PaymentCase[]; v
 			</div>
 			<div className="list-scroll">
 				{shown.length > 0 ? (
-					<div className="rows" role="list" aria-label={queue ? "Payments waiting for approval" : "Payments"}>
+					<div className="rows" role="list" aria-label={queue ? "Payments that need a person" : "Payments"}>
 						{shown.map((c) => <div role="listitem" key={c.id}><PaymentRow c={c} view={view} current={c.id === selected} /></div>)}
 					</div>
 				) : filtered ? (
@@ -126,13 +125,13 @@ export function PaymentList({ cases, view, selected }: { cases: PaymentCase[]; v
 				) : queue ? (
 					<div className="empty">
 						<h2>Nothing is waiting for you</h2>
-						<p>{cases.length ? "Every payment is either approved, rejected or still with the agents." : "Process the inbox and payments that need a person will queue up here, exceptions first."}</p>
+						<p>{cases.length ? "Every payment is approved, rejected or still with the agents." : "Run the demo scenarios and payments that are blocked or need approval queue up here, the most serious first."}</p>
 						{cases.length > 0 && <div className="actions"><a className="btn" href={href("inbox")}>Open the inbox</a></div>}
 					</div>
 				) : (
 					<div className="empty">
-						<h2>The inbox has not been processed</h2>
-						<p>Press <b>Process inbox</b> in the top bar, or add a document of your own.</p>
+						<h2>The inbox is empty</h2>
+						<p>Press <b>Run demo scenarios</b> in the top bar, or add a document of your own.</p>
 					</div>
 				)}
 			</div>
