@@ -33,12 +33,19 @@ export type HistoricalPayment = { id: string; vendorId: string; invoiceNumber: s
 export type PurchaseOrder = { po: string; vendorId: string; description: string; amount: Minor; currency: string }
 /** Synthetic trusted evidence that a vendor confirmed a bank-detail change out of band. */
 export type Callback = { ref: string; vendorId: string; iban: string; confirmedAt: string; method: string; confirmedBy: string }
+/**
+ * A vendor's own statement of the amount payable for one invoice, held by the desk as a trusted record. It is independent
+ * of the invoice document, which is what lets it settle a document that states two amounts. Only a "verified" record
+ * counts. In this sandbox the records are synthetic fixtures (server/data/confirmations.json); the desk matches a
+ * record, it does not contact the vendor.
+ */
+export type AmountConfirmation = { ref: string; vendorId: string; invoiceNumber: string; payableAmount: Minor; currency: string; status: "verified" | "unverified"; confirmedAt: string; method: string; confirmedBy: string; version: number }
 
 export type SourceDocument = { id: string; fileName: string; text: string; hash: string; receivedAt: string }
 
 // ───────── evidence ledger ─────────
 
-export type EvidenceCategory = "source_document" | "vendor_record" | "historical_payment" | "policy" | "calculation" | "human_verification"
+export type EvidenceCategory = "source_document" | "vendor_record" | "historical_payment" | "policy" | "calculation" | "human_verification" | "vendor_confirmation"
 
 export type EvidenceEntry = {
 	id: string
@@ -141,6 +148,8 @@ export type Control = {
 	severity: "block" | "review" | "info"
 	detail: string
 	refs: string[]
+	/** Set on a review-level discrepancy that an independent trusted record has settled: the evidence id of that record. */
+	settledBy?: string
 }
 
 export type PolicyOpinion = {
@@ -166,7 +175,7 @@ export type Decision = {
 export type ReviewEntry = {
 	reviewer: string
 	at: string
-	action: "approve" | "reject" | "request_verification" | "verify_beneficiary" | "reprocess" | "withdraw_auto_approval"
+	action: "approve" | "reject" | "request_verification" | "verify_beneficiary" | "verify_amount" | "reprocess" | "withdraw_auto_approval"
 	reason: string | null
 	from: string
 	to: string

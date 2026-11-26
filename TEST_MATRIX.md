@@ -114,7 +114,7 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | U-16 | Server stops and returns under an open page | Says so, pauses actions, reconnects, shows the server's real state | PASS | Browser |
 | U-17 | Horizontal overflow, ten routes, nine widths | None | PASS | Browser |
 | U-18 | Text contrast, seven pages, both appearances | WCAG AA | PASS | Browser, measured from pixels |
-| U-19 | Automated browser suite in the repository | A smoke suite of the showcase | PASS, 16 of 16 | `npm run test:browser` |
+| U-19 | Automated browser suite in the repository | A smoke suite of the showcase | PASS, 17 of 17 | `npm run test:browser` |
 
 ## Interactive showcase
 
@@ -135,3 +135,20 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | S-13 | Provider refuses every call (injected, labelled) | Banner with the kind and the advice; scenario failed; nothing approved; nothing confirmed | PASS | browser |
 | S-14 | Showcase at 375 to 1920 px, dark and light, reduced motion | No horizontal overflow; outcome before the tall stage on a phone; no automatic replay with reduced motion | PASS | Browser, looked at |
 | S-15 | A showcase scenario with live models | | BLOCKED (provider credit) | |
+
+## Resolution with a trusted record
+
+| ID | Scenario | Expected | Result | Evidence |
+|---|---|---|---|---|
+| R-01 | Verified vendor confirmation for the right vendor, invoice, currency and amount | Cross-check matched to a record; a person still approves; the draft cites the record; both stated amounts stay on record | PASS | `resolution.test.ts`, browser |
+| R-02 | No reference, unknown, another vendor's, another invoice's, unverified, malformed, oversized, wrong type | Refused with 422; nothing attached; each attempt on record | PASS | `resolution.test.ts` |
+| R-03 | Verified confirmation that states the other amount | Payment blocked; cannot be approved; still blocked after running again | PASS | `resolution.test.ts` |
+| R-04 | Confirmation on a payment with no open amount disagreement, or a blocked one | Refused with 409 | PASS | `resolution.test.ts` |
+| R-05 | Confirmation for one invoice, another invoice of the same vendor on the desk | The other is untouched | PASS | `resolution.test.ts` |
+| R-06 | Readers disagree on the amount (blocked under R13) | A confirmation does not unblock it | PASS | `resolution.test.ts` |
+| R-07 | Same confirmation twice, approval five times at once | One attachment, one approval, one draft | PASS | `resolution.test.ts` (HTTP) |
+| R-08 | Callback of one vendor on another vendor's changed account; malformed references | Refused; both stay blocked | PASS | `resolution.test.ts` |
+| R-09 | Matching callback | Block lifted to needs-approval; callback in the ledger; original discrepancy kept; vendor master unchanged | PASS | `resolution.test.ts`, `workflow.test.ts` |
+| R-10 | Later invoice to an account a callback confirmed | Held for a person, not auto-approved, cites the callback | PASS | `resolution.test.ts` |
+| R-11 | Missing currency; currency read two ways | Blocked | PASS | `resolution.test.ts` |
+| R-12 | Request from another site, or under a foreign hostname; server on the network address | 403; not reachable | PASS (was FAIL: PD-17) | `api.test.ts` |

@@ -14,10 +14,10 @@ A finance team has to review every invoice, verify the beneficiary account, catc
 
 ## Run it
 
-Requirements: Node.js 20 or newer (22 or newer for the browser checks).
+Requirements: Node.js 20.19 or newer in the 20 line, or 22.12 or newer (22 or newer for the browser checks). macOS or Linux shell; on Windows use WSL.
 
 ```bash
-npm install
+npm ci
 npm run demo
 ```
 
@@ -46,7 +46,7 @@ Each is one synthetic document from `server/data/documents/`. Press **Next** to 
 |---|---|---|---|---|
 | 1 | Legitimate invoice | `INV-2026-1041` | Eligible: approved automatically, sandbox draft | Valid payments go through; the Investigator is not called |
 | 2 | Changed account | `INV-ES-55820` | Blocked | The IBAN on the invoice is not the one in the vendor master; a valid checksum does not show who owns an account |
-| 3 | Agents disagree | `INV-2026-1049` | Held for a person | The cover text asks for 1,980.00, the invoice total is 1,890.00; the Auditor reports both, code records a cross-check, the Investigator is called |
+| 3 | Agents disagree | `INV-2026-1049` | Held for a person | The cover text asks for 1,980.00, the invoice total is 1,890.00; the Auditor reports both, code records a cross-check, the Investigator is called. Then, optionally, resolve it with a vendor confirmation |
 | 4 | Duplicate payment | `INV-7701-rappel` | Blocked | Same vendor and invoice number as payment `H-0001` in the payment history |
 | | Prompt injection (optional) | `INV-ADR-0101` | Held for a person | Text in the document telling the AI to approve is treated as content; no permission or rule changes |
 
@@ -59,15 +59,16 @@ In scripted mode a run takes about a quarter of a second, so it is played back o
 - **Original financial evidence.** In *Check it at the source*, select any `line N` or record reference. The evidence drawer opens with the cited lines of the document or the trusted record.
 - **Cross-agent challenges.** In scenario 3, **Inspect agent challenge** opens the cross-check: both amounts, the line each comes from, who raised it and its status.
 - **Actual Mozaik execution.** *How the agents worked* shows the recorded overlap of the Validator and the Auditor and every agent loop with its start and finish. **View execution proof** opens Agent Activity → Execution details: the timeline, every loop and the Mozaik event counts.
-- **Deterministic financial controls.** **Open the payment** → *Verification*. A blocked payment has no approve action. Approving scenario 3 is refused until a written statement is given; citing the line that states the amount is not enough, because that shows the amount is in the document, not that it is the amount owed.
+- **Deterministic financial controls.** **Open the payment** → *Verification*. A blocked payment has no approve action. Approving scenario 3 is refused as it stands; citing the line that states the amount is not enough, because that shows the amount is in the document, not that it is the amount owed.
+- **Resolution with independent evidence.** In scenario 3, under *Resolve it with independent evidence*, enter `VC-2026-1126-03`: refused, the record is unverified. Enter `VC-2026-1126-02`: refused, it belongs to another vendor. Enter `VC-2026-1126-01` and press **Verify payable amount**: the cross-check becomes *matched to a trusted record*, **Approve payment** appears, and approving creates a sandbox draft that cites the confirmation. The scenario's result does not change: it stays what the workflow decided.
 - **Final disposition.** The summary lists, per scenario, what was expected and what the controls enforced.
 
 ## Other checks
 
 ```bash
-npm test                 # 101 tests on the real Mozaik runtime with a scripted model
+npm test                 # 114 tests on the real Mozaik runtime with a scripted model
 npm run lab              # 12 stress scenarios, deterministic path
-npm run test:browser     # 16 browser checks of the showcase (after npm run build; needs a Chrome or Chromium)
+npm run test:browser     # 17 browser checks of the showcase (after npm run build; needs Node 22+ and a Chrome or Chromium)
 ```
 
 ## Limits to know
@@ -77,5 +78,6 @@ npm run test:browser     # 16 browser checks of the showcase (after npm run buil
 - **Plain-text documents.** PDF and images are not parsed.
 - **One demo reviewer.** There is no sign-in; human actions are recorded as "Demo reviewer".
 - **One sandbox workspace.** The scenario payments are ordinary demo documents on the desk. Starting the demo replaces the demo documents; documents you add yourself are kept.
-- **Callback records are fixtures.** The desk matches a callback reference to a record in `server/data/callbacks.json`. It does not place or verify a call.
-- **Live models are not verified on the current version.** The provider account had no credit when this version was finished. The scripted demo and all automated checks pass; the live Stress Lab and the single-agent benchmark have never completed. See `DEMO_READINESS.md`.
+- **Trusted records are fixtures.** The desk matches a callback reference to a record in `server/data/callbacks.json` and a vendor confirmation to one in `server/data/confirmations.json`. It does not call or write to anyone.
+- **Local only.** The server answers on this machine only and has no sign-in. It is not meant to be hosted.
+- **Live models are not verified on the current version.** The provider account had no credit when this version was finished. The scripted demo and all automated checks pass; the live Stress Lab and the single-agent benchmark have never completed. See `DEMO_READINESS.md` and `FINAL_RELEASE_REPORT.md`. Architecture, claim by claim: `ARCHITECTURE_PROOF.md`. Likely questions: `JUDGE_QA.md`.

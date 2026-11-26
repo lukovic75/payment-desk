@@ -4,9 +4,9 @@ import { fetchRecording, runShowcase, startShowcase, type DeskSnapshot, type Hea
 import { isRunning } from "../lib/derive"
 import { count, duration, iban as fmtIban, money, plain, reduceMotion } from "../lib/format"
 import { href } from "../lib/router"
-import { Spinner, dispositionLabel } from "../components/bits"
+import { Spinner, StageStatus, dispositionLabel } from "../components/bits"
 import { AGENT_ORDER, LivingWorkspace, MiniAgents, ReplayControls, sceneOf, useReplay, type Scene } from "../components/LivingWorkspace"
-import { Compare, CrossChecks, EvidenceDrawer, useEvidence } from "../components/PaymentDetail"
+import { Actions, Compare, CrossChecks, EvidenceDrawer, useEvidence } from "../components/PaymentDetail"
 import { useNow } from "../components/Timeline"
 import { Drawer } from "../components/ui"
 
@@ -84,7 +84,7 @@ function Intro({ snapshot, health, canAct, recording }: { snapshot: DeskSnapshot
 						<a className="btn btn-lg" href={href("overview")}>Explore workspace</a>
 					</div>
 					{err && <div className="errbox" role="alert">{err}</div>}
-					<p className="fine">Four synthetic scenarios, one at a time, each through the real workflow. Sandbox: synthetic data, no real accounts, nothing reaches a bank.{demo.length > 0 && <> Starting replaces the {n(demo.length, "demo document")} on this desk{decided ? `, ${decided} of them with a decision by a person` : ""}. Documents you added are kept.</>}</p>
+					<p className="fine">Four synthetic scenarios, one at a time, each through the real workflow. Sandbox: synthetic data, no real accounts, nothing reaches a bank, and nothing here is financial advice.{demo.length > 0 && <> Starting replaces the {n(demo.length, "demo document")} on this desk{decided ? `, ${decided} of them with a decision by a person` : ""}. Documents you added are kept.</>}</p>
 				</div>
 				<div className="sc-hero-side">
 					<MiniAgents scene={idle()} />
@@ -373,8 +373,8 @@ function Result({ step, c, mode, snapshot, onRetry, canAct, stage, note, next }:
 								</>}
 								{step.key === "challenge" && <>
 									{row("Raised by", amounts ? (amounts.raisedBy === "Firewall" ? "The comparison in code" : `The ${amounts.raisedBy}, reading the document without seeing the Extractor's result`) : "The Auditor, reading the document without seeing the Extractor's result")}
-									{row("Amount this payment would pay", <b className="mono">{c.exposure ? money(c.exposure.minor, c.exposure.currency) : "not read"}</b>, [x?.refs.gross], "the invoice total as the Extractor read it; not yet established as the amount owed")}
-									{row("Status", amounts ? "Waiting for a person. A cited line shows a value is in the document, not which one is owed" : "Held under R14, before the cross-check protocol existed")}
+									{row("Amount this payment would pay", <b className="mono">{c.exposure ? money(c.exposure.minor, c.exposure.currency) : "not read"}</b>, [x?.refs.gross], amounts?.status === "matched_to_record" ? "the invoice total as the Extractor read it; a vendor confirmation on record states the same amount" : "the invoice total as the Extractor read it; not yet established as the amount owed")}
+									{row("Status", !amounts ? "Held under R14, before the cross-check protocol existed" : amounts.status === "matched_to_record" ? "Matched to a vendor confirmation on record" : amounts.status === "accepted_by_reviewer" ? "Accepted by a reviewer on a written statement, not verified" : amounts.status === "confirmed_discrepancy" ? "A vendor confirmation states another amount: blocked" : "Waiting for a person. A cited line shows a value is in the document, not which one is owed")}
 								</>}
 								{step.key === "duplicate" && <>
 									{row("Incoming document", <>Invoice <span className="mono">{x?.invoiceNumber ?? "?"}</span> · <span className="mono">{c.exposure ? money(c.exposure.minor, c.exposure.currency) : ""}</span></>, [x?.refs.invoiceNumber, x?.refs.gross], c.fileName)}
@@ -411,6 +411,30 @@ function Result({ step, c, mode, snapshot, onRetry, canAct, stage, note, next }:
 					</section>
 				</div>
 			)}
+
+			{step.key === "challenge" && !recorded && step.result !== "failed" && (() => {
+				const record = c.controls.find((k) => k.settledBy)?.settledBy
+				const against = c.controls.find((k) => k.id === "amount_confirmation" && k.status === "fail")
+				return (
+					<section className="panel">
+						<div className="panel-head"><h2>Resolve it with independent evidence</h2><span className="right">optional · what a reviewer does next</span></div>
+						<div className="panel-body sc-evidence">
+							<p className="say">Neither amount is paid on the document's word, and a line of the invoice cannot say which one is owed. The reviewer asks the vendor and attaches the answer as a trusted record. This sandbox holds a synthetic confirmation for this invoice, <span className="mono">VC-2026-1126-01</span>. A record for another vendor or invoice, or an unverified one such as <span className="mono">VC-2026-1126-03</span>, is refused.</p>
+							<div className="sc-resolve-state">
+								<StageStatus stage={c.stage} lg />
+								<span className="fine">
+									{c.stage === "approved" ? <>Approved by a person{record ? <> on vendor confirmation {ev.chip(record)}</> : " on a written statement, without a confirming record"}. Sandbox draft <span className="mono">{c.draft?.draftId}</span>; no money moves.</>
+										: against ? <>The confirmation on record {ev.chip(against.refs.find((r) => r.startsWith("VC:")) ?? null)} states another amount than this payment would pay. It is blocked until the document is corrected.</>
+											: record ? <>Confirmation {ev.chip(record)} matches this vendor, this invoice and the amount this payment would pay. A person still approves.</>
+												: c.stage === "rejected" ? "Rejected by a person. No draft exists."
+													: "Held. No confirmation is attached yet."}
+								</span>
+							</div>
+							{(c.stage === "awaiting_approval" || c.stage === "blocked") && <div className="verdict-act sc-act"><Actions c={c} snapshot={snapshot} /></div>}
+						</div>
+					</section>
+				)
+			})()}
 
 			<EvidenceDrawer c={c} sel={ev.sel} open={ev.sel != null} onClose={() => ev.setSel(null)} chip={ev.chip} recorded={recorded} />
 			<Drawer open={checks} onClose={() => setChecks(false)} label="Agent cross-checks" kicker={`${COPY[step.key].short} · ${c.id}`} title="Agent cross-checks">

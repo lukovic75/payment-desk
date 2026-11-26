@@ -48,13 +48,17 @@ A green baseline, and still twelve defects underneath it. None of them was visib
 | PD-15 | P2 | Running or resetting the demo documents removed every callback verification on the desk, including one a person had verified for a document of their own. That document's approved draft then refused to export | `removeDemo` cleared the whole list | Only verifications that no remaining case refers to are removed | `showcase.test.ts`: the demo leaves a person's own documents, decisions and verifications alone (fails on the previous code) |
 | PD-16 | P3 | When the Auditor reported the same two amounts that code had already found at intake, both stayed on record as two cross-checks, one of them stuck as "unresolved" | A cross-check that no longer derived was always kept | Only a challenge against the trusted record is kept once it stops deriving; a superseded one is replaced by the Auditor's finding | `intelligence.test.ts`: one disagreement is on record, not two |
 
-Resolved: 16 of 16 (one P0, four P1, seven P2, four P3). PD-13 was found in the agent intelligence pass and PD-14 to PD-16 in the showcase pass that followed; see `AGENT_INTELLIGENCE_REPORT.md` and `DEMO_READINESS.md`. For PD-04 the unsafe acceptance was observed (the second call returned 200 and the cases were restarted); damage beyond the restart was not separately demonstrated.
+| PD-17 | P1 | The server listened on every network interface with no sign-in, and accepted state-changing requests from any web page: a site open in the same browser could start a run that spends provider credit, and anyone on the network could approve a payment | Found in the final release pass. `listen` had no host, and there was no origin or host check | Listens on 127.0.0.1 unless `HOST` says otherwise; requests under a foreign hostname are refused, and so are state-changing requests from another site | `api.test.ts`: only this machine is answered |
+| PD-18 | P3 | The browser suite could end with a raw stack trace when the headless browser was slow to open its debugging port | One start, one fixed wait | A second start on another port; anything that stops the suite is reported as "not run" with the reason, exit code 2 | nine consecutive runs after the change |
+
+Resolved: 18 of 18 (one P0, five P1, seven P2, five P3). PD-13 was found in the agent intelligence pass, PD-14 to PD-16 in the showcase pass and PD-17 and PD-18 in the final release pass; see `AGENT_INTELLIGENCE_REPORT.md` and `DEMO_READINESS.md`. For PD-04 the unsafe acceptance was observed (the second call returned 200 and the cases were restarted); damage beyond the restart was not separately demonstrated.
 
 ## Policy changes made in this pass, stated explicitly
 
 1. **R15 added:** "The amount due must be greater than zero." Effect: blocked.
 2. **R14 clarified:** a disagreement or conflicting statement is approved only with a written statement of how it was resolved. The disposition (needs approval) is unchanged.
 3. The policy file is now `v5`. No control was weakened and no scenario expectation was changed to make a test pass.
+5. **Final release pass, R14 extended, policy `v6`:** a conflicting amount can now also be settled by a verified vendor confirmation on record for that vendor, invoice and currency that states the amount to be paid; a confirmation that states another amount blocks the payment. This adds a way to resolve with evidence and a new way to be blocked. It removes nothing: a statement alone is still labelled as not verified, and a person still approves.
 4. **Showcase pass, no change to the policy text:** the implementation now does what R14 says. Citing a source line no longer approves a contradictory document without a written statement (PD-14). Two tests that asserted the looser behaviour were rewritten to assert the stricter one; no expected financial outcome changed.
 
 ## The critical financial safety question
@@ -94,8 +98,11 @@ Investigated from the stored execution records of the live run of 26 November, 1
 | `intelligence.test.ts` (added in the following pass) | real runtime, scripted model with one agent's output corrupted | 26 of 26 |
 | `intelligence.test.ts`, after the showcase pass | two tests rewritten for PD-14, one added for PD-16 | 27 of 27 |
 | `showcase.test.ts` (showcase pass) | real runtime, scripted model, and the real server in scripted and in keyless live mode | 10 of 10 |
-| **`npm test` total** | | **101 of 101**, about 3 s |
-| `npm run test:browser` (showcase pass) | headless Chrome against the scripted server, in the repository | 16 of 16 |
+| `resolution.test.ts` (final release pass) | vendor confirmation, callback, currency; in process and over HTTP | 12 of 12 |
+| `api.test.ts`, one test added for PD-17 | | 10 of 10 |
+| **`npm test` total** | | **114 of 114**, about 4 s; also on Node 20.20.2 and 22.23.5 |
+| `npm run test:browser` | headless Chrome against the scripted server, in the repository | 17 of 17 |
+| Live Stress Lab, one scenario, 26 Nov 22:58 CET | | **BLOCKED** again (provider credit) |
 | `npm run lab` | 12 scenarios, scripted | 12 of 12, 87 checks |
 | Live Stress Lab, one scenario | genuine Mozaik with live models | **BLOCKED** (provider credit) |
 | Benchmark, single agent against multi-agent | live only | **BLOCKED**, never run |

@@ -5,7 +5,7 @@ export type { AgentRun, Challenge, Control, DeskSnapshot, EvidenceEntry, Payment
 export type Tokens = Record<string, { input: number; output: number; calls: number }>
 export type Health = { ok: boolean; hasModelKey: boolean; hasLiveKey: boolean; mode: "live" | "scripted"; models: { fast: string; careful: string } }
 export type Link = { state: "connecting" | "live" | "reconnecting"; attempts: number }
-export type Action = "approve" | "reject" | "request_verification" | "verify_beneficiary" | "reprocess"
+export type Action = "approve" | "reject" | "request_verification" | "verify_beneficiary" | "verify_amount" | "reprocess"
 
 export type Desk = {
 	/** null until the first snapshot arrives. */
@@ -97,7 +97,7 @@ export const resetDemo = async (): Promise<DeskSnapshot> => expectOk(await post(
 export const startShowcase = async (): Promise<DeskSnapshot> => expectOk(await post("/api/showcase/start"))
 export const runShowcase = async (key: ShowcaseKey): Promise<DeskSnapshot> => expectOk(await post("/api/showcase/run", { key }))
 export const fetchRecording = async (): Promise<Recording | null> => (await expectOk<{ recording: Recording | null }>(await fetch("/api/recording"))).recording
-export const act = async (id: string, action: Action, input: { reason?: string; callbackRef?: string; resolutions?: { challengeId: string; chosenRef: string }[] } = {}): Promise<PaymentCase> =>
+export const act = async (id: string, action: Action, input: { reason?: string; callbackRef?: string; confirmationRef?: string; resolutions?: { challengeId: string; chosenRef: string }[] } = {}): Promise<PaymentCase> =>
 	expectOk(await post(`/api/cases/${encodeURIComponent(id)}/actions`, { action, ...input }))
 export const addDocument = async (name: string, text: string): Promise<PaymentCase> => expectOk(await post("/api/documents", { name, text }))
 export const draftUrl = (id: string) => `/api/cases/${encodeURIComponent(id)}/draft`

@@ -23,14 +23,14 @@ import {
 } from "@mozaik-ai/core"
 import { z } from "zod"
 import type {
-	AgentInfo, AgentName, AgentRun, Audit, Callback, Configuration, DeskSnapshot, Disposition, Fault, EvidenceEntry, Investigation, PaymentCase, PaymentDraft, PolicyOpinion,
+	AgentInfo, AgentName, AgentRun, AmountConfirmation, Audit, Callback, Configuration, DeskSnapshot, Disposition, Fault, EvidenceEntry, Investigation, PaymentCase, PaymentDraft, PolicyOpinion,
 	Reading, ReviewEntry, SourceDocument, TimelineEntry, Validation,
 } from "./domain.js"
 import { emptyStep, nowIso, outcomeOf } from "./domain.js"
 import type { OutputCheck, ProviderBlock, Recording, Resolution, Showcase } from "./domain.js"
-import { contentHash, countInboxFiles, locate, loadCallbacks, loadDocuments, loadHistory, loadPolicy, loadPurchaseOrders, loadScenarios, loadVendors } from "./data.js"
+import { contentHash, countInboxFiles, locate, loadCallbacks, loadConfirmations, loadDocuments, loadHistory, loadPolicy, loadPurchaseOrders, loadScenarios, loadVendors } from "./data.js"
 import { buildDraft } from "./draft.js"
-import { STRICTNESS, buildReading, evaluate, matchVendor, stricter, type FirewallContext, type ReadingInput } from "./firewall.js"
+import { STRICTNESS, alnum, buildReading, evaluate, matchVendor, stricter, type FirewallContext, type ReadingInput } from "./firewall.js"
 import { checkIntegrity } from "./integrity.js"
 import { formatIban, isValidIban, normalizeIban } from "./lib/iban.js"
 import { formatMinor, parseMoney } from "./money.js"
@@ -60,10 +60,12 @@ class DeskState extends RuntimeState {
 	history = loadHistory()
 	purchaseOrders = loadPurchaseOrders()
 	callbacks = loadCallbacks()
+	confirmations = loadConfirmations()
 	scenarios = loadScenarios()
 	documents = new Map<string, SourceDocument>()
 	cases = new Map<string, PaymentCase>()
 	verified: FirewallContext["verified"] = []
+	confirmed: FirewallContext["confirmed"] = []
 	tokens = new Map<string, { input: number; output: number; calls: number }>()
 	events = new Map<string, number>()
 }
@@ -115,7 +117,7 @@ export function flush() {
 	try {
 		mkdirSync(dirname(STATE_FILE), { recursive: true })
 		const tmp = `${STATE_FILE}.tmp`
-		writeFileSync(tmp, JSON.stringify({ v: 2, startedAt: state.startedAt, cases: [...state.cases.values()], documents: [...state.documents.values()], verified: state.verified, tokens: [...state.tokens], events: [...state.events], showcase }))
+		writeFileSync(tmp, JSON.stringify({ v: 2, startedAt: state.startedAt, cases: [...state.cases.values()], documents: [...state.documents.values()], verified: state.verified, confirmed: state.confirmed, tokens: [...state.tokens], events: [...state.events], showcase }))
 		renameSync(tmp, STATE_FILE)
 	} catch (err) { console.error("could not persist desk state:", err) }
 }
@@ -147,6 +149,7 @@ function restore() {
 			state.cases.set(c.id, c)
 		}
 		state.verified = s.verified ?? []
+		state.confirmed = s.confirmed ?? []
 		state.tokens = new Map(s.tokens ?? [])
 		state.events = new Map(s.events ?? [])
 		showcase = s.showcase ?? null
@@ -285,7 +288,7 @@ export function dailyAutoApproved(excludeId?: string): number {
 }
 
 function context(c: PaymentCase): FirewallContext {
-	return { policy: state.policy, vendors: state.vendors, history: state.history, purchaseOrders: state.purchaseOrders, verified: state.verified, cases: [...state.cases.values()], documents: state.documents, dailyAutoApproved: dailyAutoApproved(c.id) }
+	return { policy: state.policy, vendors: state.vendors, history: state.history, purchaseOrders: state.purchaseOrders, verified: state.verified, confirmed: state.confirmed, cases: [...state.cases.values()], documents: state.documents, dailyAutoApproved: dailyAutoApproved(c.id) }
 }
 
 /** Recomputes the controls and their evidence for a case. Agent-written evidence (X:, A:) is kept; everything derived is rebuilt. */
@@ -991,6 +994,7 @@ function removeDemo() {
 	for (const c of [...state.cases.values()]) if (c.origin === "demo") { c.attempt += 1; state.cases.delete(c.id); state.documents.delete(c.id) }
 	// A callback a person verified for a document of their own outlives the demo documents; only verifications nothing refers to any more go.
 	state.verified = state.verified.filter((v) => [...state.cases.values()].some((c) => c.ledger[`HV:${v.ref}`]))
+	state.confirmed = state.confirmed.filter((v) => [...state.cases.values()].some((c) => c.ledger[`VC:${v.ref}`]))
 }
 
 /** Loads the synthetic scenario documents and runs every one through the real workflow. Documents a user added are left alone. */
@@ -1074,7 +1078,7 @@ export function runShowcaseStep(key: string): DeskSnapshot {
 /** Tests start from an empty desk. */
 export function resetDesk() {
 	for (const c of state.cases.values()) c.attempt += 1
-	state.cases.clear(); state.documents.clear(); state.verified = []; state.tokens.clear(); state.events.clear(); state.startedAt = null
+	state.cases.clear(); state.documents.clear(); state.verified = []; state.confirmed = []; state.tokens.clear(); state.events.clear(); state.startedAt = null
 	state.policy = loadPolicy()
 	configuration = "multi"
 	fault = null
@@ -1109,9 +1113,9 @@ export type Action = ReviewEntry["action"]
  * can only be cleared by a callback reference that matches the trusted record; every attempt is written to the review history.
  */
 /** Controls that ask for review because something does not agree, as opposed to an amount that is simply above a limit. */
-export const openDiscrepancies = (c: PaymentCase) => c.controls.filter((k) => (k.status === "review" || k.status === "fail") && k.severity !== "block" && k.id !== "per_payment_limit" && k.id !== "daily_limit")
+export const openDiscrepancies = (c: PaymentCase) => c.controls.filter((k) => (k.status === "review" || k.status === "fail") && k.severity !== "block" && k.id !== "per_payment_limit" && k.id !== "daily_limit" && !k.settledBy)
 
-export function act(id: string, action: Action, input: { reason?: string | null; callbackRef?: string | null; resolutions?: { challengeId: string; chosenRef: string }[] | null } = {}): PaymentCase {
+export function act(id: string, action: Action, input: { reason?: string | null; callbackRef?: string | null; confirmationRef?: string | null; resolutions?: { challengeId: string; chosenRef: string }[] | null } = {}): PaymentCase {
 	const c = getCase(id)
 	const reason = input.reason?.trim() || null
 	const from = c.stage
@@ -1154,7 +1158,8 @@ export function act(id: string, action: Action, input: { reason?: string | null;
 		for (const r of all) (c.resolutions ??= {})[r.challengeId] = { ...r, at: nowIso(), reviewer: REVIEWER }
 		c.stage = "approved"
 		// the approval cites the amount it authorises and, where a discrepancy was settled, the evidence that discrepancy rests on
-		entry("approved", "applied", [...new Set([...(c.exposure ? [c.exposure.ref] : []), ...open.flatMap((k) => k.refs)])])
+		// ... and a discrepancy that a trusted record settled cites that record
+		entry("approved", "applied", [...new Set([...(c.exposure ? [c.exposure.ref] : []), ...open.flatMap((k) => k.refs), ...c.controls.flatMap((k) => (k.settledBy ? [k.settledBy] : []))])])
 		if (all.length) c.review[c.review.length - 1]!.resolutions = all
 		c.challenges = deriveChallenges(c)
 		c.draft = draftFor(c, `HUMAN-${c.id}-${c.review.length}`)
@@ -1180,6 +1185,28 @@ export function act(id: string, action: Action, input: { reason?: string | null;
 		c.stage = ev.floor === "BLOCKED" ? "blocked" : ev.floor === "PROCESSING_ERROR" ? "error" : "awaiting_approval"
 		if (c.decision.result) c.decision.result = { ...c.decision.result, floor: ev.floor, final: ev.floor === "AUTO_APPROVED" ? "NEEDS_APPROVAL" : ev.floor }
 		entry(c.stage, "applied", [`HV:${cb!.ref}`], reason ?? `callback ${cb!.ref}: ${cb!.method}`)
+	} else if (action === "verify_amount") {
+		// Settles a document that states two amounts with evidence that is independent of that document: a vendor confirmation
+		// held as a trusted record. It has to be for this vendor, this invoice and this currency, and it has to be verified.
+		// A line of the invoice can never do this, and neither can a reviewer's statement.
+		const x = c.extraction.result
+		const disputed = (c.challenges ?? []).some((ch) => ch.category === "document_contradiction" && /gross|amount|total/i.test(ch.field) && awaitsPerson(ch))
+		if (c.stage !== "awaiting_approval" || !x || x.gross == null || !x.invoiceNumber || !disputed) refuse(409, "This payment has no open disagreement about its amount that a confirmation could settle.")
+		const vendor = matchVendor(x!.creditorName, state.vendors).vendor
+		if (!vendor) refuse(409, "The creditor is not a known vendor, so no confirmation can be matched to it.")
+		const ref = (input.confirmationRef ?? "").trim().slice(0, 80)
+		if (!ref) refuse(422, "Enter the reference of the vendor's confirmation of the amount payable.")
+		const rec: AmountConfirmation | undefined = state.confirmations.find((k) => k.ref.toLowerCase() === ref.toLowerCase())
+		// one answer for "no such record" and "a record for someone else", so a reference cannot be probed for what it belongs to
+		if (!rec || rec.vendorId !== vendor!.id || alnum(rec.invoiceNumber) !== alnum(x!.invoiceNumber) || rec.currency !== x!.currency) refuse(422, `"${ref}" is not a confirmation on record for invoice ${x!.invoiceNumber} from ${vendor!.name} in ${x!.currency}. The payment stays held.`)
+		if (rec!.status !== "verified") refuse(422, `Confirmation ${rec!.ref} is on record as ${rec!.status} (${rec!.method}). Only a verified confirmation can settle an amount. The payment stays held.`)
+		if (!state.confirmed.some((k) => k.ref === rec!.ref)) state.confirmed.push({ ...rec!, verifiedBy: REVIEWER, verifiedAt: nowIso() })
+		// The record is now evidence on this case whatever it says. If it states another amount than this payment would pay,
+		// the controls block the payment: the confirmation is evidence against it.
+		const ev = assess(c)
+		c.stage = ev.floor === "BLOCKED" ? "blocked" : ev.floor === "PROCESSING_ERROR" ? "error" : "awaiting_approval"
+		if (c.decision.result && ev.floor === "BLOCKED") c.decision.result = { ...c.decision.result, floor: ev.floor, final: "BLOCKED" }
+		entry(c.stage, "applied", [`VC:${rec!.ref}`], reason ?? `vendor confirmation ${rec!.ref}: ${formatMinor(rec!.payableAmount, rec!.currency)} payable (${rec!.method})`)
 	} else if (action === "reprocess") {
 		if (c.stage === "approved") refuse(409, "An approved payment is not reprocessed: that could authorise it twice.")
 		// Only what the firewall stopped or what failed is run again. A person's rejection is a decision, not a state to retry out of.

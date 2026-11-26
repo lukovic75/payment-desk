@@ -27,7 +27,7 @@ const { READINGS } = await import("./fixtures.js")
 
 const S = (id: string) => scenarioById(id)!
 const run = (id: string, config: "multi" | "single" = "multi") => runScenario(S(id), { mode: "scripted", config, timeoutMs: 20_000 })
-const ctxOf = (r: Awaited<ReturnType<typeof run>>, cases: PaymentCase[]): FirewallContext => ({ policy: r.policy, vendors: desk.snapshot().vendors, history: desk.snapshot().history, purchaseOrders: loadPurchaseOrders(), verified: [], cases, documents: new Map(r.documents.map((d) => [d.id, d])), dailyAutoApproved: 0 })
+const ctxOf = (r: Awaited<ReturnType<typeof run>>, cases: PaymentCase[]): FirewallContext => ({ policy: r.policy, vendors: desk.snapshot().vendors, history: desk.snapshot().history, purchaseOrders: loadPurchaseOrders(), verified: [], confirmed: [], cases, documents: new Map(r.documents.map((d) => [d.id, d])), dailyAutoApproved: 0 })
 
 test("the scenario definitions are complete and refer only to synthetic documents that exist", () => {
 	const docs = new Set(loadDocuments().map((d) => d.id))

@@ -8,6 +8,23 @@ import * as lab from "./lab/manager.js"
 import { DeskError, MODELS, act, addDocument, exportDraft, flush, getDocumentText, getRecordedDocumentText, recordingView, resetDemo, runDemo, runShowcaseStep, setModelRunner, snapshot, startShowcase, subscribe, type Action } from "./desk.js"
 
 const PORT = Number(process.env.API_PORT ?? 8787)
+// A local sandbox with no sign-in: it listens on this machine only. HOST=0.0.0.0 exposes it to the network, including the
+// endpoints that spend model credit; do that only behind something that controls access.
+const HOST = process.env.HOST ?? "127.0.0.1"
+const LOOPBACK = new Set(["localhost", "127.0.0.1", "[::1]", "::1"])
+const hostnameOf = (v: string | undefined): string => { try { return new URL(/^[a-z]+:\/\//i.test(v ?? "") ? v! : `http://${v}`).hostname } catch { return "" } }
+
+/**
+ * Two cheap protections for a server that trusts whoever reaches it. The Host header has to be this machine (so a web
+ * page cannot reach it through a hostname it controls), and a request that changes something has to come from a page
+ * on this machine (so another site open in the same browser cannot start a run that spends provider credit).
+ */
+function guard(req: IncomingMessage) {
+	const host = hostnameOf(req.headers.host)
+	if (LOOPBACK.has(HOST) && !LOOPBACK.has(host)) throw new DeskError(403, "This server answers only on this machine.")
+	const origin = req.headers.origin
+	if (req.method !== "GET" && origin && !LOOPBACK.has(hostnameOf(origin)) && hostnameOf(origin) !== host) throw new DeskError(403, "Requests from another site are not accepted.")
+}
 const here = dirname(fileURLToPath(import.meta.url))
 const WEB_DIST = join(here, "..", "web", "dist")
 // Development only: run the UI against the test-fixture model instead of a live one. The UI says so in a banner.
@@ -25,7 +42,7 @@ const hasKey = SCRIPTED || Boolean(process.env.ANTHROPIC_API_KEY || process.env.
 /** A live Stress Lab run needs a real key even when this server itself runs on the scripted model. */
 const hasLiveKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)
 const NO_KEY = "No model API key. Copy .env.example to .env and set ANTHROPIC_API_KEY, then restart."
-const ACTIONS: Action[] = ["approve", "reject", "request_verification", "verify_beneficiary", "reprocess"]
+const ACTIONS: Action[] = ["approve", "reject", "request_verification", "verify_beneficiary", "verify_amount", "reprocess"]
 
 // A loop that dies must not take the desk down with it; the case's own timeout turns it into a processing error.
 process.on("unhandledRejection", (err) => console.error("unhandled rejection in an agent loop:", err))
@@ -74,6 +91,7 @@ const server = createServer(async (req, res) => {
 	const path = url.pathname
 	const m = req.method
 	try {
+		if (path.startsWith("/api/")) guard(req)
 		if (m === "GET" && path === "/api/health") return json(res, 200, { ok: true, hasModelKey: hasKey, hasLiveKey, mode: SCRIPTED ? "scripted" : "live", models: MODELS })
 		if (m === "GET" && path === "/api/state") return json(res, 200, snapshot())
 		if (m === "GET" && path === "/api/events") {
@@ -116,7 +134,7 @@ const server = createServer(async (req, res) => {
 			const body = await readBody(req)
 			if (!ACTIONS.includes(body.action)) throw new DeskError(400, `Unknown action. Use one of: ${ACTIONS.join(", ")}.`)
 			if (body.action === "reprocess" && !hasKey) throw new DeskError(503, NO_KEY)
-			return json(res, 200, act(param(action[1]!), body.action, { reason: typeof body.reason === "string" ? body.reason : null, callbackRef: typeof body.callbackRef === "string" ? body.callbackRef : null, resolutions: Array.isArray(body.resolutions) ? body.resolutions.filter((r: any) => r && typeof r.challengeId === "string" && typeof r.chosenRef === "string").slice(0, 12) : null }))
+			return json(res, 200, act(param(action[1]!), body.action, { reason: typeof body.reason === "string" ? body.reason : null, callbackRef: typeof body.callbackRef === "string" ? body.callbackRef : null, confirmationRef: typeof body.confirmationRef === "string" ? body.confirmationRef : null, resolutions: Array.isArray(body.resolutions) ? body.resolutions.filter((r: any) => r && typeof r.challengeId === "string" && typeof r.chosenRef === "string").slice(0, 12) : null }))
 		}
 		const draft = path.match(/^\/api\/cases\/([^/]+)\/draft$/)
 		if (m === "GET" && draft) {
@@ -155,7 +173,8 @@ const server = createServer(async (req, res) => {
 // Stopping the server saves what the agents have done so far; decisions by a person are already saved when they are made.
 for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => { flush(); process.exit(0) })
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
+	if (!LOOPBACK.has(HOST)) console.log(`Listening on ${HOST}: reachable from the network, with no sign-in. Anyone who can reach it can start runs.`)
 	console.log(`Payment Desk API on http://localhost:${PORT}  (${SCRIPTED ? "scripted model: real orchestration, predefined model responses" : `model key: ${hasKey ? "found" : "MISSING: set ANTHROPIC_API_KEY in .env"}`})`)
 	if (process.env.NODE_ENV === "production" || SCRIPTED) console.log(existsSync(WEB_DIST) ? `Open http://localhost:${PORT}/#/showcase` : "The UI is not built yet: run `npm run build`, or use `npm run dev`.")
 })

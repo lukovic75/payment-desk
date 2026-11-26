@@ -45,7 +45,7 @@ const SHORT: Record<string, string> = {
 	mandatory_fields: "Missing field", evidence: "Unsupported value", vendor_known: "Unknown vendor", iban_checksum: "Invalid IBAN", beneficiary: "Bank details differ",
 	beneficiary_name: "Beneficiary name", currency: "Currency", duplicate: "Duplicate", arithmetic: "Total does not add up", line_items: "Line items", per_payment_limit: "Over limit",
 	daily_limit: "Daily budget", split_payment: "Possible split", purchase_order: "Purchase order", instruction_content: "Instruction-like text", stated_amounts: "Conflicting amounts",
-	agent_agreement: "Agents disagree", stages: "Agent failed", evidence_integrity: "Evidence not verified", payable_amount: "Not a payable amount",
+	agent_agreement: "Agents disagree", stages: "Agent failed", evidence_integrity: "Evidence not verified", payable_amount: "Not a payable amount", amount_confirmation: "Vendor confirms another amount",
 }
 export const controlShort = (k: Control) => SHORT[k.id] ?? k.label
 
@@ -54,7 +54,7 @@ const ISSUE: Record<string, string> = {
 	beneficiary: "Bank account differs from the vendor record.", beneficiary_name: "Beneficiary name differs from the vendor.", currency: "Currency is not payable.", duplicate: "Duplicate invoice detected.",
 	arithmetic: "The total does not add up.", line_items: "Line items do not add up.", per_payment_limit: "Above the auto-approval limit.", daily_limit: "Would exceed today's auto-approval limit.",
 	split_payment: "Possible split of one payment.", purchase_order: "Does not match the purchase order.", instruction_content: "The document contains instructions aimed at the agents.",
-	stated_amounts: "The document states two different amounts.", agent_agreement: "The two readings disagree.", stages: "An agent did not finish.", evidence_integrity: "Evidence could not be verified.", payable_amount: "The amount is zero or negative. There is nothing to pay.",
+	stated_amounts: "The document states two different amounts.", agent_agreement: "The two readings disagree.", stages: "An agent did not finish.", evidence_integrity: "Evidence could not be verified.", payable_amount: "The amount is zero or negative. There is nothing to pay.", amount_confirmation: "The vendor's confirmation states a different amount.",
 }
 /** One exception in one plain sentence. The control's full explanation stays with the control. */
 export const issueLine = (k: Control) => ISSUE[k.id] ?? `${controlShort(k)}.`

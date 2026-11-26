@@ -5,6 +5,7 @@
  * the trusted records and the policy, and produces controls, evidence and the strictest disposition
  * the policy allows. An agent can explain, and can ask for something stricter; it cannot loosen any of this.
  */
+import type { AmountConfirmation } from "./domain.js"
 import type {
 	Callback, Control, Disposition, EvidenceEntry, HistoricalPayment, Minor, PaymentCase, Policy, PurchaseOrder, Reading, ReadingField, SourceDocument, Vendor,
 } from "./domain.js"
@@ -23,6 +24,8 @@ export type FirewallContext = {
 	purchaseOrders: PurchaseOrder[]
 	/** Bank-detail changes a person verified on this desk against a recorded callback. */
 	verified: (Callback & { verifiedBy: string; verifiedAt: string })[]
+	/** Vendor confirmations of a payable amount that a person attached on this desk. Each belongs to one vendor and one invoice. */
+	confirmed: (AmountConfirmation & { verifiedBy: string; verifiedAt: string })[]
 	cases: PaymentCase[]
 	documents: Map<string, SourceDocument>
 	/** Total already approved automatically today, not counting the case being evaluated. */
@@ -31,7 +34,7 @@ export type FirewallContext = {
 
 // ───────── helpers ─────────
 
-const alnum = (s: string | null | undefined) => (s ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "")
+export const alnum = (s: string | null | undefined) => (s ?? "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "")
 const LEGAL = /\b(gmbh|ag|sas|sa|sarl|bv|b\.v\.|nv|sl|s\.l\.|ltd|limited|llc|inc|doo|d\.o\.o\.|oy|oü|ou|ab|as|plc)\b/g
 const nameTokens = (s: string) => new Set(s.toLowerCase().replace(/[^\p{L}\p{N} ]+/gu, " ").replace(LEGAL, " ").split(/\s+/).filter((t) => t.length > 1))
 
@@ -334,6 +337,8 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 		else add("purchase_order", "Purchase order", null, "pass", "info", `${po.po} exists for this vendor (${formatMinor(po.amount, po.currency)}).`, [ref("poReference"), pid])
 	}
 
+	/** Review-level controls that say only one thing: the document states more than one payable amount. */
+	const amountOnly: string[] = []
 	// 12. instruction-like content, 14. amounts stated elsewhere in the document
 	if (doc) {
 		const lines = instructionLines(doc.text)
@@ -345,6 +350,7 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 			const odd = doc.text.split("\n").map((t, i) => ({ line: i + 1, text: t.trim(), amounts: PAY_PHRASE.test(t) ? strictAmountsIn(t).filter((a) => a !== x.gross) : [] })).filter((l) => l.amounts.length)
 			if (odd.length) {
 				const refs = odd.slice(0, 3).map((l) => { entries.push({ id: `D:stated:${l.line}`, category: "source_document", label: "Another payable amount stated in the document", by: "Desk", doc: { docId: doc.id, field: "gross", lineStart: l.line, lineEnd: l.line, excerpt: l.text, original: formatMinor(l.amounts[0]!), normalized: formatMinor(l.amounts[0]!), located: true, supportsValue: true } }); return `D:stated:${l.line}` })
+				amountOnly.push("stated_amounts")
 				add("stated_amounts", "Amounts stated in the document", "R14", "review", "review", `The document also asks for ${odd.map((l) => formatMinor(l.amounts[0]!, x.currency)).join(", ")} (line ${odd.map((l) => l.line).join(", ")}), which is not the extracted total of ${formatMinor(x.gross, x.currency)}.`, [...refs, ref("gross")])
 			}
 		}
@@ -352,6 +358,7 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 
 	// 13. agreement between the Extractor and the independent Auditor
 	const a = c.audit.result
+	const amountField = (f: string) => /gross|amount|total/i.test(f)
 	if (a) {
 		const same = (f: ReadingField): boolean => {
 			const xv = x[f], av = a.reading[f]
@@ -373,12 +380,27 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 				c.validation.result?.disagreements.length ? "the Validator's report differs from the computed checks" : "",
 			].filter(Boolean)
 			add("agent_agreement", "Extractor and Auditor agree", "R14", "review", "review", `${parts.join("; ")}.`, [...refs, ...a.conflicts.flatMap((k) => k.refs)])
+			// only a contradiction about the amount, and nothing else, is something a confirmation of the amount can settle
+			if (!differ.length && !unseen.length && !c.validation.result?.disagreements.length && a.conflicts.every((k) => amountField(k.field))) amountOnly.push("agent_agreement")
 		} else add("agent_agreement", "Extractor and Auditor agree", "R13", "pass", "block", "The Auditor read the document on its own and arrived at the same amount, currency, IBAN, creditor and invoice number.", (["gross", "iban"] as ReadingField[]).flatMap((f) => [ref(f), a.reading.refs[f] ?? null]))
 	} else if (c.mode === "single") {
 		// The single-agent benchmark baseline has no second reader. What the one agent noticed itself still counts.
 		const own = c.validation.result?.issues.filter((i) => i.code === "document_conflict") ?? []
 		if (own.length || c.validation.result?.disagreements.length) add("agent_agreement", "Independent second reading", "R14", "review", "review", [own.length ? `the agent found the document contradicting itself (${own.map((i) => i.message).join("; ")})` : "", c.validation.result?.disagreements.length ? "the agent's report differs from the computed checks" : ""].filter(Boolean).join("; ") + ".", own.flatMap((i) => i.refs))
 		else add("agent_agreement", "Independent second reading", null, "na", "info", "Not applicable: this is the single-agent baseline, which has no independent second reader to compare with.")
+	}
+
+	// 14b. A vendor confirmation of the payable amount: a trusted record that is independent of the document. It applies only
+	// to this vendor, this invoice and this currency. If it states the amount this payment would pay, the contradiction in
+	// the document is settled by a record (a person still approves). If it states another amount, the payment as read is
+	// wrong and is blocked: the confirmation is evidence against it, not a formality.
+	const conf = vendor && x.invoiceNumber && x.gross != null ? ctx.confirmed.find((k) => k.status === "verified" && k.vendorId === vendor.id && alnum(k.invoiceNumber) === alnum(x.invoiceNumber) && k.currency === x.currency) : undefined
+	if (conf && (amountOnly.length || conf.payableAmount !== x.gross)) {
+		const vc = record(`VC:${conf.ref}`, "vendor_confirmation", `Vendor confirmation ${conf.ref}`, "server/data/confirmations.json, attached by a reviewer", conf.ref, { vendor: conf.vendorId, invoice: conf.invoiceNumber, payableAmount: formatMinor(conf.payableAmount, conf.currency), status: conf.status, version: String(conf.version), method: conf.method, confirmedBy: conf.confirmedBy, confirmedAt: conf.confirmedAt, checkedBy: conf.verifiedBy, checkedAt: conf.verifiedAt })
+		if (conf.payableAmount === x.gross) {
+			add("amount_confirmation", "Vendor confirmation of the amount", "R14", "pass", "review", `Confirmation ${conf.ref} from the vendor states that ${formatMinor(conf.payableAmount, conf.currency)} is payable for invoice ${conf.invoiceNumber}. That is the amount this payment would pay. The other amount stated in the document stays on record; a person still approves this payment.`, [vc, ref("gross"), vendorRef])
+			for (const k of controls) if (amountOnly.includes(k.id) && k.status === "review") { k.settledBy = vc; k.refs = [...new Set([...k.refs, vc])] }
+		} else add("amount_confirmation", "Vendor confirmation of the amount", "R14", "fail", "block", `Confirmation ${conf.ref} from the vendor states that ${formatMinor(conf.payableAmount, conf.currency)} is payable for invoice ${conf.invoiceNumber}. This payment would pay ${formatMinor(x.gross!, x.currency)}. It cannot be approved as it stands: a corrected document is needed.`, [vc, ref("gross"), vendorRef])
 	}
 
 	// stages: fail closed

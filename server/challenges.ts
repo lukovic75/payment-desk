@@ -91,6 +91,13 @@ export function deriveChallenges(c: PaymentCase): Challenge[] {
 
 	const status = (ch: Omit<Challenge, "status">): ChallengeStatus => {
 		if (RUNNING.has(c.stage)) return "open"
+		// A vendor confirmation on record for this vendor and invoice: it either states the amount this payment would pay
+		// (matched to a record, independent of the document) or another one (the payment as read is wrong).
+		if (ch.category === "document_contradiction" && isAmount(ch.field)) {
+			const conf = c.controls.find((k) => k.id === "amount_confirmation")
+			if (conf?.status === "pass" && c.controls.some((k) => k.settledBy && (k.id === "stated_amounts" || k.id === "agent_agreement"))) return "matched_to_record"
+			if (conf?.status === "fail") return "confirmed_discrepancy"
+		}
 		// A person approved over it. That is an accountable decision, not a verification: a cited line shows that a value is
 		// in the document, never which of two stated values is owed.
 		if (c.resolutions?.[ch.id]) return "accepted_by_reviewer"

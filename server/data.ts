@@ -2,7 +2,7 @@ import { createHash } from "node:crypto"
 import { readFileSync, readdirSync } from "node:fs"
 import { join, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
-import type { Callback, HistoricalPayment, Policy, PurchaseOrder, Scenario, SourceDocument, Vendor } from "./domain.js"
+import type { AmountConfirmation, Callback, HistoricalPayment, Policy, PurchaseOrder, Scenario, SourceDocument, Vendor } from "./domain.js"
 import { parseMoney } from "./money.js"
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -18,6 +18,7 @@ const minor = (v: unknown, what: string) => {
 export const loadVendors = (): Vendor[] => json("vendors.json")
 export const loadCallbacks = (): Callback[] => json("callbacks.json")
 export const loadScenarios = (): Scenario[] => json("scenarios.json")
+export const loadConfirmations = (): AmountConfirmation[] => json("confirmations.json").map((k: any) => ({ ...k, payableAmount: minor(k.payableAmount, `confirmation ${k.ref}`) }))
 
 export function loadPolicy(): Policy {
 	const p = json("policy.json")

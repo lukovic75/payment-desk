@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
-import { ArrowLeft, ArrowRight, ArrowsClockwise, Bank, CaretRight, CheckCircle, ClockCounterClockwise, DownloadSimple, FileText, Function as Fn, Hourglass, PhoneCall, Prohibit, Scales, ShieldWarning, User, Warning, XCircle } from "@phosphor-icons/react"
+import { ArrowLeft, ArrowRight, ArrowsClockwise, Bank, CaretRight, CheckCircle, ClockCounterClockwise, DownloadSimple, FileText, Function as Fn, Hourglass, PhoneCall, Prohibit, Scales, SealCheck, ShieldWarning, User, Warning, XCircle } from "@phosphor-icons/react"
 import { act, draftUrl, fetchDocument, type Action, type Challenge, type Control, type DeskSnapshot, type EvidenceEntry, type PaymentCase } from "../lib/api"
 import { flagged, isBlocking, isRunning, loopsOf, outcomeOf, titleOf, type AgentName } from "../lib/derive"
 import { cap, clock, day, dueLabel, fieldLabel, iban as fmtIban, money, plain, reduceMotion, words } from "../lib/format"
@@ -65,10 +65,10 @@ export function chipLabel(e: EvidenceEntry): string {
 	return e.record?.recordId ?? e.id
 }
 export const ICON: Record<EvidenceEntry["category"], ReactNode> = {
-	source_document: <FileText size={11} />, vendor_record: <Bank size={11} />, historical_payment: <ClockCounterClockwise size={11} />, policy: <Scales size={11} />, calculation: <Fn size={11} />, human_verification: <User size={11} />,
+	source_document: <FileText size={11} />, vendor_record: <Bank size={11} />, historical_payment: <ClockCounterClockwise size={11} />, policy: <Scales size={11} />, calculation: <Fn size={11} />, human_verification: <User size={11} />, vendor_confirmation: <SealCheck size={11} />,
 }
 export const CATEGORY: Record<EvidenceEntry["category"], string> = {
-	source_document: "Source document", vendor_record: "Trusted record", historical_payment: "Payment history", policy: "Configured policy", calculation: "Deterministic calculation", human_verification: "Human verification",
+	source_document: "Source document", vendor_record: "Trusted record", historical_payment: "Payment history", policy: "Configured policy", calculation: "Deterministic calculation", human_verification: "Human verification", vendor_confirmation: "Vendor confirmation",
 }
 
 /** A reference to one ledger entry. Selecting it opens what the entry rests on. */
@@ -521,7 +521,7 @@ const CHECK_STATUS: Record<Challenge["status"], { label: string; tone: string }>
 	open: { label: "Open", tone: "run" },
 	confirmed_discrepancy: { label: "Confirmed discrepancy", tone: "bad" },
 	requires_human_verification: { label: "Needs a person", tone: "warn" },
-	matched_to_record: { label: "Matched to a callback record", tone: "good" },
+	matched_to_record: { label: "Matched to a trusted record", tone: "good" },
 	accepted_by_reviewer: { label: "Accepted by a reviewer, not verified", tone: "warn" },
 	unresolved: { label: "Unresolved", tone: "warn" },
 }
@@ -545,7 +545,9 @@ export function CrossChecks({ c, chip }: { c: PaymentCase; chip: ChipFn }) {
 						{ch.status === "accepted_by_reviewer" ? (
 							<p className="fine">{how?.basis === "source_cited" ? <>The reviewer approved on a written statement and cited {chip(how.chosenRef)}, which states <span className="mono">{how.chosenValue}</span>. Code re-read that line: the value is in the document. That does not show which of the two values is owed.</> : "The reviewer approved on a written statement and cited no evidence."} No independent record confirms it.</p>
 						) : ch.status === "matched_to_record" ? (
-							<p className="fine">A callback record held by the desk matches this vendor and this exact account. The desk matches the record; it does not place or verify the call. In this sandbox the record is a synthetic fixture.</p>
+							ch.category === "document_contradiction"
+								? <p className="fine">A vendor confirmation on record {chip(c.controls.find((k) => k.settledBy)?.settledBy ?? null)} states which amount is payable for this vendor and this invoice, and it is the amount this payment would pay. The record is independent of the document. The desk matches the record; it does not contact the vendor. In this sandbox the record is a synthetic fixture.</p>
+								: <p className="fine">A callback record held by the desk matches this vendor and this exact account. The desk matches the record; it does not place or verify the call. In this sandbox the record is a synthetic fixture.</p>
 						) : <p className="fine">Next: {ch.required}</p>}
 					</li>
 				)
@@ -559,7 +561,7 @@ export function CrossChecks({ c, chip }: { c: PaymentCase; chip: ChipFn }) {
 type VerdictProps = { c: PaymentCase; snapshot: DeskSnapshot; onDecided?: (c: PaymentCase) => void; chip?: ChipFn }
 
 /** Review flags that mean something does not agree, as opposed to an amount that is simply above a limit. Mirrors the server. */
-export const openDiscrepancies = (c: PaymentCase) => c.controls.filter((k) => (k.status === "review" || k.status === "fail") && k.severity !== "block" && k.id !== "per_payment_limit" && k.id !== "daily_limit")
+export const openDiscrepancies = (c: PaymentCase) => c.controls.filter((k) => (k.status === "review" || k.status === "fail") && k.severity !== "block" && k.id !== "per_payment_limit" && k.id !== "daily_limit" && !k.settledBy)
 
 export function Verdict({ c, snapshot, onDecided, chip }: VerdictProps) {
 	const x = c.extraction.result
@@ -607,7 +609,8 @@ export function Verdict({ c, snapshot, onDecided, chip }: VerdictProps) {
 	}
 	if (c.stage === "awaiting_approval") {
 		const open = openDiscrepancies(c).length > 0
-		return shell("warn", <Hourglass size={20} weight="fill" />, open ? "This payment needs verification" : "Needs your approval", open ? "Something on it does not agree. Resolve it before it is paid." : "Nothing is wrong with it. The policy asks for a person at this amount.",
+		const settled = c.controls.find((k) => k.settledBy)?.settledBy
+		return shell("warn", <Hourglass size={20} weight="fill" />, open ? "This payment needs verification" : "Needs your approval", open ? "Something on it does not agree. Resolve it before it is paid." : settled ? <>The document states two amounts. A vendor confirmation on record {chip?.(settled)} states which one is payable, and it is the amount this payment would pay. A person still approves.</> : "Nothing is wrong with it. The policy asks for a person at this amount.",
 			<>{reasons}<div className="verdict-act"><Actions c={c} snapshot={snapshot} onDecided={onDecided} /></div></>)
 	}
 	if (c.stage === "approved") {
@@ -622,6 +625,7 @@ export function Verdict({ c, snapshot, onDecided, chip }: VerdictProps) {
 export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 	const [reason, setReason] = useState("")
 	const [callback, setCallback] = useState("")
+	const [confirmation, setConfirmation] = useState("")
 	const [busy, setBusy] = useState<Action | null>(null)
 	const [err, setErr] = useState<string | null>(null)
 	const beneficiary = c.controls.find((k) => k.id === "beneficiary")?.status === "fail"
@@ -632,14 +636,15 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 	const [picks, setPicks] = useState<Record<string, string>>({})
 	const waiting = (c.challenges ?? []).filter((ch) => ch.status === "requires_human_verification" || ch.status === "unresolved" || ch.status === "open")
 	const pickable = open ? waiting.filter((ch) => ch.sourceSelectable) : []
+	const amountDisputed = open && waiting.some((ch) => ch.category === "document_contradiction" && /gross|amount|total/i.test(ch.field))
 	const resolved = reason.trim().length >= 10
 	const run = async (action: Action) => {
 		if (busy) return
 		setBusy(action); setErr(null)
 		try {
 			const resolutions = action === "approve" ? Object.entries(picks).filter(([id]) => pickable.some((ch) => ch.id === id)).map(([challengeId, chosenRef]) => ({ challengeId, chosenRef })) : undefined
-			const next = await act(c.id, action, { reason: reason.trim() || undefined, callbackRef: callback.trim() || undefined, resolutions: resolutions?.length ? resolutions : undefined })
-			setReason(""); setCallback(""); setPicks({})
+			const next = await act(c.id, action, { reason: reason.trim() || undefined, callbackRef: callback.trim() || undefined, confirmationRef: action === "verify_amount" ? confirmation.trim() : undefined, resolutions: resolutions?.length ? resolutions : undefined })
+			setReason(""); setCallback(""); setConfirmation(""); setPicks({})
 			if (action === "approve" || action === "reject") onDecided?.(next)
 		} catch (e) { setErr((e as Error).message) } finally { setBusy(null) }
 	}
@@ -648,6 +653,16 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 	)
 	return (
 		<>
+			{amountDisputed && (
+				<div className="verify">
+					<label className="label">
+						Vendor confirmation reference for the amount payable
+						<input className="input mono" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} placeholder="VC-…" autoComplete="off" spellCheck={false} maxLength={80} />
+					</label>
+					{btn("verify_amount", "Verify payable amount", "", <SealCheck size={14} />, confirmation.trim() === "")}
+					<p className="fine">Settles the two amounts with evidence that does not come from this document: a verified confirmation on record for this vendor, this invoice and this currency. If it states another amount than this payment would pay, the payment is blocked. The desk matches the record; it does not contact the vendor.</p>
+				</div>
+			)}
 			{pickable.map((ch) => (
 				<fieldset className="pick" key={ch.id}>
 					<legend>Cite the line that states the {/gross|amount|total/i.test(ch.field) ? "amount to pay" : ch.field} (optional)</legend>

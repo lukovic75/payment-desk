@@ -1,11 +1,11 @@
 # Payment Desk · demo readiness
 
-26 November 2026. Three things are reported apart, because one does not stand for another.
+26 November 2026, final release pass. Three things are reported apart, because one does not stand for another.
 
 | | Status |
 |---|---|
 | **Scripted showcase** | **Ready.** Verified end to end in a browser and by automated checks |
-| **Live showcase** | **Not verified on this version.** The provider account has no credit; the last live call was refused |
+| **Live showcase** | **Blocked, not verified on this version.** The provider account has no credit; the last live call (26 Nov, 22:58 CET) was refused |
 | **Recorded execution** | Available. A stored live run of an earlier version, three of five scenarios complete |
 
 **Scripted showcase ready. Current live-model execution unverified.**
@@ -15,7 +15,7 @@
 Real Mozaik runtime, agent loops, tools, events, evidence checks, controls and enforcement; predefined model responses for the five showcase documents (`server/test/showcase-responses.ts`). Needs no credentials.
 
 ```bash
-npm install
+npm ci
 npm run demo             # builds the UI, serves it on http://localhost:8799
 ```
 
@@ -24,16 +24,17 @@ npm run demo             # builds the UI, serves it on http://localhost:8799
 | Legitimate invoice | `INV-2026-1041` | AUTO_APPROVED | AUTO_APPROVED, sandbox draft | test, browser |
 | Changed account | `INV-ES-55820` | BLOCKED | BLOCKED, challenge against the vendor master | test, browser |
 | Agents disagree | `INV-2026-1049` | NEEDS_APPROVAL or BLOCKED | NEEDS_APPROVAL, one cross-check raised by the Auditor, Investigator called | test, browser |
+| …resolved with a vendor confirmation | `VC-2026-1126-01` | | cross-check matched to a trusted record, a person approves, sandbox draft citing the record | test, browser |
 | Duplicate payment | `INV-7701-rappel` | BLOCKED | BLOCKED, cites payment `H-0001` | test, browser |
 | Prompt injection (optional) | `INV-ADR-0101` | NEEDS_APPROVAL | NEEDS_APPROVAL | test |
 
 | Check | Result |
 |---|---|
 | `npm run typecheck` | pass |
-| `npm test` | 101 of 101, eight files, about 3 seconds |
+| `npm test` | 114 of 114, nine files, about 4 seconds; also on Node 20.20.2 and 22.23.5 |
 | `npm run lab` | 12 of 12 scenarios |
 | `npm run build` | pass |
-| `npm run test:browser` | 16 of 16: startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
+| `npm run test:browser` | 17 of 17: startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
 | Looked at in a browser | Opening, each scenario, both drawers, summary, recorded view and failure state; dark and light; 375, 768, 1024, 1280, 1440 and 1920 px wide with no horizontal overflow; reduced motion |
 
 What the scripted demonstration does not show: anything about a language model. The agents' answers are fixed text.
@@ -48,7 +49,7 @@ npm run dev              # http://localhost:5173
 | | |
 |---|---|
 | Credentials | `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` / `GEMINI_API_KEY` with matching model names) |
-| Provider credit | **None.** Last attempt 26 Nov about 20:30: `400 … Your credit balance is too low`. Not retried since |
+| Provider credit | **None.** One attempt in the final pass, 26 Nov 22:58 CET (one live Stress Lab scenario): refused, reported as "could not be judged". Not retried |
 | Verified on a live server | The opening screen states *Live AI*, the models and that calls cost credit; a server with no key refuses to run a scenario (503) and substitutes nothing (test) |
 | Not verified | Any scenario with live models on this version: the revised prompts, the cross-check protocol with a live Auditor, the showcase outcomes, the live Stress Lab, the benchmark |
 
@@ -77,9 +78,10 @@ It is evidence that the workflow ran with live models once. It is not verificati
 
 - **Live models unverified on this version**, and the benchmark has never completed.
 - **One sandbox workspace.** Scenario payments are demo documents on the desk and count toward the same daily auto-approval budget as anything else there. Starting the demo, or loading the full inbox, replaces the demo documents; documents a person added, their decisions and their callback verifications are kept (tested).
-- **A contradiction inside a document cannot be verified by the desk.** A person can approve it on a written statement; the cross-check is then recorded as *accepted by a reviewer, not verified*. No corrected-invoice or vendor-confirmation record type exists for amounts.
-- **Callback records are synthetic fixtures.** The desk matches a reference to a record; it does not place a call.
-- **Browser checks are a smoke suite**, run with `npm run test:browser`, not part of `npm test`. They need Node 22 or newer and a local Chrome or Chromium.
+- **Trusted records are synthetic fixtures.** A contradiction about an amount is settled by a vendor confirmation and a changed account by a callback record. The desk matches a reference to a record for the right vendor, invoice or account, currency and amount; it does not contact anyone. Without a record, a person can still approve a contradiction on a written statement, recorded as *accepted by a reviewer, not verified*.
+- **Local only.** The server listens on 127.0.0.1, refuses requests from other sites and foreign hostnames, and has no sign-in. Hosting it publicly is out of scope.
+- **Browser checks are a smoke suite**, run with `npm run test:browser`, not part of `npm test`.
+- **No CI in the repository yet.** A workflow is written; pushing it needs a credential with the `workflow` scope. They need Node 22 or newer and a local Chrome or Chromium.
 - No sign-in; text documents only; one JSON state file; drafts are JSON, not ISO 20022.
 
 ## Recommended sequence

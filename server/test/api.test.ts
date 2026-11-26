@@ -125,6 +125,31 @@ function follow() {
 	return { view, stop: async () => { ctl.abort(); await done } }
 }
 
+test("API: only this machine is answered, and another site cannot start a run from the user's browser", async () => {
+	await post("/api/reset")
+	const before = (await get("/api/state")).body.cases.map((c: any) => `${c.id}:${c.version}`)
+	// what a page on another site can send without a preflight: a POST with its own Origin
+	const foreign = await raw("/api/run", { method: "POST", headers: { origin: "https://evil.example" } })
+	assert.equal(foreign.status, 403)
+	assert.match((await foreign.json() as any).error, /another site/)
+	for (const path of ["/api/showcase/start", "/api/showcase/run", "/api/documents", "/api/cases/INV-2026-1041/actions", "/api/lab/runs", "/api/reset"]) assert.equal((await raw(path, { method: "POST", headers: { origin: "http://attacker.test:8787", "content-type": "text/plain" }, body: "{}" })).status, 403, path)
+	assert.deepEqual((await get("/api/state")).body.cases.map((c: any) => `${c.id}:${c.version}`), before, "nothing was started, added or changed")
+	// the app's own pages: the dev server on another local port, and the built UI served from here
+	assert.equal((await raw("/api/reset", { method: "POST", headers: { origin: "http://localhost:5173" } })).status, 200)
+	assert.equal((await raw("/api/reset", { method: "POST", headers: { origin: B } })).status, 200)
+	// a request that arrives under a hostname that is not this machine (DNS rebinding) is refused, reads included
+	const { request } = await import("node:http")
+	const as = (host: string) => new Promise<number>((resolve, reject) => { const r = request({ host: "127.0.0.1", port: PORT, path: "/api/state", headers: { host } }, (res) => { res.resume(); resolve(res.statusCode ?? 0) }); r.on("error", reject); r.end() })
+	assert.equal(await as("evil.example"), 403)
+	assert.equal(await as(`evil.example:${PORT}`), 403)
+	assert.equal(await as(`localhost:${PORT}`), 200)
+	assert.equal(await as(`127.0.0.1:${PORT}`), 200)
+	// and the server does not listen on the network at all
+	const { networkInterfaces } = await import("node:os")
+	const lan = Object.values(networkInterfaces()).flat().find((i) => i && i.family === "IPv4" && !i.internal)?.address
+	if (lan) await assert.rejects(fetch(`http://${lan}:${PORT}/api/health`, { signal: AbortSignal.timeout(1500) }), "not reachable on the machine's network address")
+})
+
 test("API: a run started twice in a row gives each document one clean result", async () => {
 	const live = follow()
 	await new Promise((r) => setTimeout(r, 150))

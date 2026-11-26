@@ -67,14 +67,18 @@ async function startServer(env = {}) {
 }
 
 const profile = mkdtempSync(join(tmpdir(), "payment-desk-smoke-"))
-const debugPort = 9400 + Math.floor(Math.random() * 500)
-const chrome = spawn(CHROME, [...(CHROME.includes("headless-shell") ? [] : ["--headless=new"]), `--remote-debugging-port=${debugPort}`, `--user-data-dir=${profile}`, "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--hide-scrollbars", "--window-size=1440,900", "about:blank"], { stdio: "ignore" })
-children.push(chrome)
 const cleanup = () => { for (const c of children) { try { c.kill() } catch { /* already gone */ } } try { rmSync(profile, { recursive: true, force: true }) } catch { /* the profile directory is temporary either way */ } }
 process.on("exit", cleanup)
 
+/** Starts the browser and waits for its debugging port. A browser that is slow to come up is given one more start on another port. */
 let target
-for (let i = 0; i < 60 && !target; i++) { await sleep(150); try { target = (await (await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find((t) => t.type === "page") } catch { /* not up yet */ } }
+for (let attempt = 0; attempt < 2 && !target; attempt++) {
+	const debugPort = 9400 + Math.floor(Math.random() * 500)
+	const chrome = spawn(CHROME, [...(CHROME.includes("headless-shell") ? [] : ["--headless=new"]), `--remote-debugging-port=${debugPort}`, `--user-data-dir=${join(profile, String(attempt))}`, "--no-first-run", "--no-default-browser-check", "--disable-gpu", "--hide-scrollbars", "--window-size=1440,900", "about:blank"], { stdio: "ignore" })
+	children.push(chrome)
+	for (let i = 0; i < 100 && !target && chrome.exitCode == null; i++) { await sleep(150); try { target = (await (await fetch(`http://127.0.0.1:${debugPort}/json`)).json()).find((t) => t.type === "page") } catch { /* not up yet */ } }
+	if (!target) { try { chrome.kill() } catch { /* already gone */ } }
+}
 if (!target) cannot(`the browser at ${CHROME} did not open a debugging port.`)
 const ws = new WebSocket(target.webSocketDebuggerUrl)
 await new Promise((r) => (ws.onopen = r))
@@ -161,6 +165,24 @@ await check("the agent challenge is inspectable, with both sides and its status"
 	await click("Inspect agent challenge")
 	await until(`(() => { const x = txt(".drawer[data-open=true] .xcheck"); return x && x.includes("1980.00") && x.includes("1890.00") && x.includes("Needs a person") && x.includes("raised by the Auditor") })()`, "the cross-check with 1980.00 against 1890.00, raised by the Auditor, waiting for a person")
 	await page(`$(".drawer[data-open=true] [aria-label=Close]").click()`)
+})
+/** Types into a controlled input the way a person would: the value, then the event the framework listens for. */
+const fill = (selector, value) => until(`(() => { const el = $(${JSON.stringify(selector)}); if (!el) return false; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set.call(el, ${JSON.stringify(value)}); el.dispatchEvent(new Event("input", { bubbles: true })); return true })()`, `the field ${selector}`)
+await check("the held payment is resolved with a vendor confirmation: a wrong record is refused, the right one is matched, a person approves", async () => {
+	if (await page(`control("Resolve and approve") != null`)) throw new Error("an approval is offered before anything is resolved")
+	await fill(".sc-act input[placeholder^='VC']", "VC-2026-1126-03")
+	await click("Verify payable amount")
+	await until(`txt(".sc-act .errbox")?.includes("on record as unverified")`, "the unverified record refused, with the reason")
+	await fill(".sc-act input[placeholder^='VC']", "VC-2026-1126-02")
+	await click("Verify payable amount")
+	await until(`txt(".sc-act .errbox")?.includes("is not a confirmation on record for invoice INV-2026-1049")`, "another vendor's record refused")
+	await fill(".sc-act input[placeholder^='VC']", "VC-2026-1126-01")
+	await click("Verify payable amount")
+	await until(`txt(".sc-resolve-state")?.includes("matches this vendor, this invoice and the amount this payment would pay")`, "the confirmation matched")
+	await until(`$$(".sc-evidence .kv > div").some((d) => d.textContent.includes("Matched to a vendor confirmation on record"))`, "the cross-check shown as matched to a record")
+	await until(`txt(".sc-check .status") === "Expected outcome confirmed"`, "the scenario result unchanged: it is what the workflow decided")
+	await click("Approve payment")
+	await until(`txt(".sc-resolve-state")?.includes("Approved by a person on vendor confirmation") && /Sandbox draft PD-/.test(txt(".sc-resolve-state"))`, "the approval, citing the confirmation, with a sandbox draft")
 })
 await check("scenario 4 and the summary: every result comes from a case", async () => {
 	await click("Next: Duplicate payment")

@@ -102,6 +102,7 @@ export function checkIntegrity(c: PaymentCase, ctx: FirewallContext): IntegrityR
 		if (e.id.startsWith("V:")) { const v = ctx.vendors.find((k) => k.id === id); exists = !!v && formatIban(v.iban) === e.record.fields.iban; critical = true }
 		else if (e.id.startsWith("H:")) { exists = ctx.history.some((k) => k.id === id); critical = true }
 		else if (e.id.startsWith("HV:")) { exists = ctx.verified.some((k) => k.ref === id); critical = true }
+		else if (e.id.startsWith("VC:")) { const k = ctx.confirmed.find((v) => v.ref === id); exists = !!k && k.status === "verified" && formatMinor(k.payableAmount, k.currency) === e.record.fields.payableAmount; critical = true }
 		else if (e.id.startsWith("PO:")) exists = ctx.purchaseOrders.some((k) => k.po === id)
 		else if (e.id === "P:limit") exists = e.record.fields.autoApproveLimit === formatMinor(ctx.policy.autoApproveLimit, ctx.policy.currency)
 		else if (e.id === "P:budget") exists = e.record.fields.dailyAutoApproveBudget === formatMinor(ctx.policy.dailyAutoApproveBudget, ctx.policy.currency)

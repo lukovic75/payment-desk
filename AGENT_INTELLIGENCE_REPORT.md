@@ -82,10 +82,11 @@ Revised in the showcase pass (defect PD-14 in `QA_REPORT.md`). Four things are k
 |---|---|---|---|
 | A person approves on a **written statement** | That a statement of at least ten characters exists (R14) | `accepted_by_reviewer`, basis `assertion` | No |
 | The same, and the person **cites one of the two disputed lines** | Also: the line is one of the two, the quote is in the document, and its value is the amount the payment would pay | `accepted_by_reviewer`, basis `source_cited`, with the line | No. The line shows the value is in the document, not which of two stated values is owed |
+| A verified **vendor confirmation** held by the desk matches the vendor, the invoice, the currency and the amount the payment would pay (conflicting amounts only; added in the final release pass) | The reference against `confirmations.json`: vendor, invoice number, currency, status, amount | `matched_to_record`. If the record states another amount: `confirmed_discrepancy`, and the payment is blocked | A match with a record that is independent of the document. The desk does not contact the vendor; the record is a synthetic fixture |
 | A **callback record** held by the desk matches the vendor and the exact IBAN (changed account only) | The reference, the vendor and the IBAN against `callbacks.json` | `matched_to_record` | A match with a record. The desk does not place or verify the call, and in this sandbox the record is a synthetic fixture |
 | The payment is rejected | | `unresolved` | |
 
-Citing a line is never enough by itself: without the statement the approval is refused. Citing the line that states a *different* amount is refused outright, because the payment would pay something else. A critical reading disagreement (amount, currency, IBAN) and a changed account cannot be accepted by a statement at all. Nothing in the application has a record type that could establish which of two amounts in one document is owed, so such a challenge can be accepted but never ends as verified.
+Citing a line is never enough by itself: without the statement the approval is refused. Citing the line that states a *different* amount is refused outright, because the payment would pay something else. A critical reading disagreement (amount, currency, IBAN) and a changed account cannot be accepted by a statement at all. A line of the document never settles which of two amounts is owed; only the vendor confirmation does. Tests: `server/test/resolution.test.ts`.
 
 ## Structured output reliability
 
@@ -119,7 +120,7 @@ Unchanged in this pass and **never run**. One agent on the careful model against
 
 | | Result |
 |---|---|
-| `npm test` | **90 of 90** (was 64): 26 new in `server/test/intelligence.test.ts`. After the showcase pass: 101 of 101 |
+| `npm test` | **90 of 90** (was 64): 26 new in `server/test/intelligence.test.ts`. After the showcase pass: 101 of 101. After the final release pass: 114 of 114 |
 | `npm run lab` | 12 of 12 scenarios, scripted |
 | `npm run typecheck`, `npm run build` | pass |
 | Browser, scripted server | Cross-checks view; refusal when the other amount is chosen; resolution with evidence; collaboration figures |
