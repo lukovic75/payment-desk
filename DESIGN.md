@@ -1,34 +1,65 @@
-# Payment Desk · design notes
+# Payment Desk · design system
 
-An operations tool for an accounts-payable reviewer. The design serves the task: find the cases that need a person, see why, act, move on. Brand lives in precision, not decoration.
+A financial operations tool. The reviewer has to understand what happened to a payment and what is asked of them within seconds, and has to be able to trust every figure. Design serves that: precision, restraint, and nothing on screen that is not real.
 
-## Foundations
+## Principles
 
-- **Type:** one family, Geist (variable), self-hosted so the app works offline. Geist Mono for identifiers, IBANs, XML and the source document. Fixed rem scale at a 1.2 ratio: 12 / 13 / 14 / 16 / 20 / 28. Body 14px. Tabular numerals everywhere (`font-variant-numeric: tabular-nums`). Tracking only on large numbers (−0.025em) and headings (−0.01em).
-- **Color:** neutral warm-grey surfaces, one accent (cobalt) for the primary action, selection and the running state. Status colors are reserved: good / warn / bad, always paired with an icon or a label, never color alone. The four agents own the only categorical palette; it was validated for lightness band, chroma and colour-vision separation in both themes.
-- **Themes:** both are first-class. Dark is the default for long desk sessions; light follows `prefers-color-scheme` or the toggle. Tokens are redefined per theme in `web/src/styles.css`; components never hold a literal colour.
-- **Surfaces:** hairlines over cards. Panels have a 1px line and a 12px radius; no shadows except on the floating tooltip and the dialog. The chrome is translucent with a solid fallback under `prefers-reduced-transparency`.
-- **Browser surfaces are themed:** selection, caret, scrollbar colour, focus ring, form controls.
+1. **Trust before decoration.** Every figure comes from desk state. A metric that does not exist yet says so ("No usage yet", "n/a") instead of showing a placeholder number.
+2. **Provenance is visible.** Each statement is labelled with where it comes from: Source (quoted from the document, the line located by the server), Computed (by code), Agent (an interpretation), Human (a decision). An agent's claim is never styled as a verified fact; a value without a located source is marked.
+3. **Reason before log.** A payment opens on the decision and why. The agents' work follows, then the source document; the raw agent log is folded away.
+4. **Not colour alone.** Status and exceptions always carry an icon and a label.
+5. **Motion shows state.** It is used for feedback, a state change, or real activity. When the agents stop, the animation stops.
+
+## Tokens (`web/src/styles/tokens.css`)
+
+Components never hold a literal colour, size, radius, duration or curve. Colours are declared once with `light-dark()` and follow `color-scheme`, so the two themes cannot drift apart.
+
+| Group | Tokens |
+|---|---|
+| Surfaces | `--bg` canvas, `--bg-2` navigation, `--surface` panels, `--raised` insets, `--hover`, `--line`, `--line-2` |
+| Ink | `--ink`, `--ink-2`, `--ink-3` (all at or above 4.5:1 on every surface they sit on) |
+| Accent | `--accent` (primary action, selection, running), `--accent-soft`, `--accent-line` |
+| Status | `--good`, `--warn`, `--bad` and their `-soft` backgrounds. Reserved for state |
+| Agents | `--agent-extractor / validator / auditor / policy`. The only categorical palette |
+| Type | Geist and Geist Mono, self-hosted. Fixed rem scale 11 / 12 / 13 / 14 / 16 / 20 / 28 |
+| Space | 4 / 8 / 12 / 16 / 20 / 24 / 32 / 48 |
+| Radius | 6 / 8 / 10 / 12 |
+| Motion | `--d-hover` 120 ms, `--d-press` 140 ms, `--d-pop` 180 ms, `--d-panel` 220 ms, `--d-layout` 280 ms; `--ease-out` cubic-bezier(0.23, 1, 0.32, 1) |
+
+**Dark** is a cool near-black canvas (#0b0d10) with slightly lighter panels. **Light** is not an inversion: a cool grey canvas (#f4f5f7) with near-white panels, a darker cobalt accent (#2b59c9) and darker status inks so text keeps its contrast. Neither theme uses pure black or pure white.
+
+The agent palette was run through a validator for lightness band, chroma, colour-vision separation (worst adjacent pair ΔE 10.4 to 10.7 under protan and deutan simulation) and 3:1 contrast against both panel surfaces.
+
+Typography: body 13 px, tabular numerals everywhere, Geist Mono only for identifiers, IBANs, timestamps, XML and the source document. Amounts are sans, weight 600, with the currency as a small muted suffix so the number reads first.
 
 ## Structure
 
-1. **Chrome:** identity, model status, live connection, theme, the two actions (add a document, process the inbox).
-2. **Ledger strip:** the five numbers a reviewer glances at, in one row with hairline dividers, no cards.
-3. **Cases:** grouped by what they need (Processing, Needs approval, Approved, Rejected, Failed, Not a payment). A warning glyph marks cases where the bank details do not match the vendor master. ↑/↓ moves the selection.
-4. **Agents on one clock:** the proof of concurrency. One lane per agent, one bar per loop, sub-rows for loops that overlap. Hover names the case, click opens it; the selected case's bars stay bright and the rest dim.
-5. **Case:** the verdict strip comes first (what the desk decided, why, and the approve/reject action when it is the reviewer's call), then the four agents' work side by side, the SEPA draft, the source document with cited lines marked in the gutter, and the agent log.
+- **Navigation.** Six destinations, each a real view. Collapsible to icons; on phones it becomes a tab bar. The review-queue badge and the "agents running" dot are live.
+- **Command bar.** Page title, real system status (event-stream state backed by a heartbeat, Mozaik runtime participants, processing progress), theme, Add document, Process inbox. One primary button.
+- **Financial summary.** Six figures in one hairline-divided strip, not six cards. Four of them link to the view that explains them.
+- **Payment list.** Two-line rows: vendor and amount, then status, the most severe exception, the invoice reference and the due date. Search, status filter, sort, ↑/↓.
+- **Payment workspace.** Identity and amount; the verdict with its reasons and the approve/reject action; payment details with a source button per value; computed checks with the conflicting IBANs side by side and the differing groups marked; the Validator's and Auditor's findings as agent statements; the policy guard's reasons apart from the Policy agent's; the source document in a sticky rail with cited lines marked; the per-payment timeline.
+- **Agent activity.** One lane per agent, one bar per loop, sub-rows where loops overlap. Hover names the payment and the times; the focused payment's dependencies are drawn (Extractor to Validator and Auditor, both to Policy) and in the one-payment view the parallel window is shaded and measured. Idle stretches are folded and labelled. Peak concurrency, agent time, wall time and their ratio are computed from the same events. A table repeats the data for keyboard and screen-reader users.
 
 ## Motion
 
-Motion exists only to show state or causality, 120–260 ms, exponential ease-out.
+| Where | What | Why |
+|---|---|---|
+| Buttons, source buttons | 0.97 scale on press, 120 ms colour | feedback |
+| Rows, navigation, KPI links | background and border colour, 120 ms | feedback |
+| Payment switch | 180 ms fade with a 3 px rise; skipped when the change came from the keyboard | prevents a jarring swap |
+| KPI values | the new value settles in over 220 ms; no count-up through amounts that never existed | state change |
+| Meters and progress | `scaleX`, 280 ms | state change |
+| Timeline | running bars are translucent and grow with the clock; they turn solid when the loop finishes; lane dots pulse only while that agent runs | real activity |
+| Agent surface | a faint dot grid; a slow light drifts across it only while agents are running | real activity |
+| Dialog | 220 ms rise and fade | spatial |
 
-- Pressing anything scales it to 0.97 on `:active`.
-- Switching cases crossfades with a 3px blur so two states never overlap visibly.
-- The SEPA draft appears with a short rise when a payment is approved.
-- Running chips pulse; the timeline's "now" line and running bars move with the clock.
-- The dialog materialises (blur + scale) from the trigger's side of the screen.
-- `prefers-reduced-motion` collapses every transition to an instant change and stops the pulse.
+Only `transform` and `opacity` animate. `prefers-reduced-motion` removes movement and keeps colour changes. Ambient loops pause when the tab is hidden; entrance animations are left alone so nothing can be stuck invisible. There is no ambient motion behind financial text.
 
 ## States
 
-Every step has pending, running (skeleton), done and error. The app without a key says so and disables the actions. An empty inbox explains what will happen. A document that is not a payment says why nothing is due. A provider failure shows the provider's message on the case instead of crashing.
+Initial load (skeleton in the shape of the overview), empty inbox, upload (drop, pick, paste, with size and type errors), active processing, settled, agent failure (the provider's message and "Run this document again"), partial failure (the failed step shows its error, the others keep their results), missing evidence ("no source", "quote not found"), lost server connection (banner, actions paused, status shown as unknown), no search results (with a clear-filters action), no model key.
+
+## Responsive
+
+Designed at 1280, 1440, 1728 and 1920. The workspace uses a container query: from 800 px of its own width the source document sits beside the details. Below 900 px the navigation is a tab bar, the list and the workspace are separate screens with a back link, and tables stack. No view scrolls horizontally.

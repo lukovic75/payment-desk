@@ -1,0 +1,91 @@
+/*
+ * Design tokens. Components never hold a literal colour, size, radius, duration or curve.
+ * Colours use light-dark(), so each token is declared once and follows `color-scheme`.
+ * Text/surface pairs were checked for WCAG AA; the agent palette was validated for
+ * lightness band, chroma and colour-vision separation on both surfaces (see DESIGN.md).
+ */
+:root {
+	color-scheme: light dark;
+
+	--font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-mono: "Geist Mono Variable", ui-monospace, "SF Mono", Menlo, monospace;
+
+	/* type: fixed rem scale */
+	--fs-11: 0.6875rem;
+	--fs-12: 0.75rem;
+	--fs-13: 0.8125rem;
+	--fs-14: 0.875rem;
+	--fs-16: 1rem;
+	--fs-20: 1.25rem;
+	--fs-28: 1.75rem;
+
+	/* space: 4 / 8 grid */
+	--sp-1: 4px;
+	--sp-2: 8px;
+	--sp-3: 12px;
+	--sp-4: 16px;
+	--sp-5: 20px;
+	--sp-6: 24px;
+	--sp-8: 32px;
+	--sp-12: 48px;
+
+	--r-sm: 6px;
+	--r-md: 8px;
+	--r-lg: 10px;
+	--r-xl: 12px;
+
+	/* motion */
+	--d-hover: 120ms;
+	--d-press: 140ms;
+	--d-pop: 180ms;
+	--d-panel: 220ms;
+	--d-layout: 280ms;
+	--ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+	--nav-w: 232px;
+	--bar-h: 52px;
+	--tab-h: 56px;
+
+	/* surfaces */
+	--bg: light-dark(#f4f5f7, #0b0d10);
+	--bg-2: light-dark(#eceef1, #101318);
+	--surface: light-dark(#fcfcfd, #14181e);
+	--raised: light-dark(#f6f7f9, #191e26);
+	--hover: light-dark(#eef0f3, #1d232c);
+	--line: light-dark(#e2e5ea, #252b34);
+	--line-2: light-dark(#cbd0d8, #343c48);
+
+	/* ink */
+	--ink: light-dark(#12161c, #f1f3f5);
+	--ink-2: light-dark(#4a5361, #a1a9b5);
+	--ink-3: light-dark(#616b7a, #7f8896);
+
+	/* one accent: primary action, selection, running */
+	--accent: light-dark(#2b59c9, #6b9aff);
+	--accent-ink: light-dark(#ffffff, #0b1220);
+	--accent-soft: light-dark(#e6edfc, #16233f);
+	--accent-line: color-mix(in srgb, var(--accent) 38%, transparent);
+
+	/* status: reserved, always paired with an icon or a label */
+	--good: light-dark(#0e7550, #35c99a);
+	--good-ink: light-dark(#ffffff, #06231a);
+	--good-soft: light-dark(#e0f3ea, #10291f);
+	--warn: light-dark(#8f5600, #e8b45d);
+	--warn-soft: light-dark(#faefd9, #2b2214);
+	--bad: light-dark(#b42f2f, #ef7070);
+	--bad-soft: light-dark(#fbe5e5, #301a1c);
+
+	/* agents: the only categorical palette */
+	--agent-extractor: light-dark(#2f6fdb, #4f86f0);
+	--agent-validator: light-dark(#1a9e7a, #27ad88);
+	--agent-auditor: light-dark(#d9731f, #c9722a);
+	--agent-policy: light-dark(#8a5cd6, #9a7fe6);
+
+	--dot: light-dark(rgb(18 22 28 / 0.09), rgb(241 243 245 / 0.07));
+	--glow: light-dark(rgb(43 89 201 / 0.07), rgb(107 154 255 / 0.09));
+	--scrim: light-dark(rgb(18 22 28 / 0.32), rgb(0 0 0 / 0.55));
+	--shadow-pop: 0 14px 36px -12px light-dark(rgb(18 22 28 / 0.28), rgb(0 0 0 / 0.7)), 0 2px 6px -2px light-dark(rgb(18 22 28 / 0.12), rgb(0 0 0 / 0.5));
+}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }

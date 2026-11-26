@@ -35,11 +35,11 @@ import { existsSync } from "node:fs"
 import { homedir } from "node:os"
 import { join as joinPath } from "node:path"
 import type {
-	AgentInfo, Audit, Decision, DeskSnapshot, Discrepancy, Evidence, Extraction, Issue, PaymentCase, Policy, Route,
+	AgentInfo, Audit, Checks, Decision, DeskSnapshot, Discrepancy, Evidence, Extraction, Issue, PaymentCase, Policy, Route,
 	SourceDocument, TimelineEntry, Validation, Vendor,
 } from "./domain.js"
 import { emptyStep, nowIso } from "./domain.js"
-import { findLine, loadDocuments, loadPolicy, loadVendors } from "./data.js"
+import { countInboxFiles, findLine, loadDocuments, loadPolicy, loadVendors } from "./data.js"
 import { formatIban, isValidIban, normalizeIban } from "./lib/iban.js"
 import { buildSepaDraft } from "./sepa.js"
 
@@ -57,6 +57,7 @@ class DeskState extends RuntimeState {
 	documents = new Map<string, SourceDocument>()
 	cases = new Map<string, PaymentCase>()
 	tokens = new Map<string, { input: number; output: number; calls: number }>()
+	events = new Map<string, number>()
 }
 
 const { initializeRuntime, resolveRuntime, join, sendEvent, runLoop } = defineRuntime<DeskState>()
@@ -206,6 +207,56 @@ function matchVendor(name: string): { vendor: Vendor | null; score: number; cand
 	return { vendor, score: best?.score ?? 0, candidates: scored.slice(0, 3) }
 }
 
+// ───────────────────────────────── deterministic checks ─────────────────────────────────
+
+const CRITICAL_FIELDS = ["amount", "iban", "creditorName"] as const
+const invoiceKey = (s: string | null) => (s ?? "").toLowerCase().replace(/[^a-z0-9]/g, "")
+const bareBic = (b: string) => b.toUpperCase().replace(/XXX$/, "")
+
+/** Everything the desk can establish without a model: master data, checksum, duplicates, limits, located sources. */
+function computeChecks(c: PaymentCase): Checks | null {
+	const x = c.extraction.result
+	if (!x || !x.isPaymentRequest) return null
+	const vendor = x.creditorName ? matchVendor(x.creditorName).vendor : null
+	const vendorKey = (name: string | null) => (name ? matchVendor(name).vendor?.id ?? [...tokens(name)].sort().join(" ") : "")
+	const mine = vendorKey(x.creditorName)
+	const dupes = [...state.cases.values()].filter((o) => {
+		const ox = o.extraction.result
+		if (o.id === c.id || !ox?.isPaymentRequest || !mine || vendorKey(ox.creditorName) !== mine) return false
+		const sameInvoice = !!invoiceKey(x.invoiceNumber) && invoiceKey(ox.invoiceNumber) === invoiceKey(x.invoiceNumber)
+		const sameAmountNoNumber = x.amount != null && ox.amount === x.amount && (!invoiceKey(x.invoiceNumber) || !invoiceKey(ox.invoiceNumber))
+		return sameInvoice || sameAmountNoNumber
+	})
+	const before = (o: PaymentCase) => o.receivedAt < c.receivedAt || (o.receivedAt === c.receivedAt && o.id < c.id)
+	const earlier = dupes.filter(before).sort((a, b) => a.receivedAt.localeCompare(b.receivedAt))
+	return {
+		vendorId: vendor?.id ?? null,
+		vendorName: vendor?.name ?? null,
+		ibanValid: x.iban ? isValidIban(x.iban) : null,
+		ibanMatchesMaster: vendor && x.iban ? normalizeIban(vendor.iban) === x.iban : null,
+		masterIban: vendor ? normalizeIban(vendor.iban) : null,
+		bicMatchesMaster: vendor && x.bic ? bareBic(vendor.bic) === bareBic(x.bic) : null,
+		duplicateOf: earlier[0]?.id ?? null,
+		duplicatedBy: dupes.filter((o) => !before(o)).map((o) => o.id),
+		overLimit: x.amount != null ? x.amount > state.policy.autoApproveLimit : null,
+		limit: state.policy.autoApproveLimit,
+		currencyOk: x.currency ? x.currency === state.policy.currency : null,
+		unsourced: CRITICAL_FIELDS.filter((f) => x[f] != null && !x.evidence.some((e) => e.field === f && e.line != null)),
+		computedAt: nowIso(),
+	}
+}
+
+/** A new extraction can make an older case a duplicate, so every extracted case is rechecked. */
+function refreshChecks() {
+	for (const c of state.cases.values()) {
+		if (c.extraction.status !== "done") continue
+		const next = computeChecks(c)
+		const same = JSON.stringify({ ...next, computedAt: 0 }) === JSON.stringify({ ...c.checks, computedAt: 0 })
+		c.checks = next
+		if (!same) emitCase(c)
+	}
+}
+
 // ───────────────────────────────── tools ─────────────────────────────────
 
 const submitExtraction: Tool = {
@@ -265,6 +316,7 @@ const submitExtraction: Tool = {
 			note: str(args.note) ?? "",
 		}
 		c.extraction = { status: "done", startedAt: c.extraction.startedAt, finishedAt: nowIso(), result: x, error: null }
+		refreshChecks()
 		if (!x.isPaymentRequest) {
 			c.stage = "not_a_payment"
 			emitCase(c)
@@ -379,11 +431,22 @@ const submitValidation: Tool = {
 			duplicateOf: str(args.duplicateOf),
 			issues,
 			summary: str(args.summary) ?? "",
+			disagreements: [],
+		}
+		const k = (c.checks = computeChecks(c))
+		if (k) {
+			const differs = (label: string, said: unknown, computed: unknown) => {
+				if (said != null && computed != null && said !== computed) v.disagreements.push(`${label}: Validator reported ${String(said)}, computed ${String(computed)}`)
+			}
+			differs("vendor id", v.vendorId, k.vendorId)
+			differs("IBAN checksum valid", v.ibanValid, k.ibanValid)
+			differs("IBAN matches vendor master", v.ibanMatchesMaster, k.ibanMatchesMaster)
+			if (v.disagreements.length) log(c, "PolicyGuard", "info", `Validator's report disagrees with computed checks: ${v.disagreements.join("; ")}`)
 		}
 		c.validation = { status: "done", startedAt: c.validation.startedAt, finishedAt: nowIso(), result: v, error: null }
 		emitCase(c)
 		sendEvent(SemanticEvent.create("validation.completed", desk.getId(), { docId: c.id }), desk.getId())
-		return { ok: true, stored: true }
+		return { ok: true, stored: true, computedChecks: k, disagreements: v.disagreements }
 	},
 }
 
@@ -434,23 +497,30 @@ const getPolicy: Tool = {
 	invoke: async () => ({ policy: state.policy, dailyAutoApprovedSoFar: dailyAutoApproved(), source: "data/policy.json" }),
 }
 
-/** The facts the policy guard derives from shared state. The agent explains; this decides the floor. */
+/**
+ * The policy floor. Every rule here reads the computed checks or the stored audit, never the Policy agent's opinion,
+ * so the agent can explain and be stricter but cannot talk the desk into paying something the policy forbids.
+ */
 function policyFacts(c: PaymentCase): { required: Route; reasons: string[] } {
 	const x = c.extraction.result!
+	const k = (c.checks = computeChecks(c))!
 	const v = c.validation.result
 	const a = c.audit.result
 	const p = state.policy
 	const reasons: string[] = []
 	let required: Route = "auto"
 	const escalate = (r: string) => { reasons.push(r); if (required === "auto") required = "human" }
-	if (v?.ibanValid === false || v?.issues.some((i) => i.code === "iban_invalid")) { reasons.push("IBAN checksum is invalid"); required = "reject" }
+	if (k.ibanValid === false) { reasons.push("IBAN checksum is invalid (ISO 13616 mod 97)"); required = "reject" }
 	if (x.amount == null || !x.iban || !x.creditorName) escalate("a required payment field is missing")
-	if (x.amount != null && x.amount > p.autoApproveLimit) escalate(`amount ${x.amount.toFixed(2)} ${x.currency ?? ""} is above the auto-approve limit of ${p.autoApproveLimit.toFixed(2)} ${p.currency}`)
-	if (!v?.vendorId) escalate("vendor is not in the vendor master")
-	if (v?.ibanMatchesMaster === false) escalate("bank details differ from the vendor master")
-	if (v?.duplicateOf) escalate(`possible duplicate of ${v.duplicateOf}`)
-	if (x.currency && x.currency !== p.currency) escalate(`currency ${x.currency} is not ${p.currency}`)
+	if (k.overLimit) escalate(`amount ${x.amount!.toFixed(2)} ${x.currency ?? ""} is above the auto-approve limit of ${p.autoApproveLimit.toFixed(2)} ${p.currency}`)
+	if (!k.vendorId) escalate("vendor is not in the vendor master")
+	if (k.ibanMatchesMaster === false) escalate("bank details differ from the vendor master")
+	if (k.duplicateOf) escalate(`possible duplicate of ${k.duplicateOf}`)
+	if (k.duplicatedBy.length) escalate(`a later document duplicates this invoice (${k.duplicatedBy.join(", ")})`)
+	if (k.currencyOk === false) escalate(`currency ${x.currency} is not ${p.currency}`)
+	if (k.unsourced.length) escalate(`no located source in the document for: ${k.unsourced.join(", ")}`)
 	if (a && !a.ok) escalate("the auditor found a discrepancy between the extraction and the document")
+	if (v?.disagreements.length) escalate("the Validator's report disagrees with the computed checks")
 	if (required === "auto" && x.amount != null && dailyAutoApproved() + x.amount > p.dailyAutoApproveBudget) escalate("today's auto-approve budget would be exceeded")
 	return { required, reasons }
 }
@@ -492,17 +562,25 @@ const submitDecision: Tool = {
 	},
 }
 
+function draftSepa(c: PaymentCase) {
+	c.sepa = buildSepaDraft(c, state.policy, nowIso())
+	log(c, "Desk", "info", `SEPA draft created (pain.001.001.09, message ${c.sepa.messageId}); nothing is sent`)
+}
+
 function applyRoute(c: PaymentCase) {
 	const d = c.decision.result!
 	if (d.route === "reject") {
 		c.stage = "rejected"
-		c.approval = { by: "policy", decision: "rejected", note: [...d.reasons, ...d.guardReasons].join("; "), at: nowIso() }
+		c.approval = { by: "policy", decision: "rejected", note: [...d.guardReasons, ...d.reasons].join("; "), at: nowIso() }
+		log(c, "PolicyGuard", "info", `rejected by policy: ${d.guardReasons.join("; ") || d.reasons.join("; ")}`)
 	} else if (d.route === "human") {
 		c.stage = "awaiting_approval"
+		log(c, "PolicyGuard", "info", `held for a human approver: ${d.guardReasons.join("; ") || "the Policy agent asked for review"}`)
 	} else {
 		c.stage = "approved"
 		c.approval = { by: "policy", decision: "approved", note: "within policy; auto-approved", at: nowIso() }
-		c.sepa = buildSepaDraft(c, state.policy, nowIso())
+		log(c, "PolicyGuard", "info", "auto-approved: no policy rule requires a human")
+		draftSepa(c)
 	}
 	emitCase(c)
 }
@@ -632,6 +710,7 @@ const observer = createHuman({
 		processor: {
 			apply({ event }) {
 				const agent = agentName(event.producerId)
+				state.events.set(event.type, (state.events.get(event.type) ?? 0) + 1)
 				if (event.type === "inference.completed") {
 					const usage = (event.payload as InferenceOutput | undefined)?.tokenUsage
 					if (usage) {
@@ -673,6 +752,8 @@ export function snapshot(): DeskSnapshot {
 		dailyAutoApproved: dailyAutoApproved(),
 		cloudEnabled: Boolean(process.env.MOZAIK_API_KEY) || cloudPaired(),
 		models: MODELS,
+		inboxWaiting: state.startedAt ? 0 : countInboxFiles(),
+		runtime: { participants: state.participants.size, events: Object.fromEntries(state.events) },
 	}
 }
 
@@ -685,7 +766,7 @@ export function getDocumentText(id: string): string | null {
 }
 
 function newCase(d: SourceDocument): PaymentCase {
-	return { id: d.id, fileName: d.fileName, receivedAt: d.receivedAt, stage: "received", extraction: emptyStep(), validation: emptyStep(), audit: emptyStep(), decision: emptyStep(), approval: null, sepa: null, timeline: [] }
+	return { id: d.id, fileName: d.fileName, receivedAt: d.receivedAt, stage: "received", extraction: emptyStep(), validation: emptyStep(), audit: emptyStep(), decision: emptyStep(), checks: null, approval: null, sepa: null, timeline: [] }
 }
 
 function startExtraction(c: PaymentCase) {
@@ -707,6 +788,7 @@ export function runDesk(): DeskSnapshot {
 	state.cases.clear()
 	state.documents.clear()
 	state.tokens.clear()
+	state.events.clear()
 	for (const d of docs) {
 		state.documents.set(d.id, d)
 		state.cases.set(d.id, newCase(d))
@@ -734,14 +816,26 @@ export function recordHumanDecision(id: string, decision: "approved" | "rejected
 	const c = getCase(id)
 	if (c.stage !== "awaiting_approval") throw new Error(`case ${id} is not awaiting approval (stage: ${c.stage})`)
 	c.approval = { by: "human", decision, note, at: nowIso() }
+	log(c, by, "info", decision === "approved" ? `approved by a human${note ? `: ${note}` : ""}` : `rejected by a human${note ? `: ${note}` : ""}`)
 	if (decision === "approved") {
 		c.stage = "approved"
-		c.sepa = buildSepaDraft(c, state.policy, nowIso())
+		draftSepa(c)
 	} else {
 		c.stage = "rejected"
 	}
-	log(c, by, "info", decision === "approved" ? `approved by a human${note ? `: ${note}` : ""}` : `rejected by a human${note ? `: ${note}` : ""}`)
 	emitCase(c)
+	return c
+}
+
+/** Recovery for a case an agent failed on: clear the steps and send the document through the desk again. */
+export function retryCase(id: string): PaymentCase {
+	const c = getCase(id)
+	if (c.stage !== "error") throw new Error(`case ${id} has not failed (stage: ${c.stage})`)
+	if ([c.extraction, c.validation, c.audit, c.decision].some((s) => s.status === "running")) throw new Error(`an agent is still working on ${id}; try again in a moment`)
+	c.extraction = emptyStep(); c.validation = emptyStep(); c.audit = emptyStep(); c.decision = emptyStep()
+	c.checks = null; c.approval = null; c.sepa = null
+	log(c, "Desk", "info", "retry requested by a human")
+	startExtraction(c)
 	return c
 }
 

@@ -29,6 +29,10 @@ export function loadDocuments(): SourceDocument[] {
 		}))
 }
 
+export function countInboxFiles(): number {
+	try { return readdirSync(join(DATA_DIR, "documents")).filter((f) => f.endsWith(".txt")).length } catch { return 0 }
+}
+
 /** Find the 1-based line of a quote inside the document; null when it is not there verbatim. */
 export function findLine(text: string, quote: string): number | null {
 	const needle = quote.trim()

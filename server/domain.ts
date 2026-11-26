@@ -66,6 +66,26 @@ export type Issue = {
 	source: string
 }
 
+/** Facts the server derives itself from shared state. No model is involved in any of these. */
+export type Checks = {
+	vendorId: string | null
+	vendorName: string | null
+	ibanValid: boolean | null
+	ibanMatchesMaster: boolean | null
+	masterIban: string | null
+	bicMatchesMaster: boolean | null
+	/** Earlier document in the inbox that this one duplicates. */
+	duplicateOf: string | null
+	/** Later documents that duplicate this one. */
+	duplicatedBy: string[]
+	overLimit: boolean | null
+	limit: number
+	currencyOk: boolean | null
+	/** Critical fields (amount, iban, creditorName) whose quote could not be located in the document. */
+	unsourced: string[]
+	computedAt: string
+}
+
 export type Validation = {
 	vendorId: string | null
 	vendorName: string | null
@@ -74,6 +94,8 @@ export type Validation = {
 	duplicateOf: string | null
 	issues: Issue[]
 	summary: string
+	/** Where the agent's report differs from the computed checks. */
+	disagreements: string[]
 }
 
 export type Discrepancy = { field: string; extracted: string; inDocument: string }
@@ -140,6 +162,7 @@ export type PaymentCase = {
 	validation: StepStatus<Validation>
 	audit: StepStatus<Audit>
 	decision: StepStatus<Decision>
+	checks: Checks | null
 	approval: Approval | null
 	sepa: SepaDraft | null
 	timeline: TimelineEntry[]
@@ -156,6 +179,9 @@ export type DeskSnapshot = {
 	dailyAutoApproved: number
 	cloudEnabled: boolean
 	models: { fast: string; careful: string }
+	/** Files in data/documents that have not been loaded yet (0 once the desk has started). */
+	inboxWaiting: number
+	runtime: { participants: number; events: Record<string, number> }
 }
 
 export function emptyStep<T>(): StepStatus<T> {

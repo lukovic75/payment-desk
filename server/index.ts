@@ -4,7 +4,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { existsSync, readFileSync, statSync } from "node:fs"
 import { extname, join, normalize, dirname } from "node:path"
 import { fileURLToPath } from "node:url"
-import { addDocument, getDocumentText, recordHumanDecision, runDesk, snapshot, subscribe, MODELS } from "./desk.js"
+import { addDocument, getDocumentText, recordHumanDecision, retryCase, runDesk, snapshot, subscribe, MODELS } from "./desk.js"
 
 const PORT = Number(process.env.API_PORT ?? 8787)
 const here = dirname(fileURLToPath(import.meta.url))
@@ -46,7 +46,8 @@ const server = createServer(async (req, res) => {
 			res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive", "x-accel-buffering": "no" })
 			res.write(`event: snapshot\ndata: ${JSON.stringify(snapshot())}\n\n`)
 			const unsubscribe = subscribe((e) => res.write(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`))
-			const ping = setInterval(() => res.write(": ping\n\n"), 15_000)
+			// A named heartbeat, so the client can tell a silent dead connection from a quiet desk.
+			const ping = setInterval(() => res.write(`event: ping\ndata: ${Date.now()}\n\n`), 10_000)
 			req.on("close", () => { unsubscribe(); clearInterval(ping) })
 			return
 		}
@@ -67,6 +68,11 @@ const server = createServer(async (req, res) => {
 			const body = await readBody(req)
 			const c = recordHumanDecision(decodeURIComponent(decision[1]!), decision[2] === "approve" ? "approved" : "rejected", typeof body.note === "string" && body.note.trim() ? body.note.trim() : null)
 			return json(res, 200, c)
+		}
+		const retry = path.match(/^\/api\/cases\/([^/]+)\/retry$/)
+		if (req.method === "POST" && retry) {
+			if (!hasKey) return json(res, 503, { error: "No model API key. Copy .env.example to .env and set ANTHROPIC_API_KEY, then restart." })
+			return json(res, 200, retryCase(decodeURIComponent(retry[1]!)))
 		}
 		const doc = path.match(/^\/api\/documents\/([^/]+)$/)
 		if (req.method === "GET" && doc) {
