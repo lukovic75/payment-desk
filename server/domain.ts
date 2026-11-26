@@ -88,7 +88,10 @@ export type Route = "auto" | "human" | "reject"
 
 export type Decision = {
 	route: Route
+	/** The agent's own reasons, citing policy rules and tool results. */
 	reasons: string[]
+	/** What the deterministic guard derived from shared state. */
+	guardReasons: string[]
 	summary: string
 	/** Set when the deterministic policy guard overrode the agent's proposed route. */
 	overriddenFrom: Route | null

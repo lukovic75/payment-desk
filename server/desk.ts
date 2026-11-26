@@ -480,7 +480,8 @@ const submitDecision: Tool = {
 		const route = overridden ? facts.required : proposed
 		const d: Decision = {
 			route,
-			reasons: [...new Set([...(Array.isArray(args.reasons) ? args.reasons.map(String) : []), ...facts.reasons])],
+			reasons: Array.isArray(args.reasons) ? args.reasons.map(String) : [],
+			guardReasons: facts.reasons,
 			summary: str(args.summary) ?? "",
 			overriddenFrom: overridden ? proposed : null,
 		}
@@ -495,7 +496,7 @@ function applyRoute(c: PaymentCase) {
 	const d = c.decision.result!
 	if (d.route === "reject") {
 		c.stage = "rejected"
-		c.approval = { by: "policy", decision: "rejected", note: d.reasons.join("; "), at: nowIso() }
+		c.approval = { by: "policy", decision: "rejected", note: [...d.reasons, ...d.guardReasons].join("; "), at: nowIso() }
 	} else if (d.route === "human") {
 		c.stage = "awaiting_approval"
 	} else {

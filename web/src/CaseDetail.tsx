@@ -28,7 +28,7 @@ export function CaseDetail({ c, onChanged }: Props) {
 	return (
 		<div className="detail fade-in" key={c.id}>
 			<div className="detail-head">
-				<h1>{x?.creditorName ?? (x ? capitalize(x.documentKind) : c.fileName)}</h1>
+				<h1>{c.validation.result?.vendorName ?? x?.creditorName ?? (x ? capitalize(x.documentKind) : c.id)}</h1>
 				<StageChip stage={c.stage} />
 				<span className="fine mono">{c.fileName}</span>
 				{x?.amount != null && <span className="amount num">{money(x.amount, x.currency)}</span>}
@@ -118,6 +118,7 @@ export function CaseDetail({ c, onChanged }: Props) {
 								</p>
 								<ul className="reasons">{c.decision.result.reasons.map((r, k) => <li key={k}>{r}</li>)}</ul>
 								<p className="summary">{c.decision.result.summary}</p>
+								<p className="fine guard"><ShieldCheck size={12} weight="bold" style={{ verticalAlign: "-2px" }} /> Policy guard: {c.decision.result.guardReasons.length ? c.decision.result.guardReasons.join("; ") : "no rule requires a human; within limits"}</p>
 							</>
 						)}
 						{c.stage === "awaiting_approval" && <ApprovalBox c={c} onChanged={onChanged} />}

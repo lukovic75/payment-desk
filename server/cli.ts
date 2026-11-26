@@ -28,9 +28,7 @@ const timer = setInterval(() => {
 		const x = c.extraction.result
 		const amt = x?.amount != null ? `${x.amount.toFixed(2)} ${x.currency ?? ""}` : "-"
 		const d = c.decision.result
-		console.log(c.id.padEnd(24) + c.stage.padEnd(19) + amt.padStart(11) + "  " + (x?.creditorName ?? x?.documentKind ?? "-") + (d ? ` → ${d.route}${d.overriddenFrom ? ` (guard raised from ${d.overriddenFrom})` : ""}: ${d.reasons.join("; ") || "within policy"}` : "") + (c.extraction.error ?? c.validation.error ?? c.audit.error ?? c.decision.error ? `  ERROR: ${c.extraction.error ?? c.validation.error ?? c.audit.error ?? c.decision.error}` : ""))
+		console.log(c.id.padEnd(24) + c.stage.padEnd(19) + amt.padStart(11) + "  " + (x?.creditorName ?? x?.documentKind ?? "-") + (d ? ` → ${d.route}${d.overriddenFrom ? ` (guard raised from ${d.overriddenFrom})` : ""}: ${[...d.guardReasons, ...d.reasons].join("; ") || "within policy"}` : "") + (c.extraction.error ?? c.validation.error ?? c.audit.error ?? c.decision.error ? `  ERROR: ${c.extraction.error ?? c.validation.error ?? c.audit.error ?? c.decision.error}` : ""))
 	}
-	const tokens = [...(Object.entries(Object.fromEntries((s as any).tokens ?? [])))]
-	void tokens
 	process.exit(0)
 }, 500)
