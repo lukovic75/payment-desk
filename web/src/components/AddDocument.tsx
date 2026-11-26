@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { UploadSimple, X } from "@phosphor-icons/react"
+import { Play, UploadSimple, X } from "@phosphor-icons/react"
 import { addDocument } from "../lib/api"
 import { Spinner } from "./bits"
 
@@ -147,7 +147,7 @@ export function AddDocument({ open, onClose, onAdded }: { open: boolean; onClose
 				<div className="sheet-head">
 					<h2 id="add-doc-title">Add a document</h2>
 					<span className="grow" />
-					<button type="button" className="btn btn-ghost btn-icon" aria-label="Close" onClick={onClose}><X size={16} /></button>
+					<button type="button" className="btn btn-ghost btn-icon btn-round" aria-label="Close" onClick={onClose}><X size={16} /></button>
 				</div>
 				<div className="sheet-body">
 					<div
@@ -171,14 +171,14 @@ export function AddDocument({ open, onClose, onAdded }: { open: boolean; onClose
 					</label>
 					<label className="label">
 						Document text
-						<textarea className="textarea" value={text} onChange={(e) => { setText(e.target.value); if (err) setErr(null) }} placeholder="Paste an invoice, a reminder or any email the accounts-payable inbox would receive. Synthetic data only." spellCheck={false} />
+						<textarea className="textarea" autoFocus value={text} onChange={(e) => { setText(e.target.value); if (err) setErr(null) }} placeholder="Paste an invoice, a reminder or any email the accounts-payable inbox would receive. Synthetic data only." spellCheck={false} />
 					</label>
 					{err && <div className="errbox" role="alert">{err}</div>}
 				</div>
 				<div className="sheet-foot">
 					<span className="muted grow" style={{ fontSize: "var(--fs-12)" }}>The agents start on it immediately. Synthetic data only; the text is treated as untrusted content.</span>
 					<button type="button" className="btn" onClick={onClose} disabled={busy}>Cancel</button>
-					<button type="submit" className="btn btn-primary" disabled={busy || text.trim().length < 20}>{busy && <Spinner />} Run through the desk</button>
+					<button type="submit" className="btn btn-primary" disabled={busy || text.trim().length < 20}>{busy ? <Spinner /> : <Play size={12} weight="fill" />} Run through the desk</button>
 				</div>
 			</form>
 		</dialog>

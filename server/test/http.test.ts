@@ -53,6 +53,13 @@ test("HTTP: the whole workflow, from intake to a sandbox draft and the audit tra
 	assert.equal(draft.body.sandbox, true)
 	assert.equal(draft.body.amount.minor, 674000)
 	assert.match(draft.headers.get("content-disposition") ?? "", /attachment/)
+	// a discrepancy cannot be approved by a click: the person has to state how it was resolved
+	assert.equal(stageOf(s, "INV-2026-1049"), "awaiting_approval")
+	const silent = await post("/api/cases/INV-2026-1049/actions", { action: "approve" })
+	assert.equal(silent.status, 422, "conflicting amounts are not approved without a resolution")
+	assert.match(silent.body.error, /unresolved discrepancy/i)
+	assert.equal((await post("/api/cases/INV-2026-1049/actions", { action: "approve", reason: "ok" })).status, 422, "a token note is not a resolution")
+	assert.equal(stageOf((await get("/api/state")).body, "INV-2026-1049"), "awaiting_approval")
 	assert.equal((await post("/api/cases/INV-PX-3001/actions", { action: "reject", reason: "vendor not onboarded" })).status, 200)
 	assert.equal((await post("/api/cases/INV-ES-55820/actions", { action: "verify_beneficiary", callbackRef: "CB-0000" })).status, 422, "a made-up callback reference is refused")
 	assert.equal((await post("/api/cases/INV-7733/actions", { action: "launch" })).status, 400)

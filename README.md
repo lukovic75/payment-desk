@@ -1,21 +1,34 @@
 # Payment Desk
 
-**Payment Desk is an evidence-driven multi-agent financial operations platform that investigates, verifies, and controls payment requests before money moves.**
+**Payment Desk is an evidence-driven multi-agent financial operations platform that independently verifies invoices, investigates discrepancies, and enforces payment controls before approval.**
 
-Five agents on Mozaik read each inbound payment request, check it against trusted records, read it a second time independently, investigate what does not add up and recommend what to do. A deterministic payment firewall then decides what is allowed. An agent can explain and can ask for something stricter. It cannot approve a payment the controls stop.
+It does not trust what one AI reads from an invoice. Five agents on Mozaik read each inbound payment request, check it against trusted records, read it a second time independently, investigate what does not add up and recommend what to do. Where two findings disagree, code records a structured challenge with the evidence for each side. A deterministic payment firewall then decides what is allowed. An agent can explain and can ask for something stricter. It cannot approve a payment the controls stop.
 
 Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27 November 2026.
 
 > Sandbox demonstration. All data is synthetic, no money moves, nothing is sent to a bank, and nothing here is financial advice.
 
-![A blocked payment: the verdict, what a person may do about it, and how the decision was reached](docs/firewall.jpg)
+![Interactive showcase, scenario three: the Auditor found a second amount on its own, code recorded the cross-check, the Investigator was called and the payment is held for a person](docs/showcase.jpg)
+
+![Overview: what is pending, approved and blocked, the payments that need a person, and what the agents are doing](docs/overview.jpg)
+
+![Payment Firewall: the exception, and the trusted vendor record beside the incoming document with only the differing groups marked](docs/firewall.jpg)
 
 ## Try it in two minutes, without an API key
 
 ```bash
 npm install
-npm test                 # 46 automated tests on the real Mozaik runtime with a scripted model, about 3 seconds
+npm run demo             # builds the UI and starts the scripted showcase on http://localhost:8799
+```
+
+Open http://localhost:8799 and press **Start demo**: four synthetic scenarios, one at a time, each through the real workflow. `DEMO_GUIDE.md` is the walkthrough.
+
+This is the **scripted demo: real orchestration, predefined model responses**. The Mozaik runtime, the agent loops, the evidence checks, the controls and the enforcement run for real; the agents' answers are fixed text, and every screen says so. It shows the architecture and the workflow, not the quality of a language model.
+
+```bash
+npm test                 # 101 automated tests on the real Mozaik runtime with a scripted model, about 3 seconds
 npm run lab              # the 12 stress scenarios from the terminal, scripted model, a few seconds
+npm run test:browser     # 16 browser checks of the showcase (needs Node 22+ and a local Chrome or Chromium)
 ```
 
 With a model key, for live agents:
@@ -25,7 +38,9 @@ cp .env.example .env     # set ANTHROPIC_API_KEY
 npm run dev              # API on :8787, UI on http://localhost:5173
 ```
 
-Open http://localhost:5173. The overview has an optional six-step guide for a first visit. **Run demo scenarios** sends sixteen synthetic documents through the live workflow; **Financial Stress Lab** runs twelve reproducible scenarios, on a deterministic path that needs no key or on live models.
+Open http://localhost:5173. **Start demo** then runs the same scenarios with live models and says *Live AI*; the full inbox of sixteen synthetic documents can be loaded from the overview or the demo summary; **Financial Stress Lab** runs twelve reproducible scenarios, on a deterministic path that needs no key or on live models. A provider refusal (no credit, a bad key) is shown as a failure with what to do about it. The application never switches from live to scripted by itself.
+
+**Status of live models on this version: not verified.** The provider account had no credit when it was finished. What live models returned earlier is in the app under *Watch the recorded execution* and described in *Live verification, stated plainly* below.
 
 ## The problem
 
@@ -54,6 +69,8 @@ A language model alone does not fix this. It can read a document well, and it ca
 | G | **Possible split payment**: requests on one purchase order, each under the limit, over it together | Review. Stated as a possibility, with the sum shown. |
 | | **Agents disagree** on amount, currency or IBAN | Blocked until the document is run again or corrected. |
 | | **Evidence fails re-verification** | Blocked, whatever the agents recommend. |
+| | **Zero or negative amount**: a zero invoice or a credit note | Blocked. It is not a payment, a person cannot approve it and no draft is made. |
+| | **Conflicting amounts in one document** | Needs a person, and is approved only on a written statement of how it was resolved (R14). The reviewer may also cite the line that states the amount to pay; code re-reads it and refuses the approval if it is not what the payment would pay. A cited line shows that the amount is in the document, not that it is the amount owed, so the cross-check is recorded as *accepted by a reviewer, not verified*. |
 
 And it approves what is valid: three of the sixteen demo documents are clean and go straight through.
 
@@ -107,10 +124,24 @@ Models default to `claude-haiku-4-5` (fast) and `claude-sonnet-5-5` (careful); o
 
 ### Cross-agent checks that change the outcome
 
+Every disagreement is kept as a **challenge**: the claim, what was independently observed against it, the evidence for each side, what would settle it, and a status. Challenges are derived by code (`server/challenges.ts`), never written by a model, and are not erased when they are settled. They are passed to the Investigator and the Policy agent and shown under *Verification → Agent cross-checks*. `AGENT_INTELLIGENCE_REPORT.md` has the protocol.
+
 - The Auditor reads the document without seeing the Extractor's output. Code compares the two readings field by field. A different amount, currency or IBAN blocks the payment (rule R13) and triggers the Investigator.
 - The Validator reports what the trusted records say. The server computes the same checks itself and records any disagreement with the Validator's report; a disagreement sends the case to review.
 - The Investigator receives both readings and the controls, and is called only when there is something to investigate. A payment over the limit with nothing else wrong does not spend an investigation.
 - The Policy agent's recommendation is compared with what the controls allow. The stricter one is enforced.
+
+**An example, from the synthetic document `INV-2026-1049`.** The cover text says "please pay EUR 1,980.00"; the invoice total is EUR 1,890.00. The Extractor reports the invoice total. The Auditor, which never sees the Extractor's result, reports that the document states both. Code turns that into one challenge:
+
+| | |
+|---|---|
+| `id` | `CH:contradiction:gross:1`, raised by the Auditor |
+| challenged | `1980.00`, line 7 of the document |
+| observed | `1890.00`, line 23 of the document |
+| required | Verify which amount is payable before approving |
+| status | `requires_human_verification` |
+
+The Investigator is called, the Policy agent is told, and the controls hold the payment (R14). How a challenge can end: `matched_to_record` when a record held by the desk matches (a callback record for a changed account), `accepted_by_reviewer` when a person approves on a written statement, `unresolved` when it is rejected. Only the first is verification. The desk has no record type that could verify an amount, so this one can be accepted but not verified.
 
 ### Proof of execution
 
@@ -149,7 +180,7 @@ A citation is not correct because it exists. `server/integrity.ts` re-verifies t
 
 Findings are classified as missing evidence, broken reference, unsupported claim, incorrect normalisation or untraceable calculation. Values that cannot be checked mechanically (a date written in words) are reported as such and never counted as correct. A critical finding adds a failing `evidence_integrity` control, which blocks the payment whatever the agents recommended.
 
-![The Investigator's findings with evidence references, beside the source document](docs/investigation.jpg)
+![Verification of one payment: the failing controls and the investigation, with the evidence inspector open on a cited line of the document](docs/investigation.jpg)
 
 ## Financial Stress Lab
 
@@ -219,7 +250,7 @@ npm run lab:benchmark            # live models only
 
 ## The demo dataset
 
-`server/data/documents/` holds sixteen synthetic documents; `server/data/scenarios.json` states the expected outcome of each. Trusted records are in `vendors.json`, `history.json`, `purchase-orders.json` and `callbacks.json`. Nothing needs to be generated or seeded: the files are the dataset, and **Run demo scenarios** loads them.
+`server/data/documents/` holds sixteen synthetic documents; `server/data/scenarios.json` states the expected outcome of each. Trusted records are in `vendors.json`, `history.json`, `purchase-orders.json` and `callbacks.json`. Nothing needs to be generated or seeded: the files are the dataset. **Start demo** runs four of them one at a time (`INV-2026-1041`, `INV-ES-55820`, `INV-2026-1049`, `INV-7701-rappel`, and optionally `INV-ADR-0101`); *load all sixteen* on the overview runs the whole inbox.
 
 | Document | Scenario | Expected |
 |---|---|---|
@@ -262,35 +293,45 @@ cp .env.example .env
 
 | Command | What it does | Key |
 |---|---|---|
+| `npm run demo` | builds the UI and serves the scripted showcase on http://localhost:8799 (the UI says it is scripted) | no |
 | `npm run dev` | API on :8787 and UI on http://localhost:5173 | for live agents |
-| `npm test` | 46 automated tests, scripted model | no |
+| `npm test` | 101 automated tests, scripted model | no |
+| `npm run test:browser` | 16 browser checks of the showcase, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
 | `npm run lab` | Stress Lab in the terminal, deterministic path | no |
 | `npm run lab:live`, `npm run lab:benchmark` | Stress Lab and the benchmark with live models | yes |
 | `npm run cli` | the sixteen demo documents with live models, headless | yes |
 | `npm run typecheck` | TypeScript, server and UI | no |
 | `npm run build` then `npm start` | static UI in `web/dist`, served by the API on :8787 | for live agents |
-| `npm run build` then `npm run dev:scripted` | the whole app on http://localhost:8799 against the scripted model (the UI says so) | no |
+| `npm run dev:scripted` | the scripted server alone on :8799, when the UI is already built | no |
 
 There is no linter in the project; the type checker and the tests are the gates.
 
 ## Tests
 
-`npm test` runs 46 tests with Node's test runner, in about three seconds, with no API key.
+`npm test` runs 101 tests in eight files with Node's test runner, in about three seconds, with no API key. `AGENT_INTELLIGENCE_REPORT.md` describes the agents, how they check each other and what is verified. `QA_REPORT.md` lists the defects the stabilisation pass found and fixed, `TEST_MATRIX.md` maps each behaviour to its test, and `DEMO_READINESS.md` says what is and is not verified.
 
 - `server/test/firewall.test.ts`: money parsing, IBAN, instruction detection, per-currency totals. No runtime.
 - `server/test/workflow.test.ts`: the whole workflow on the **real Mozaik runtime** with a **scripted model**. Loops, tools, events, the firewall, enforcement and human actions are the real code; only the model's words are fixed. In most tests the scripted Policy agent recommends approval for everything, so a pass means the deterministic layer held by itself.
 - `server/test/lab.test.ts`: the twelve stress scenarios; that expected outcomes never reach an agent; that the judge fails a run that did the wrong thing; the daily budget under concurrency, repeatedly; fault-injection labelling; the integrity verifier on a clean payment and on each kind of broken evidence; the integrity gate; the single-agent baseline and the metric arithmetic; process isolation of a lab run.
+- `server/test/safety.test.ts`: amounts that are not payable (zero, negative), exact arithmetic at the edges of the number format, a very large amount, and each agent failing in turn.
+- `server/test/intelligence.test.ts`: malformed model output in ten forms (never an approval), well-formed but wrong output, invented rules and citations, provider failures by kind (no retry on an empty account, one retry on an outage), the cross-agent challenge protocol, and what a person's approval of a challenge does and does not establish.
+- `server/test/showcase.test.ts`: the interactive showcase. Each scenario's result is the outcome the controls enforced; a scenario cannot run twice and two cannot run at once; a failed scenario is failed, never confirmed, and can be run again; an unexpected outcome is reported as unexpected; the demo leaves a person's own documents, decisions and callback verifications alone; the recorded execution is served as stored and cannot be acted on; a scripted server says it is scripted, and a live server without a key runs nothing and substitutes nothing.
+- `server/test/api.test.ts`: the real server under hostile and careless use: malformed bodies and addresses, bad uploads, path traversal, a run started twice, conflicting amounts approved without a resolution, approvals that race, reprocessing a decided payment, an open page compared with server state, and a server killed straight after a decision.
 - `server/test/http.test.ts`: the real server process driven over HTTP the way the UI drives it: run the inbox, approve, refuse approval of a blocked payment, export a draft, reject, a wrong callback reference, add a document, run the Stress Lab, export an audit report.
 
 What they cover from the firewall's point of view: a valid invoice is approved; a changed IBAN cannot be approved whatever the Policy agent says; an invalid IBAN; a duplicate is not authorised twice; a renamed duplicate; arithmetic; unknown vendor; missing evidence and missing IBAN; the per-payment limit; the daily limit, including decisions that land together; a double approval; prompt injection, alone and on top of a changed IBAN; Extractor and Auditor disagreeing; a Validator report that contradicts the records; a failed Auditor and a failed Policy agent; a superseded loop that must stop; idempotent reprocessing; no draft for a blocked payment; every reported amount resolving to a ledger entry; mixed currencies; and all sixteen demo documents ending where `scenarios.json` says.
 
-**What these tests are not.** They are not live-model tests, and there are no automated browser tests: the UI was checked by hand in a browser (desktop and phone widths, light and dark). Passing tests show that the workflow and the controls behave as specified with fixed agent output. They do not show how a model behaves.
+**Browser checks.** `npm run test:browser` (`scripts/browser-smoke.mjs`, no extra dependency) starts the scripted server, drives a headless Chrome over the DevTools protocol and walks the showcase: one entry point, the mode labelled as scripted and never as live, the four scenarios and their enforced outcomes, a figure opened at its source line, the agent challenge, the summary, no approve action on a blocked payment, the execution proof, exit, the appearance switch, the recorded view, and a provider that refuses every call (banner shown, scenario failed, nothing confirmed). Sixteen checks; every wait is a condition on the page. It is a smoke suite, not full interface coverage, and is not part of `npm test`.
+
+**What these tests are not.** They are not live-model tests. Passing tests show that the workflow and the controls behave as specified with fixed agent output. They do not show how a model behaves.
 
 ### Live verification, stated plainly
 
 A live run of the sixteen demo documents through the app on 26 November 2026 (Haiku 4.5 + Sonnet 5.5, 67 agent loops, about 370k tokens, 46 seconds) decided 12 of the 16 before the API account ran out of credit. Of those 12, 11 ended as `scenarios.json` expects; the twelfth was a clean invoice the Policy agent held for review because it read a not-applicable control as a failure (the control now has its own "not applicable" status and the agent's instructions say so). The remaining four stopped as processing errors with the provider's "credit balance is too low" message, and nothing was approved for them, which is the fail-closed behaviour working. Two of those four are documents whose IBAN the fast model mistyped: the Auditor read both correctly and the controls failed on both, which is why an account number is now read by code from the quoted line.
 
-Everything added after that run has been verified on the deterministic path only: reading IBANs from the quoted line, the not-applicable status, shorter agent briefs, the evidence integrity gate, the Stress Lab, the single-agent baseline. **No live Stress Lab run and no benchmark has completed.** A live Stress Lab scenario was started and reported, correctly, that it could not be judged because the provider refused the request.
+The five showcase documents of that run are in the repository (`server/data/recordings/live-2026-11-26.json`) and can be replayed in the app: three reached a decision, including the live Auditor reporting both amounts of `INV-2026-1049` on its own, and two stopped when the credit ran out. They are shown as recorded, on an earlier version of the code.
+
+Everything added after that run has been verified on the deterministic path only: reading IBANs from the quoted line, the not-applicable status, shorter agent briefs, the evidence integrity gate, the Stress Lab, the single-agent baseline, the revised prompts, the cross-check protocol and the showcase. **No live Stress Lab run and no benchmark has completed.** A live Stress Lab scenario was started and reported, correctly, that it could not be judged because the provider refused the request.
 
 One real defect was found by the Stress Lab while building it: when a document was run again after an agent failure, a loop left over from the failed attempt kept calling the model until its timeout. It now stops before its next model call, and a test covers it.
 
@@ -298,26 +339,36 @@ One real defect was found by the Stress Lab while building it: when a document w
 
 | View | For |
 |---|---|
-| **Overview** | An optional first-visit guide; requests processed, approved automatically, awaiting review, blocked requests and blocked payment exposure (per currency, each payment counted once, not "money saved"), duplicates and beneficiary conflicts detected, daily budget, model usage; the most serious open payments; the agent timeline; the scenario check. |
-| **Payment inbox / Review queue** | Search, filter, sort, keyboard navigation. The queue holds what is blocked or needs approval, the most serious first. |
-| **Payment workspace** | The decision and the actions the server allows; recommended, allowed, in force; every control with its evidence; trusted record against incoming document; the investigation; both agents' readings side by side; review history; the sandbox draft; the source document. |
-| **Agent activity** | Every loop on one clock from recorded start and finish times, for the inbox or one payment, with dependencies and the parallel window; a table with model, retries, tokens and trigger. |
+| **Interactive Showcase** | The guided demo. An opening that says what the product is for and which mode this server runs in, then four scenarios one at a time: the agents drawn from the run's own execution state, the outcome the controls enforced beside what the scenario file expects, every figure with its source, the agent challenge, the recorded overlap of the two independent checks, and a summary counted from the payment cases. A recorded live run can be replayed from here. |
+| **Overview** | What the product does in one line, four figures (pending review, approved, blocked exposure per currency and never called "money saved", auto-approval limit used), the three most serious payments each with its issue in one sentence, the five agents at a glance, and an optional first-visit guide. |
+| **Payments / Review Queue** | A list beside the selected payment. Search, a status filter, sort, keyboard navigation. The queue holds what is blocked or needs approval, the most serious first. |
+| **Payment workspace** | Four tabs. *Overview*: the decision in one sentence, each reason with the values it rests on and their sources, the actions the server allows, and the payment facts; how it was decided is folded beneath. A payment with a discrepancy (conflicting amounts, readings that disagree, a possible split) is not approved by a click: the server refuses the approval until the reviewer states in writing how it was resolved, whether or not a source line is cited, and the primary action is to request verification. A payment that is only above a limit is approved directly. *Verification*: every control with its evidence, the investigation, both agents' readings side by side. *Evidence*: the whole ledger beside the source document. *Activity*: this payment's agent timeline, review history and log. Any reference opens an evidence inspector with the cited lines. |
+| **Payment Firewall** | Every payment a control stopped or flagged: the exception in one sentence, the trusted record beside the incoming document, what each agent found, and the decision. |
+| **Agent Activity** | *Workspace*: five glass agents and two code gates in one composition, drawn from recorded state. An agent leans toward its input while its loop runs, a capsule travels a connection at the moment the receiving loop starts, and the conditional route to the Investigator lights only on a real exception. It follows a live run, and it replays any finished payment from the stored start and finish times (pause, seek, 8 s, 16 s or real time) without calling an agent. *Execution details*: every loop on one clock, concurrency figures, and a table with model, retries, tokens and trigger. |
+| **Evidence & Audit** | Evidence integrity across the desk, every agent step, firewall decision and human action (by time or by payment, with filter, search and export), and the scenario check: expected against actual for all sixteen documents. |
 | **Financial Stress Lab** | The twelve scenarios on either path, each with what it declared, what happened, the agent execution, the evidence integrity report and its inputs; the benchmark; JSON audit reports. |
-| **Audit trail** | Every agent step, firewall decision and human action; filter, search, export. |
-| **Settings** | Theme, connection status, demo reset, and the policy, vendor master and payment history as the server has them. |
+| **Settings** | Appearance, ambient motion, demo reset, connection status, and the policy, vendor master and payment history as the server has them. |
+
+The interface is a web interpretation of a glass material system: an ambient background, a floating navigation layer, content glass for summaries and near-opaque reading surfaces for financial detail. It is designed in dark and light, for a phone as well as a desktop, and it honours reduced motion, reduced transparency and increased contrast. `DESIGN.md` has the system.
+
+![A payment that needs approval: the decision, the actions the server allows, the payment facts and how the decision was reached](docs/payment.jpg)
+
+![The same overview in the light appearance](docs/overview-light.jpg)
 
 ## Three-minute demonstration
 
+`DEMO_GUIDE.md` is the walkthrough for a first visit: **Start demo**, four scenarios, what to inspect in each. The steps below go further into the workspace, on the full inbox.
+
 With a key and credit (live agents):
 
-1. **Overview → Run demo scenarios.** While it runs, point at the timeline: the Extractor reads everything at once, Validator and Auditor overlap on each document, the Investigator lane fills only for exceptions.
-2. **Scenario check** at the bottom of the overview: expected against actual for all sixteen.
-3. **Review queue → Iberia Office Supplies.** Blocked. Under *Firewall controls*, "Beneficiary account" shows the trusted IBAN and the incoming one with the differing groups marked. Select the `line 22` chip: the document line lights up on the right. There is no approve button.
-4. **Investigation**: verified facts with references, what is unknown, who to call. "Suspected, not proven."
+1. **Overview → load all sixteen synthetic documents.** Open **Agent Activity** while it runs: the Extractor reads everything at once, Validator and Auditor overlap on each document, the Investigator is called only for exceptions.
+2. **Evidence & Audit → Scenario check**: expected against actual for all sixteen.
+3. **Payment Firewall → Iberia Office Supplies.** Blocked. The trusted IBAN sits beside the incoming one with the differing groups marked. Select the `line 22` reference: the evidence inspector opens with the cited lines. There is no approve button.
+4. **Open the payment → Verification → Investigation**: verified facts with references, what is unknown, who to call. "Suspected, not proven."
 5. **Add document → Changed bank details.** Blocked. Enter `CB-2026-1125-01` under *Verify beneficiary change*: it moves to "needs approval", with the callback in the ledger. Approve it: a sandbox draft appears and the review history records who, when and why.
 6. **Financial Stress Lab → Run all 12 scenarios** on the deterministic path: seconds, in isolated processes. Open S08 to see three concurrent decisions held under the daily budget, and S10 to see a labelled fault injection caught by the comparison of the two readings.
 
-Without a key: `npm test`, `npm run lab`, then `npm run build && npm run dev:scripted`, press **Run demo scenarios** on http://localhost:8799 and follow steps 2, 3, 4 and 6 (the banner says the model is scripted; *Add document* is not meaningful there because the scripted model only knows the dataset).
+Without a key: `npm test`, `npm run lab`, then `npm run demo`, load the sixteen documents on http://localhost:8799 and follow steps 2, 3, 4 and 6 (the banner says the demo is scripted; *Add document* is not meaningful there because the scripted model only knows the dataset).
 
 ## Project layout
 
@@ -330,6 +381,8 @@ server/
   lib/iban.ts      normalisation, country lengths, mod-97, reading IBANs from text
   draft.ts         sandbox payment draft (JSON)
   domain.ts        typed case state, shared with the UI
+  challenges.ts    cross-agent challenges derived from shared state; provider error classification (no model)
+  showcase.ts      the four showcase scenarios, their results read from the cases, and the recorded execution
   index.ts         HTTP API + server-sent events with heartbeat
   cli.ts           live headless run of the demo documents
   lab/
@@ -340,12 +393,17 @@ server/
     metrics.ts     benchmark arithmetic and metric definitions
     cli.ts         the lab from the terminal
   data/            policy, vendors, history, purchase orders, callbacks, scenarios, documents (all synthetic)
-  test/            scripted model, fixtures, unit, workflow, lab and HTTP tests
+    recordings/    stored execution records of one live run, for replay only
+  test/            scripted model, fixtures, predefined showcase responses, and the eight test files
+scripts/
+  browser-smoke.mjs  the browser checks of the showcase (npm run test:browser)
 web/src/
-  views/           Overview, Payments (inbox + queue), Activity, Lab, Audit, Settings
-  components/      Shell, PaymentList, PaymentDetail, Timeline, AddDocument
+  views/           Showcase, Overview, Payments (inbox + queue), Firewall, Activity, Lab, Audit, Settings
+  components/      Shell, LivingWorkspace, PaymentList, PaymentDetail, Timeline, AddDocument, ui
   lib/             api (one EventSource), lab, derive (pure functions over state), format, router
   styles/          tokens.css, base.css, views.css
+DEMO_GUIDE.md            the walkthrough for a first visit
+DEMO_READINESS.md        what is ready, what is verified and what is not, per execution mode
 DESIGN.md                the design system
 HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 ```
@@ -353,12 +411,16 @@ HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 ## Known limitations
 
 - **Sandbox only.** No bank connection, no payment execution. The payment draft is a structured JSON record, not an ISO 20022 message: producing schema-validated pain.001 XML was not practical in the time, so the app does not claim it.
-- **Live verification is partial**, and the benchmark has not been run. See *Live verification, stated plainly*.
+- **Live models are not verified on the current version**, and the benchmark has not been run. See *Live verification, stated plainly* and `DEMO_READINESS.md`.
+- **The scripted demo proves the workflow, not a model.** Its agent answers for the five showcase documents are predefined text, written after what the live models returned in the recorded run.
+- **A hackathon sandbox, not a production system.** It is not deployed, not hardened and not connected to anything.
 - **No authentication.** Human actions are recorded as "Demo reviewer". Permissions are enforced on the server, but there is one reviewer.
 - **Plain text documents.** PDF and image parsing are out of scope; line references are real because the documents are text.
 - **Models are non-deterministic.** The same document can be worded differently between runs, and an agent may be stricter than the controls require. It can never be looser.
 - **Heuristics are labelled as such.** Instruction-like content and "another payable amount in the document" are pattern matches that send a case to review; vendor matching is token overlap on names.
-- **One process for the inbox.** State is one JSON file and the concurrency guarantees are those of a single Node process. Stress Lab runs are separate processes.
+- **One process for the inbox.** State is one JSON file and the concurrency guarantees are those of a single Node process. Stress Lab runs are separate processes. A person's decision is written to the file before the request returns; agent progress within a second.
+- **A reviewer's statement is accepted for some discrepancies, and is never called verification.** Conflicting amounts, a possible split or instruction-like text are approved only on a written statement; the cross-check is then recorded as accepted by a reviewer. Citing a source line adds a checked reference, not proof of which amount is owed. A changed bank account needs a callback record, and the desk matches that record without placing a call: in this sandbox the record is a fixture. A critical disagreement between the two readers cannot be approved at all.
+- **One sandbox workspace.** Showcase payments are ordinary demo documents on the desk and share its daily auto-approval budget. Starting the demo replaces the demo documents; a person's own documents, decisions and verifications are kept.
 - **Split-payment detection** groups by vendor and purchase order (or same invoice date) within a window; it does not look at history.
 - **Reference readings are hand-written** for the sixteen synthetic documents; field accuracy in the benchmark is measured against them and only on live runs.
-- **No automated browser tests and no linter.**
+- **Browser coverage is a smoke suite** of sixteen checks on the showcase, outside `npm test`. There is no linter.

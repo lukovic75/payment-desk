@@ -1,8 +1,8 @@
-import type { ReactNode } from "react"
-import { ClockCounterClockwise, Flask, GearSix, ListChecks, Moon, Play, Plus, Pulse, SidebarSimple, SquaresFour, Sun, Tray } from "@phosphor-icons/react"
+import { useEffect, useState, type ReactNode } from "react"
+import { DotsThree, Flask, GearSix, Graph, ListChecks, Moon, Play, Plus, Presentation, Receipt, SealCheck, ShieldCheck, SidebarSimple, SquaresFour, Stamp, Sun } from "@phosphor-icons/react"
 import type { DeskSnapshot, Link } from "../lib/api"
 import { href, TITLES, type View } from "../lib/router"
-import { Spinner } from "./bits"
+import { useIndicator } from "./ui"
 
 export type ShellProps = {
 	view: View
@@ -14,88 +14,99 @@ export type ShellProps = {
 	theme: "light" | "dark"
 	onToggleTheme: () => void
 	canAct: boolean
-	starting: boolean
-	onRun: () => void
 	onAdd: () => void
 	children: ReactNode
 }
 
-const NAV: { view: View; icon: ReactNode }[] = [
-	{ view: "overview", icon: <SquaresFour size={16} /> },
-	{ view: "inbox", icon: <Tray size={16} /> },
-	{ view: "queue", icon: <ListChecks size={16} /> },
-	{ view: "activity", icon: <Pulse size={16} /> },
-	{ view: "lab", icon: <Flask size={16} /> },
-	{ view: "audit", icon: <ClockCounterClockwise size={16} /> },
+type Item = { view: View; icon: ReactNode; short: string; tab?: boolean }
+const GROUPS: { label: string; items: Item[] }[] = [
+	{ label: "Workspace", items: [
+		{ view: "overview", icon: <SquaresFour size={18} />, short: "Overview", tab: true },
+		{ view: "inbox", icon: <Receipt size={18} />, short: "Payments", tab: true },
+		{ view: "queue", icon: <ListChecks size={18} />, short: "Review", tab: true },
+		{ view: "showcase", icon: <Presentation size={18} />, short: "Showcase" },
+	] },
+	{ label: "Intelligence", items: [
+		{ view: "firewall", icon: <ShieldCheck size={18} />, short: "Firewall" },
+		{ view: "activity", icon: <Graph size={18} />, short: "Agents", tab: true },
+	] },
+	{ label: "Assurance", items: [
+		{ view: "audit", icon: <Stamp size={18} />, short: "Audit" },
+		{ view: "lab", icon: <Flask size={18} />, short: "Lab" },
+	] },
 ]
-const SHORT: Record<View, string> = { overview: "Overview", inbox: "Inbox", queue: "Review", activity: "Agents", lab: "Lab", audit: "Audit", settings: "Settings" }
+const SETTINGS: Item = { view: "settings", icon: <GearSix size={18} />, short: "Settings" }
+const SPLIT: View[] = ["inbox", "queue", "firewall"]
 
 export function Shell(p: ShellProps) {
 	const { snapshot, link, counts } = p
 	const workspace = snapshot?.policy.debtor.name ?? "Workspace"
-	const live = link.state === "live"
 	const total = snapshot?.cases.length ?? 0
+	const [more, setMore] = useState(false)
+	const [nav, pill] = useIndicator<HTMLElement>(`${p.view}:${p.collapsed}`, '.nav-groups [aria-current="page"], .nav-foot [aria-current="page"]', "y")
+	useEffect(() => setMore(false), [p.view])
+	useEffect(() => {
+		if (!more) return
+		const off = (e: PointerEvent) => { if (!(e.target as HTMLElement).closest(".nav")) setMore(false) }
+		document.addEventListener("pointerdown", off)
+		return () => document.removeEventListener("pointerdown", off)
+	}, [more])
+
+	const link_ = (it: Item, inSheet = false) => (
+		<a key={it.view} className="nav-item" href={href(it.view)} aria-current={p.view === it.view ? "page" : undefined} data-tab={it.tab && !inSheet ? "" : undefined} data-tip={TITLES[it.view]} data-tip-side="right">
+			{it.icon}
+			<span data-short={it.short}>{TITLES[it.view]}</span>
+			{it.view === "queue" && counts.queue > 0 && <i className="nav-count attn" aria-label={`${counts.queue} blocked or waiting for approval`}>{counts.queue}</i>}
+			{it.view === "activity" && counts.running && <i className="nav-live" aria-label="agents are running" />}
+		</a>
+	)
+
+	const state = link.state !== "live" ? (link.state === "connecting" ? "idle" : "down") : counts.running ? "busy" : "live"
+	const mozaik = snapshot ? `Mozaik runtime in the desk server: ${snapshot.runtime.participants} participants joined. Cloud trace ${snapshot.cloudEnabled ? "on" : "off"}.${snapshot.modelMode === "scripted" ? " Scripted model." : ""}` : ""
+	const stateText = link.state === "connecting" ? "Connecting" : link.state === "reconnecting" ? "Reconnecting" : counts.running ? `Processing ${counts.settled} of ${total}` : "Connected"
+	const stateTitle = link.state === "live" ? `The event stream from the desk server is open. ${mozaik}` : `The event stream dropped. Reconnect attempt ${link.attempts}.`
+	const pinned = SPLIT.includes(p.view)
+	// One way into the guided demo, from every page. Its label says where the demo stands; it never starts anything by itself.
+	const steps = snapshot?.showcase?.steps.filter((s) => !s.optional) ?? []
+	const demo = !snapshot?.showcase ? "Start demo" : steps.every((s) => s.result !== "not_run" && s.result !== "running") ? "Demo summary" : "Continue demo"
 
 	return (
 		<div className="shell" data-nav={p.collapsed ? "collapsed" : "open"}>
-			<nav className="nav" aria-label="Primary">
+			<nav className="nav" aria-label="Primary" ref={nav} data-more={more ? "" : undefined}>
+				<span className="nav-pill" ref={pill} aria-hidden />
 				<a className="nav-head" href={href("overview")} aria-label="Payment Desk, overview">
-					<span className="nav-mark"><Tray size={15} weight="bold" /></span>
+					<span className="nav-mark"><SealCheck size={17} weight="fill" /></span>
 					<span className="nav-id"><b>Payment Desk</b><span className="truncate">{workspace}</span></span>
 				</a>
-				<div className="nav-list">
-					{NAV.map(({ view, icon }) => (
-						<a key={view} className="nav-item" href={href(view)} aria-current={p.view === view ? "page" : undefined} title={p.collapsed ? TITLES[view] : undefined}>
-							{icon}
-							<span data-short={SHORT[view]}>{TITLES[view]}</span>
-							{view === "inbox" && counts.inbox > 0 && <i className="nav-count">{counts.inbox}</i>}
-							{view === "queue" && counts.queue > 0 && <i className="nav-count attn" aria-label={`${counts.queue} blocked or waiting for approval`}>{counts.queue}</i>}
-							{view === "activity" && counts.running && <i className="nav-live" aria-label="agents are running" />}
-						</a>
-					))}
+				<div className="nav-groups">
+					{GROUPS.map((g) => [<div className="nav-label" key={g.label}>{g.label}</div>, ...g.items.map((it) => link_(it))])}
 				</div>
+				<button type="button" className="nav-item nav-more" aria-expanded={more} aria-label="More places" onClick={() => setMore(!more)}><DotsThree size={18} weight="bold" /><span data-short="More">More</span></button>
+				<div className="nav-sheet">{[...GROUPS.flatMap((g) => g.items).filter((it) => !it.tab), SETTINGS].map((it) => link_(it, true))}</div>
 				<div className="nav-foot">
-					<a className="nav-item" href={href("settings")} aria-current={p.view === "settings" ? "page" : undefined} title={p.collapsed ? "Settings" : undefined}>
-						<GearSix size={16} /><span data-short="Settings">Settings</span>
-					</a>
-					<p className="nav-note">Synthetic data. Nothing is sent to a bank.</p>
+					{link_(SETTINGS)}
+					<div className="nav-env" data-tip="Sandbox · synthetic data" data-tip-side="right"><i aria-hidden /><span>Sandbox workspace<small>Synthetic data. Nothing reaches a bank.</small></span></div>
 				</div>
 			</nav>
 
 			<div className="frame">
 				<header className="bar">
-					<button className="btn btn-ghost btn-icon nav-toggle" onClick={p.onToggleNav} aria-label={p.collapsed ? "Expand navigation" : "Collapse navigation"} aria-pressed={p.collapsed}>
-						<SidebarSimple size={16} />
+					<button className="btn btn-ghost btn-icon nav-toggle" onClick={p.onToggleNav} aria-label={p.collapsed ? "Expand the sidebar" : "Collapse the sidebar"} aria-pressed={p.collapsed}>
+						<SidebarSimple size={17} />
 					</button>
-					<h1>{TITLES[p.view]}</h1>
-					<span className="bar-crumb">{workspace}</span>
-
-					<div className="bar-sys" role="status" aria-live="polite">
-						<span className={`sys ${live ? "ok" : "down"}`} title={live ? "Server-sent event stream from the desk server is open." : `The event stream dropped. Reconnect attempt ${link.attempts}.`}>
-							<i aria-hidden />Server <b>{link.state === "live" ? "live" : link.state === "connecting" ? "connecting" : "reconnecting"}</b>
-						</span>
-						{snapshot && (
-							<span className={`sys ${live ? "ok" : ""}`} title="The Mozaik runtime runs inside the desk server: five agents, the firewall, the desk and an observer are joined to it. Cloud trace shows whether this machine is paired with Mozaik Cloud.">
-								<i aria-hidden />Mozaik <b>{live ? `${snapshot.runtime.participants} participants` : "unknown"}</b>
-								<span className="muted sys-extra">· cloud trace {snapshot.cloudEnabled ? "on" : "off"}</span>
-							</span>
-						)}
-						<span className={`sys ${counts.running ? "busy" : ""}`}>
-							<i aria-hidden />
-							{counts.running
-								? <>Processing <b>{counts.settled}/{total}</b><span className="sys-meter" aria-hidden><span style={{ transform: `scaleX(${total ? counts.settled / total : 0})` }} /></span></>
-								: total ? <>Settled <b>{total}</b></> : <>Idle</>}
-						</span>
-					</div>
+					{pinned ? <h1 className="bar-title" data-pinned>{TITLES[p.view]}</h1> : <span className="bar-title" aria-hidden>{TITLES[p.view]}</span>}
 
 					<div className="bar-actions">
-						<button className="btn btn-ghost btn-icon" onClick={p.onToggleTheme} aria-label={p.theme === "dark" ? "Switch to light theme" : "Switch to dark theme"}>
-							{p.theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
+						<span className="conn" data-state={state} role="status" title={stateTitle}>
+							<i aria-hidden /><span>{stateText}</span>
+							{counts.running && <span className="conn-meter" aria-hidden><span style={{ transform: `scaleX(${total ? counts.settled / total : 0})` }} /></span>}
+							<span className="sr-only">{stateTitle}</span>
+						</span>
+						<button className="btn btn-ghost btn-icon btn-round" onClick={p.onToggleTheme} aria-label={p.theme === "dark" ? "Switch to the light appearance" : "Switch to the dark appearance"} data-tip={p.theme === "dark" ? "Light appearance" : "Dark appearance"}>
+							{p.theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
 						</button>
-						<button className="btn" disabled={!p.canAct} onClick={p.onAdd}><Plus size={14} weight="bold" /><span className="wide">Add document</span></button>
-						<button className="btn btn-primary" disabled={!p.canAct || counts.running || p.starting} onClick={p.onRun}>
-							{p.starting ? <Spinner /> : <Play size={13} weight="fill" />}<span>Run<span className="wide"> demo scenarios{counts.inbox ? " again" : ""}</span></span>
-						</button>
+						<button className="btn" disabled={!p.canAct} onClick={p.onAdd}><Plus size={14} weight="bold" /><span className="wide">Document</span></button>
+						{p.view !== "showcase" && <a className="btn btn-primary" href={href("showcase")}><Play size={12} weight="fill" /><span>{demo}</span></a>}
 					</div>
 				</header>
 				{p.children}
@@ -103,4 +114,3 @@ export function Shell(p: ShellProps) {
 		</div>
 	)
 }
-

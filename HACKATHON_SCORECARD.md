@@ -11,7 +11,9 @@ Every claim below names the file that implements it and the evidence that it wor
 | Check | Result |
 |---|---|
 | `npm run typecheck` (server and UI) | passes |
-| `npm test` | 46 of 46 pass, about 3 seconds, repeated 8 times in a row without a failure |
+| `npm test` | 101 of 101 pass, about 3 seconds, eight files (see `QA_REPORT.md`, `AGENT_INTELLIGENCE_REPORT.md` and `TEST_MATRIX.md` for what they cover) |
+| `npm run test:browser` | 16 of 16 browser checks of the interactive showcase, headless Chrome against the scripted server |
+| Scripted showcase (`npm run demo`) | four scenarios, each ending as `scenarios.json` expects; looked at in dark and light, phone to wide desktop |
 | `npm run build` | passes |
 | `npm run lab` (12 stress scenarios, deterministic path) | 12 of 12 pass, 87 of 87 declared checks |
 | Stress Lab through the app (worker processes) | 12 of 12 pass; payment inbox unchanged before and after |
@@ -19,7 +21,7 @@ Every claim below names the file that implements it and the evidence that it wor
 | Live Stress Lab run | **not completed**: one scenario started and was correctly reported as "could not be judged" (provider refused: no credit) |
 | Single-agent versus multi-agent benchmark | **not run** (needs live models) |
 | Linter | none in the project |
-| Automated browser tests | none; the UI was checked by hand at desktop and phone widths, light and dark |
+| Live showcase on this version | **not run** (provider credit). A recorded live run of an earlier version is replayable in the app: 3 of 5 showcase documents reached a decision |
 
 ## 1. Financial usefulness — 30 points
 
@@ -61,8 +63,8 @@ Every claim below names the file that implements it and the evidence that it wor
 
 **What is implemented**
 
-- Runs from the README: `npm install`, then `npm test` and `npm run lab` with no key, or `.env` plus `npm run dev` for live agents.
-- 46 automated tests in four files: unit, workflow on the real runtime, Stress Lab, and the real server over HTTP.
+- Runs from the README: `npm install` and `npm run demo` for the guided showcase with no key, `npm test` and `npm run lab`, or `.env` plus `npm run dev` for live agents. `DEMO_GUIDE.md` is a ten-minute walkthrough.
+- 101 automated tests in eight files: unit, workflow on the real runtime, financial safety at the edges, malformed and wrong model output, provider failures, cross-agent challenges, the showcase and its isolation, Stress Lab, and the real server over HTTP under normal and hostile use. Sixteen browser checks of the showcase.
 - A deterministic path that needs no credentials and a live path, labelled apart in the UI, the CLI, the API and the reports.
 - Failure handling: bounded retries, loop timeouts, fail-closed stages, recoverable cases, persistence across restarts, a heartbeat on the event stream, honest error states in the UI.
 - Guard rails on spending: one lab run at a time, bounded concurrency, timeouts, explicit confirmation for live runs.
@@ -71,7 +73,7 @@ Every claim below names the file that implements it and the evidence that it wor
 
 **Evidence**: the verification summary above. A defect found by the Stress Lab itself (a leftover loop spinning until its timeout after a document was run again) was fixed and is covered by test 14c, which fails on the previous code.
 
-**Limitations**: live verification is partial and the reason is mundane (API credit). No linter. No automated browser tests. State is JSON files and the inbox is a single process.
+**Limitations**: live verification is partial and the reason is mundane (API credit). No linter. Browser coverage is a smoke suite of the showcase. State is JSON files and the inbox is a single process.
 
 **Self-assessment: 19 of 25.** Everything that can be verified without a paid model call has been, repeatedly. The deduction is for the live path not having been seen end to end after the latest changes.
 
@@ -104,7 +106,7 @@ Every claim below names the file that implements it and the evidence that it wor
 | 1 | Top up API credit; run the demo documents, `npm run lab:live` and `npm run lab:benchmark`; put the recorded results in the README | It converts "built" into "observed" for three of the four criteria, and the benchmark answers the question a jury will ask about multi-agent | blocked on credit; needs no code |
 | 2 | Act on what the benchmark shows, whichever way it goes | If one agent does as well, say so and argue the case on independence and auditability; if not, the numbers make the argument | after 1 |
 | 3 | Rehearse the three-minute demonstration against live models | Timings in the walkthrough are estimates | after 1 |
-| 4 | Automated browser tests for the main actions | The UI is the least-tested layer | not started |
+| 4 | Automated browser tests beyond the showcase | The showcase has a smoke suite of sixteen checks; the rest of the UI is checked by hand | partly done |
 | 5 | Schema-validated ISO 20022 output; roles and four-eyes approval; PDF input | Distance from a real finance stack | out of scope for the hackathon |
 
 Implemented in this round from the previous version of this list: evidence integrity verification with a blocking gate; the Stress Lab with isolated execution; the single-agent baseline and benchmark arithmetic; execution ids and a per-scenario execution record; audit report export; the first-visit guide; an HTTP end-to-end test; the fix for leftover loops.

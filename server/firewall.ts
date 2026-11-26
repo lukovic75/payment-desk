@@ -247,6 +247,12 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 		else add("currency", "Currency", "R6", "fail", "block", `${x.currency} is not in the policy's currencies (${policy.currencies.join(", ")}).`, [ref("currency")])
 	}
 
+	// 6b. a payment has a positive amount: zero is nothing to pay, and a negative total is a credit, which is never paid out
+	if (x.gross != null) {
+		if (x.gross > 0) add("payable_amount", "Payable amount", "R15", "pass", "block", `${formatMinor(x.gross, x.currency)} is a positive amount.`, [ref("gross")])
+		else add("payable_amount", "Payable amount", "R15", "fail", "block", x.gross === 0 ? "The amount due is zero. There is nothing to pay." : `The amount is negative (${formatMinor(x.gross, x.currency)}). This is a credit, not a payment.`, [ref("gross")])
+	}
+
 	// 7. duplicates
 	const vendorKey = (r: Reading) => matchVendor(r.creditorName, ctx.vendors).vendor?.id ?? alnum(r.creditorName)
 	const mine = vendorKey(x)

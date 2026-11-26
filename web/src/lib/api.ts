@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react"
-import type { AgentRun, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, ReviewEntry, Scenario, TimelineEntry, Vendor } from "../../../server/domain"
+import type { AgentRun, Challenge, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, Recording, ReviewEntry, Scenario, Showcase, ShowcaseKey, ShowcaseStep, TimelineEntry, Vendor } from "../../../server/domain"
 
-export type { AgentRun, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, ReviewEntry, Scenario, TimelineEntry, Vendor }
+export type { AgentRun, Challenge, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, Recording, ReviewEntry, Scenario, Showcase, ShowcaseKey, ShowcaseStep, TimelineEntry, Vendor }
 export type Tokens = Record<string, { input: number; output: number; calls: number }>
-export type Health = { ok: boolean; hasModelKey: boolean; models: { fast: string; careful: string } }
+export type Health = { ok: boolean; hasModelKey: boolean; hasLiveKey: boolean; mode: "live" | "scripted"; models: { fast: string; careful: string } }
 export type Link = { state: "connecting" | "live" | "reconnecting"; attempts: number }
 export type Action = "approve" | "reject" | "request_verification" | "verify_beneficiary" | "reprocess"
 
@@ -63,6 +63,9 @@ export function useDesk(): Desk {
 				setSnapshot((s) => s && { ...s, cases: s.cases.map((o) => (o.id === p.caseId && !o.timeline.some((t) => t.at === p.at && t.agent === p.agent && t.detail === p.detail) ? { ...o, timeline: [...o.timeline, { at: p.at, agent: p.agent, kind: p.kind, detail: p.detail }] } : o)) })
 			})
 			es.addEventListener("tokens", (e) => setTokens(data(e).payload))
+			es.addEventListener("provider", (e) => { const p = data(e).payload as DeskSnapshot["provider"]; setSnapshot((s) => s && { ...s, provider: p }) })
+			es.addEventListener("showcase", (e) => { const p = data(e).payload as DeskSnapshot["showcase"]; setSnapshot((s) => s && { ...s, showcase: p }) })
+			es.addEventListener("totals", (e) => { const t = data(e).payload as { dailyAutoApproved: number }; setSnapshot((s) => s && { ...s, dailyAutoApproved: t.dailyAutoApproved }) })
 			es.addEventListener("mozaik", (e) => {
 				const type = (data(e).payload as { type: string }).type
 				setSnapshot((s) => s && { ...s, runtime: { ...s.runtime, events: { ...s.runtime.events, [type]: (s.runtime.events[type] ?? 0) + 1 } } })
@@ -91,13 +94,17 @@ const post = (url: string, body?: unknown) =>
 
 export const runDemo = async (): Promise<DeskSnapshot> => expectOk(await post("/api/run"))
 export const resetDemo = async (): Promise<DeskSnapshot> => expectOk(await post("/api/reset"))
-export const act = async (id: string, action: Action, input: { reason?: string; callbackRef?: string } = {}): Promise<PaymentCase> =>
+export const startShowcase = async (): Promise<DeskSnapshot> => expectOk(await post("/api/showcase/start"))
+export const runShowcase = async (key: ShowcaseKey): Promise<DeskSnapshot> => expectOk(await post("/api/showcase/run", { key }))
+export const fetchRecording = async (): Promise<Recording | null> => (await expectOk<{ recording: Recording | null }>(await fetch("/api/recording"))).recording
+export const act = async (id: string, action: Action, input: { reason?: string; callbackRef?: string; resolutions?: { challengeId: string; chosenRef: string }[] } = {}): Promise<PaymentCase> =>
 	expectOk(await post(`/api/cases/${encodeURIComponent(id)}/actions`, { action, ...input }))
 export const addDocument = async (name: string, text: string): Promise<PaymentCase> => expectOk(await post("/api/documents", { name, text }))
 export const draftUrl = (id: string) => `/api/cases/${encodeURIComponent(id)}/draft`
 
-export async function fetchDocument(id: string): Promise<string> {
-	const r = await fetch(`/api/documents/${encodeURIComponent(id)}`)
+/** The source text of a document on the desk, or (recorded) of a document in the stored execution. */
+export async function fetchDocument(id: string, recorded = false): Promise<string> {
+	const r = await fetch(`/api/${recorded ? "recording/" : ""}documents/${encodeURIComponent(id)}`)
 	if (!r.ok) throw new Error(`The source document could not be loaded (${r.status}).`)
 	return r.text()
 }

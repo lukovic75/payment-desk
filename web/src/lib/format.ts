@@ -7,6 +7,14 @@ export function amount(minor: number | null | undefined): string {
 }
 export const money = (minor: number | null | undefined, ccy?: string | null) => (minor == null ? "" : `${amount(minor)}${ccy ? ` ${ccy}` : ""}`)
 
+const SYMBOL: Record<string, string> = { EUR: "€", USD: "$", GBP: "£" }
+/** The parts of an amount for display type: a symbol where the currency has a familiar one, the code otherwise. */
+export function moneyParts(minor: number, ccy?: string | null): { symbol: string; int: string; dec: string; code: string } {
+	const [int, dec] = amount(minor).split(".") as [string, string]
+	const symbol = ccy ? SYMBOL[ccy] ?? "" : ""
+	return { symbol, int, dec, code: ccy ?? "" }
+}
+
 /** Totals per currency. Currencies are listed side by side, never added. */
 export function totals(items: ({ minor: number; currency: string } | null | undefined)[]): { currency: string; minor: number }[] {
 	const out = new Map<string, number>()
@@ -49,6 +57,8 @@ export function dueLabel(isoDate: string | null | undefined, today = new Date())
 }
 
 export const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
+/** A record's field name as a label: "vatId" becomes "VAT id", "iban" becomes "IBAN". */
+export const fieldLabel = (key: string) => cap(key.replace(/([A-Z])/g, " $1").toLowerCase()).replace(/\b(iban|bic|vat|po)\b/gi, (m) => m.toUpperCase())
 export const words = (s: string) => s.replace(/_/g, " ").toLowerCase()
 export const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches
 /** Agents answer in Markdown; the log shows their words as plain text. */

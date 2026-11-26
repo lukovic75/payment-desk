@@ -28,6 +28,13 @@ const STAGE: Record<PaymentCase["stage"], { label: string; tone: string; icon?: 
 	error: { label: "Processing error", tone: "bad", icon: <Warning size={11} weight="bold" /> },
 }
 export const stageLabel = (s: PaymentCase["stage"]) => STAGE[s].label
+export const stageTone = (s: PaymentCase["stage"]) => STAGE[s].tone
+
+/** The state of a payment as quiet text with one coloured dot: for lists, where a row of pills would shout. */
+export function StageStatus({ stage, lg }: { stage: PaymentCase["stage"]; lg?: boolean }) {
+	const m = STAGE[stage]
+	return <span className={`status ${m.tone}${lg ? " lg" : ""}`}><i aria-hidden />{m.label}</span>
+}
 
 export function StageTag({ stage }: { stage: PaymentCase["stage"] }) {
 	const m = STAGE[stage]
@@ -38,9 +45,19 @@ const SHORT: Record<string, string> = {
 	mandatory_fields: "Missing field", evidence: "Unsupported value", vendor_known: "Unknown vendor", iban_checksum: "Invalid IBAN", beneficiary: "Bank details differ",
 	beneficiary_name: "Beneficiary name", currency: "Currency", duplicate: "Duplicate", arithmetic: "Total does not add up", line_items: "Line items", per_payment_limit: "Over limit",
 	daily_limit: "Daily budget", split_payment: "Possible split", purchase_order: "Purchase order", instruction_content: "Instruction-like text", stated_amounts: "Conflicting amounts",
-	agent_agreement: "Agents disagree", stages: "Agent failed", evidence_integrity: "Evidence not verified",
+	agent_agreement: "Agents disagree", stages: "Agent failed", evidence_integrity: "Evidence not verified", payable_amount: "Not a payable amount",
 }
 export const controlShort = (k: Control) => SHORT[k.id] ?? k.label
+
+const ISSUE: Record<string, string> = {
+	mandatory_fields: "A required field is missing.", evidence: "A value has no verified source.", vendor_known: "Unknown vendor. Bank details unverified.", iban_checksum: "The IBAN is not valid.",
+	beneficiary: "Bank account differs from the vendor record.", beneficiary_name: "Beneficiary name differs from the vendor.", currency: "Currency is not payable.", duplicate: "Duplicate invoice detected.",
+	arithmetic: "The total does not add up.", line_items: "Line items do not add up.", per_payment_limit: "Above the auto-approval limit.", daily_limit: "Would exceed today's auto-approval limit.",
+	split_payment: "Possible split of one payment.", purchase_order: "Does not match the purchase order.", instruction_content: "The document contains instructions aimed at the agents.",
+	stated_amounts: "The document states two different amounts.", agent_agreement: "The two readings disagree.", stages: "An agent did not finish.", evidence_integrity: "Evidence could not be verified.", payable_amount: "The amount is zero or negative. There is nothing to pay.",
+}
+/** One exception in one plain sentence. The control's full explanation stays with the control. */
+export const issueLine = (k: Control) => ISSUE[k.id] ?? `${controlShort(k)}.`
 
 export function ControlTag({ k }: { k: Control }) {
 	const block = isBlocking(k)

@@ -8,6 +8,7 @@
     "dev": "concurrently -n server,web -c blue,magenta \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "tsx watch server/index.ts",
     "dev:web": "vite --config web/vite.config.ts",
+    "demo": "npm run build && npm run dev:scripted",
     "cli": "tsx server/cli.ts",
     "lab": "tsx server/lab/cli.ts",
     "lab:live": "tsx server/lab/cli.ts --live",
@@ -16,7 +17,8 @@
     "build": "vite build --config web/vite.config.ts",
     "start": "NODE_ENV=production tsx server/index.ts",
     "test": "node --import tsx --test server/test/*.test.ts",
-    "dev:scripted": "DESK_SCRIPTED=1 DESK_PERSIST=off MOZAIK_CREDENTIALS_FILE=/nonexistent API_PORT=8799 tsx server/index.ts"
+    "dev:scripted": "DESK_SCRIPTED=1 DESK_PERSIST=off MOZAIK_CREDENTIALS_FILE=/nonexistent API_PORT=8799 tsx server/index.ts",
+    "test:browser": "node scripts/browser-smoke.mjs"
   },
   "engines": {
     "node": ">=20"

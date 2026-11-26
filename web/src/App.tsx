@@ -2,15 +2,18 @@ import { useCallback, useEffect, useState } from "react"
 import { ArrowsClockwise, WarningCircle } from "@phosphor-icons/react"
 import { runDemo, useDesk } from "./lib/api"
 import { isRunning, needsPerson } from "./lib/derive"
-import { go, TITLES, useRoute } from "./lib/router"
+import { reduceMotion } from "./lib/format"
+import { go, TITLES, useRoute, withTransition } from "./lib/router"
 import { AddDocument } from "./components/AddDocument"
 import { Shell } from "./components/Shell"
 import { Activity } from "./views/Activity"
 import { Audit } from "./views/Audit"
+import { Firewall } from "./views/Firewall"
 import { Lab } from "./views/Lab"
 import { Overview } from "./views/Overview"
 import { Payments } from "./views/Payments"
 import { Settings } from "./views/Settings"
+import { Showcase } from "./views/Showcase"
 
 export type ThemeMode = "system" | "light" | "dark"
 
@@ -19,10 +22,13 @@ export function App() {
 	const route = useRoute()
 	const [mode, setMode, theme] = useTheme()
 	const [collapsed, setCollapsed] = usePersisted("pd-nav", false)
+	const [still, setStill] = usePersisted("pd-ambient-still", false)
 	const [adding, setAdding] = useState(false)
 	const [starting, setStarting] = useState(false)
 	const [runErr, setRunErr] = useState<string | null>(null)
 	useInputMode()
+	useChrome()
+	useEffect(() => { still ? (document.documentElement.dataset.ambient = "still") : delete document.documentElement.dataset.ambient }, [still])
 
 	useEffect(() => { document.title = `${TITLES[route.view]} · Payment Desk` }, [route.view])
 
@@ -34,26 +40,34 @@ export function App() {
 	const run = useCallback(async () => {
 		if (starting) return
 		setStarting(true); setRunErr(null)
-		try { await runDemo(); if (route.view === "inbox" || route.view === "queue") go(route.view, null, true) }
+		try { await runDemo(); if (route.view === "inbox" || route.view === "queue") go(route.view, null, true); if (route.view === "showcase") go("inbox") }
 		catch (e) { setRunErr((e as Error).message) }
 		finally { setStarting(false) }
 	}, [starting, route.view])
 
 	return (
 		<>
+			<div className="ambient" aria-hidden><i className="a" /><i className="b" /><i className="c" /></div>
 			<Shell
 				view={route.view} snapshot={snapshot} link={link}
 				counts={{ inbox: cases.length, queue: cases.filter(needsPerson).length, settled: cases.filter((c) => !isRunning(c)).length, running }}
 				collapsed={collapsed} onToggleNav={() => setCollapsed(!collapsed)}
 				theme={theme} onToggleTheme={() => setMode(theme === "dark" ? "light" : "dark")}
-				canAct={canAct} starting={starting} onRun={run} onAdd={() => setAdding(true)}
+				canAct={canAct} onAdd={() => setAdding(true)}
 			>
-				<div style={{ minWidth: 0, display: "grid", alignContent: "start" }}>
-					{snapshot?.modelMode === "scripted" && (
-						<div style={{ padding: "12px 20px 0" }}><div className="banner warn" role="status"><WarningCircle size={16} weight="bold" /><div><b>Scripted model.</b> This server was started with the test fixture instead of a live model (<code>npm run dev:scripted</code>). The workflow, the firewall and the timings are real; the agents' words are fixed.</div></div></div>
-					)}
-					{(link.state === "reconnecting" || noKey || runErr) && (
-						<div style={{ display: "grid", gap: 8, padding: "12px 20px 0" }}>
+				<div className="page">
+					{((snapshot?.modelMode === "scripted" && route.view !== "showcase") || snapshot?.provider || link.state === "reconnecting" || noKey || runErr) && (
+						<div className="banners">
+							{/* The showcase states its mode in its own header, on every screen of it, so the banner is not repeated there. */}
+							{snapshot?.modelMode === "scripted" && route.view !== "showcase" && (
+								<div className="banner warn" role="status"><WarningCircle size={16} weight="bold" /><div><b>Scripted demo: real orchestration, predefined model responses.</b> The Mozaik runtime, the agent loops, the controls and the timings are real. The agents' answers are fixed text, not live AI.</div></div>
+							)}
+							{snapshot?.provider && (
+								<div className="banner bad" role="alert">
+									<WarningCircle size={16} weight="bold" />
+									<div><b>The model provider is refusing calls: {snapshot.provider.kind.replace(/_/g, " ")}.</b> {snapshot.provider.advice} Agents are paused so that no further request is spent; everything already decided is kept.</div>
+								</div>
+							)}
 							{link.state === "reconnecting" && (
 								<div className="banner bad" role="alert">
 									<WarningCircle size={16} weight="bold" />
@@ -77,14 +91,16 @@ export function App() {
 						</div>
 					)}
 					{snapshot == null ? <Loading failed={link.state === "reconnecting"} /> : (
-						<>
+						<div className="page page-enter" key={route.view === "queue" ? "inbox" : route.view}>
+							{route.view === "showcase" && <Showcase snapshot={snapshot} health={health} canAct={canAct} id={route.id} loadingAll={starting} onLoadAll={run} />}
 							{route.view === "overview" && <Overview snapshot={snapshot} canAct={canAct} starting={starting} onRun={run} onAdd={() => setAdding(true)} />}
 							{(route.view === "inbox" || route.view === "queue") && <Payments snapshot={snapshot} view={route.view} id={route.id} />}
-							{route.view === "activity" && <Activity snapshot={snapshot} id={route.id} />}
+							{route.view === "firewall" && <Firewall snapshot={snapshot} id={route.id} />}
+							{route.view === "activity" && <Activity snapshot={snapshot} id={route.id} sub={route.sub} />}
 							{route.view === "lab" && <Lab id={route.id} />}
-							{route.view === "audit" && <Audit snapshot={snapshot} />}
-							{route.view === "settings" && <Settings snapshot={snapshot} health={health} link={link} mode={mode} onMode={setMode} />}
-						</>
+							{route.view === "audit" && <Audit snapshot={snapshot} id={route.id} />}
+							{route.view === "settings" && <Settings snapshot={snapshot} health={health} link={link} mode={mode} onMode={setMode} still={still} onStill={setStill} />}
+						</div>
 					)}
 				</div>
 			</Shell>
@@ -97,8 +113,9 @@ export function App() {
 function Loading({ failed }: { failed: boolean }) {
 	return (
 		<main className="view" aria-busy="true" aria-label="Loading the desk">
-			<div className="kpis">{Array.from({ length: 6 }, (_, i) => <div className="kpi" key={i}><div className="skel" style={{ height: 11, width: "55%" }} /><div className="skel" style={{ height: 22, width: "40%", marginTop: 6 }} /><div className="skel" style={{ height: 11, width: "70%", marginTop: 6 }} /></div>)}</div>
-			<div className="panel"><div className="panel-body" style={{ display: "grid", gap: 10 }}><div className="skel" style={{ height: 14, width: "30%" }} /><div className="skel" style={{ height: 120 }} /></div></div>
+			<div style={{ display: "grid", gap: 10 }}><div className="skel" style={{ height: 30, width: 180 }} /><div className="skel" style={{ height: 14, width: 320, maxWidth: "80%" }} /></div>
+			<div className="metrics">{Array.from({ length: 4 }, (_, i) => <div className="metric glass" key={i}><div className="skel" style={{ height: 12, width: "50%" }} /><div className="skel" style={{ height: 34, width: "70%", marginTop: 10 }} /><div className="skel" style={{ height: 12, width: "60%", marginTop: 10 }} /></div>)}</div>
+			<div className="panel"><div className="panel-body" style={{ display: "grid", gap: 12 }}><div className="skel" style={{ height: 14, width: "30%" }} /><div className="skel" style={{ height: 120 }} /></div></div>
 			{failed && <p className="muted">Still trying to reach the desk server on this machine.</p>}
 		</main>
 	)
@@ -123,7 +140,13 @@ function useTheme(): [ThemeMode, (m: ThemeMode) => void, "light" | "dark"] {
 		else document.documentElement.dataset.theme = mode
 		try { mode === "system" ? localStorage.removeItem("pd-theme") : localStorage.setItem("pd-theme", mode) } catch { /* private mode */ }
 	}, [mode])
-	return [mode, set, mode === "system" ? (systemDark ? "dark" : "light") : mode]
+	// The attribute is written inside the transition, so the old and the new appearance cross-fade instead of snapping.
+	const change = (m: ThemeMode) => withTransition(() => {
+		if (m === "system") delete document.documentElement.dataset.theme
+		else document.documentElement.dataset.theme = m
+		set(m)
+	})
+	return [mode, change, mode === "system" ? (systemDark ? "dark" : "light") : mode]
 }
 
 /** Keyboard-driven changes skip entrance motion, and nothing animates while the tab is hidden. */
@@ -138,5 +161,32 @@ function useInputMode() {
 		document.addEventListener("visibilitychange", vis)
 		vis()
 		return () => { removeEventListener("keydown", key, true); removeEventListener("pointerdown", pointer, true); document.removeEventListener("visibilitychange", vis) }
+	}, [])
+}
+
+/** Two things the chrome reacts to without re-rendering React: how far the page has scrolled, and where the pointer is on a glass surface. */
+function useChrome() {
+	useEffect(() => {
+		const root = document.documentElement
+		const onScroll = () => {
+			scrollY > 4 ? (root.dataset.scrolled = "") : delete root.dataset.scrolled
+			scrollY > 64 ? (root.dataset.titled = "") : delete root.dataset.titled
+		}
+		onScroll()
+		addEventListener("scroll", onScroll, { passive: true })
+		let raf = 0
+		let last: PointerEvent | null = null
+		const paint = () => {
+			raf = 0
+			const el = (last?.target as HTMLElement | null)?.closest?.<HTMLElement>("[data-glow]")
+			if (!el || !last) return
+			const r = el.getBoundingClientRect()
+			el.style.setProperty("--mx", `${last.clientX - r.left}px`)
+			el.style.setProperty("--my", `${last.clientY - r.top}px`)
+		}
+		const onMove = (e: PointerEvent) => { last = e; if (!raf) raf = requestAnimationFrame(paint) }
+		const fine = matchMedia("(hover: hover) and (pointer: fine)").matches && !reduceMotion()
+		if (fine) document.addEventListener("pointermove", onMove, { passive: true })
+		return () => { removeEventListener("scroll", onScroll); document.removeEventListener("pointermove", onMove); cancelAnimationFrame(raf) }
 	}, [])
 }

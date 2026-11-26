@@ -1,30 +1,41 @@
 import { useMemo, useState } from "react"
-import { DownloadSimple, MagnifyingGlass } from "@phosphor-icons/react"
+import { CheckCircle, DownloadSimple, Hourglass, MagnifyingGlass, XCircle } from "@phosphor-icons/react"
 import type { DeskSnapshot } from "../lib/api"
-import { auditOf, titleOf, type ActorKind } from "../lib/derive"
+import { auditOf, isRunning, outcomeOf, titleOf, type ActorKind, type AuditEvent } from "../lib/derive"
 import { clock } from "../lib/format"
-import { href } from "../lib/router"
-import { Prov } from "../components/bits"
+import { go, href } from "../lib/router"
+import { DispositionTag, Prov, Spinner, StageStatus, dispositionLabel } from "../components/bits"
+import { Empty, Long, PageHead, Seg, Tabs } from "../components/ui"
 
-const ACTORS: { key: "all" | ActorKind; label: string }[] = [
-	{ key: "all", label: "Everyone" },
-	{ key: "agent", label: "Agents" },
-	{ key: "firewall", label: "Firewall" },
-	{ key: "human", label: "People" },
-	{ key: "desk", label: "Desk" },
+const ACTORS: { value: "all" | ActorKind; label: string }[] = [
+	{ value: "all", label: "Everyone" },
+	{ value: "agent", label: "Agents" },
+	{ value: "firewall", label: "Firewall" },
+	{ value: "human", label: "People" },
+	{ value: "desk", label: "Desk" },
 ]
 
-/** Every recorded step, newest first: who did what to which payment, and on whose authority. */
-export function Audit({ snapshot }: { snapshot: DeskSnapshot }) {
-	const all = useMemo(() => auditOf(snapshot.cases), [snapshot.cases])
+/** Assurance in one place: whether every figure still rests on its source, every recorded step, and expected against actual. */
+export function Audit({ snapshot, id }: { snapshot: DeskSnapshot; id: string | null }) {
+	const { cases } = snapshot
+	const all = useMemo(() => auditOf(cases), [cases])
+	const tab = id === "scenarios" ? "scenarios" : "trail"
 	const [q, setQ] = useState("")
 	const [actor, setActor] = useState<"all" | ActorKind>("all")
 	const [pay, setPay] = useState("all")
+	const [group, setGroup] = useState<"time" | "payment">("time")
 	const needle = q.trim().toLowerCase()
 	const shown = all.filter((e) => (actor === "all" || e.actorKind === actor) && (pay === "all" || e.caseId === pay) && (!needle || `${e.actor} ${e.title} ${e.caseId} ${e.detail}`.toLowerCase().includes(needle)))
 
+	// Evidence integrity, from the verifier's own report on each case. A case without a report is left out, not counted as clean.
+	const reports = cases.flatMap((c) => (c.integrity ? [c.integrity] : []))
+	const values = reports.flatMap((r) => r.values)
+	const checkable = values.filter((v) => v.correct !== null)
+	const critical = reports.reduce((n, r) => n + r.findings.filter((f) => f.critical).length, 0)
+	const entries = cases.reduce((n, c) => n + Object.keys(c.ledger).length, 0)
+
 	const exportJson = () => {
-		const body = { exportedAt: new Date().toISOString(), note: "Synthetic data. Sandbox demonstration.", events: shown, reviews: snapshot.cases.flatMap((c) => c.review.map((r) => ({ caseId: c.id, ...r }))) }
+		const body = { exportedAt: new Date().toISOString(), note: "Synthetic data. Sandbox demonstration.", events: shown, reviews: cases.flatMap((c) => c.review.map((r) => ({ caseId: c.id, ...r }))) }
 		const a = document.createElement("a")
 		a.href = URL.createObjectURL(new Blob([JSON.stringify(body, null, 2)], { type: "application/json" }))
 		a.download = `payment-desk-audit-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-")}.json`
@@ -32,42 +43,96 @@ export function Audit({ snapshot }: { snapshot: DeskSnapshot }) {
 		URL.revokeObjectURL(a.href)
 	}
 
+	const row = (e: AuditEvent, i: number, withPayment: boolean) => (
+		<li className={`trail-row ${e.actorKind}${e.kind === "error" ? " err" : ""} agent-${e.actor}`} key={i}>
+			<span className="t">{clock(e.at)}</span>
+			<span className="who">{e.actor}</span>
+			<span className="what">{withPayment && <><a href={href("inbox", e.caseId)}>{e.title}</a> · </>}<Long text={e.detail} /></span>
+		</li>
+	)
+	const groups = group === "payment" ? cases.map((c) => ({ c, events: shown.filter((e) => e.caseId === c.id).reverse() })).filter((g) => g.events.length > 0) : []
+
 	return (
 		<main className="view">
-			<section className="panel">
-				<div className="tools">
-					<label className="search"><span className="sr-only">Search the audit trail</span><MagnifyingGlass size={14} /><input className="input" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search events" spellCheck={false} /></label>
-					<div className="seg" role="group" aria-label="Filter by actor">
-						{ACTORS.map((a) => <button key={a.key} aria-pressed={actor === a.key} onClick={() => setActor(a.key)}>{a.label}</button>)}
-					</div>
-					<select className="select" aria-label="Filter by payment" value={pay} onChange={(e) => setPay(e.target.value)} style={{ maxWidth: 220 }}>
-						<option value="all">All payments</option>
-						{snapshot.cases.map((c) => <option key={c.id} value={c.id}>{titleOf(c)} · {c.id}</option>)}
-					</select>
-					<span className="n" aria-live="polite">{shown.length}/{all.length}</span>
-					<button className="btn" onClick={exportJson} disabled={shown.length === 0}><DownloadSimple size={14} /> Export JSON</button>
-				</div>
-				{all.length === 0 ? (
-					<div className="empty"><h2>No events yet</h2><p>Once documents are processed, every agent step, firewall decision and human action is recorded here with its time and actor.</p></div>
-				) : shown.length === 0 ? (
-					<div className="empty"><h2>No events match</h2><p>Nothing in the trail matches this search and these filters.</p><div className="actions"><button className="btn" onClick={() => { setQ(""); setActor("all"); setPay("all") }}>Clear search and filters</button></div></div>
-				) : (
-					<div className="grid-table" style={{ ["--cols" as string]: "84px 140px minmax(140px, 240px) minmax(0, 1fr)" }}>
-						<div className="tr h"><span>Time</span><span>Actor</span><span>Payment</span><span>Event</span></div>
-						{shown.map((e, i) => (
-							<div className={`tr${e.kind === "error" ? " err" : ""}`} key={i}>
-								<span className="t">{clock(e.at)}</span>
-								<span className={`who agent-${e.actor}`}>
-									{e.actorKind === "agent" ? <><span className="swatch" />{e.actor}</> : e.actorKind === "human" ? <Prov kind="human" label={e.actor} /> : e.actorKind === "firewall" ? <Prov kind="computed" label="Firewall" /> : <span className="muted">Desk</span>}
-								</span>
-								<a className="pay truncate" href={href("inbox", e.caseId)}>{e.title}</a>
-								<span className="wide soft">{e.detail}</span>
-							</div>
-						))}
-					</div>
-				)}
+			<PageHead title="Evidence & Audit" sub="Every figure rests on a source that code has read again, and every step has an author and a time.">
+				<button className="btn" onClick={exportJson} disabled={shown.length === 0}><DownloadSimple size={14} /> Export JSON</button>
+			</PageHead>
+
+			<section className="statbar glass" aria-label="Evidence integrity across the desk">
+				<div className="stat"><span className="k">Evidence entries</span><span className="v">{entries}<small>in {cases.length} ledgers</small></span></div>
+				<div className="stat" title="Values whose reference exists and resolves, out of all values the integrity verifier checked."><span className="k">References resolve <Prov kind="computed" label="" /></span>{values.length ? <span className="v">{values.filter((v) => v.present).length}<small>of {values.length}</small></span> : <span className="v none">Not measured</span>}</div>
+				<div className="stat" title="Of the references that can be checked mechanically, those whose source really contains the value."><span className="k">Source supports value <Prov kind="computed" label="" /></span>{checkable.length ? <span className="v">{checkable.filter((v) => v.correct).length}<small>of {checkable.length} checkable</small></span> : <span className="v none">Not measured</span>}</div>
+				<div className="stat"><span className="k">Critical findings</span>{reports.length ? <span className="v">{critical}<small>{critical ? "each blocks its payment" : "none"}</small></span> : <span className="v none">Not measured</span>}</div>
 			</section>
-			<p className="muted" style={{ fontSize: "var(--fs-12)", maxWidth: "84ch" }}>{snapshot.persisted ? "The trail is saved with the case state on this machine and survives a server restart." : "The trail lives in memory for this run."} Running the demo scenarios again replaces the demo cases, so export what you need to keep. Human actions are recorded as “{snapshot.reviewer}”: this build has no sign-in.</p>
+
+			<section className="sec">
+				<Tabs value={tab} onChange={(t) => go("audit", t === "scenarios" ? "scenarios" : null, true)} label="Assurance views" tabs={[{ value: "trail", label: "Audit trail", count: all.length }, { value: "scenarios", label: "Scenario check" }]} />
+
+				{tab === "trail" ? (
+					<>
+						<div className="tools">
+							<label className="search"><span className="sr-only">Search the audit trail</span><MagnifyingGlass size={15} /><input className="input" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search events" spellCheck={false} /></label>
+							<Seg value={actor} onChange={setActor} options={ACTORS} label="Filter by actor" />
+							<select className="select" aria-label="Filter by payment" value={pay} onChange={(e) => setPay(e.target.value)} style={{ maxWidth: 220 }}>
+								<option value="all">All payments</option>
+								{cases.map((c) => <option key={c.id} value={c.id}>{titleOf(c)} · {c.id}</option>)}
+							</select>
+							<Seg value={group} onChange={setGroup} options={[{ value: "time", label: "By time" }, { value: "payment", label: "By payment" }]} label="Group events" />
+							<span className="n" aria-live="polite">{shown.length} of {all.length}</span>
+						</div>
+						<div className="panel">
+							{all.length === 0 ? (
+								<Empty title="No events yet">Once documents are processed, every agent step, firewall decision and human action is recorded here with its time and actor.</Empty>
+							) : shown.length === 0 ? (
+								<Empty icon={<MagnifyingGlass size={18} />} title="No events match" actions={<button className="btn" onClick={() => { setQ(""); setActor("all"); setPay("all") }}>Clear search and filters</button>}>Nothing in the trail matches this search and these filters.</Empty>
+							) : group === "payment" ? (
+								groups.map(({ c, events }) => (
+									<div className="trail-group" key={c.id}>
+										<div className="trail-gh"><a href={href("inbox", c.id)}>{titleOf(c)}</a><span className="mono muted">{c.id}</span><span className="right"><StageStatus stage={c.stage} /></span></div>
+										<ol className="trail">{events.map((e, i) => row(e, i, false))}</ol>
+									</div>
+								))
+							) : <ol className="trail">{shown.map((e, i) => row(e, i, true))}</ol>}
+						</div>
+						<p className="fine" style={{ maxWidth: "84ch" }}>{snapshot.persisted ? "The trail is saved with the case state on this machine and survives a server restart." : "The trail lives in memory for this run."} Running the demo again replaces the demo cases, so export what you need to keep. Human actions are recorded as “{snapshot.reviewer}”: this build has no sign-in.</p>
+					</>
+				) : <ScenarioCheck snapshot={snapshot} />}
+			</section>
 		</main>
+	)
+}
+
+/** Expected against actual for every synthetic scenario: the fastest way to see that the workflow did what it claims. */
+function ScenarioCheck({ snapshot }: { snapshot: DeskSnapshot }) {
+	const rows = snapshot.scenarios.map((s) => {
+		const c = snapshot.cases.find((k) => k.id === s.docId && k.origin === "demo")
+		const got = c ? outcomeOf(c) : null
+		const settled = c != null && !isRunning(c)
+		const humanMoved = c?.review.some((r) => r.outcome === "applied" && r.reviewer !== "Firewall") ?? false
+		return { s, c, got, state: !c ? "absent" : !settled ? "running" : humanMoved ? "moved" : s.expect.includes(got!) ? "ok" : "off" }
+	})
+	const ok = rows.filter((r) => r.state === "ok").length
+	const judged = rows.filter((r) => r.state === "ok" || r.state === "off").length
+	if (rows.every((r) => r.state === "absent")) return <div className="panel"><Empty title="The demo inbox has not been run">Each synthetic document declares the outcome it should reach. Run the demo and this table sets that declaration beside what actually happened.</Empty></div>
+	return (
+		<>
+			<p className="say">{judged ? <><b style={{ color: "var(--ink)" }}>{ok} of {judged}</b> documents were decided as the scenario file expects.</> : "The documents are still being processed."} The expectation is written in <span className="mono">server/data/scenarios.json</span> and is never shown to an agent.</p>
+			<div className="panel">
+				<div className="grid-table" style={{ ["--cols" as string]: "20px minmax(180px, 1.2fr) minmax(120px, 0.7fr) minmax(120px, 0.7fr) minmax(0, 2fr)" }}>
+					<div className="tr h"><span /><span>Scenario</span><span>Expected</span><span>Actual</span><span>Why</span></div>
+					{rows.map(({ s, c, got, state }) => (
+						<div className="tr" key={s.docId}>
+							<span className={`mark ${state}`} title={state === "ok" ? "as expected" : state === "off" ? "not as expected" : state === "moved" ? "changed by a person after the firewall decided" : state}>
+								{state === "ok" ? <CheckCircle size={15} weight="fill" /> : state === "off" ? <XCircle size={15} weight="fill" /> : state === "running" ? <Spinner /> : <Hourglass size={15} />}
+							</span>
+							{c ? <a className="pay" href={href("inbox", s.docId)}>{s.title} <span className="mono muted" style={{ fontWeight: 400 }}>{s.docId}</span></a> : <span>{s.title}</span>}
+							<span className="soft">{s.expect.map(dispositionLabel).join(" or ")}</span>
+							<span>{got && state !== "running" ? <DispositionTag value={got} /> : <span className="muted">{state === "running" ? "processing" : "not run"}</span>}</span>
+							<span className="wide soft">{s.why}</span>
+						</div>
+					))}
+				</div>
+			</div>
+		</>
 	)
 }

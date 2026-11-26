@@ -172,7 +172,51 @@ export type ReviewEntry = {
 	to: string
 	outcome: "applied" | "refused"
 	refs: string[]
+	/** For an approval over a cross-check: what each acceptance rests on. Never upgraded to verification. */
+	resolutions?: Resolution[]
 }
+
+/**
+ * A cross-agent challenge: a structured, inspectable disagreement about financial evidence. It is derived by code from
+ * what the agents and the records say, never written by a model, and it is kept even after it is settled.
+ */
+/**
+ * "matched_to_record": a record held by the desk (a callback against the vendor and the exact account) matches. The desk
+ * matches the record; it does not place the call. "accepted_by_reviewer": a person approved the payment on a written
+ * statement, with or without citing a line. That is accountability, not verification: the disagreement itself stands.
+ */
+export type ChallengeStatus = "open" | "confirmed_discrepancy" | "requires_human_verification" | "matched_to_record" | "accepted_by_reviewer" | "unresolved"
+export type ChallengeCategory = "reading_disagreement" | "document_contradiction" | "trusted_record_mismatch" | "report_mismatch"
+export type ChallengeClaim = { by: "Extractor" | "Auditor" | "Validator" | "Document" | "Trusted record" | "Computed"; value: string; ref: string | null }
+export type Challenge = {
+	id: string
+	caseId: string
+	/** Who raised it: the agent whose independent finding differs, or the comparison in code. */
+	raisedBy: "Auditor" | "Validator" | "Firewall"
+	category: ChallengeCategory
+	field: string
+	/** The claim that is challenged, and what was independently observed against it. Each carries its own evidence. */
+	challenged: ChallengeClaim
+	observed: ChallengeClaim
+	required: string
+	status: ChallengeStatus
+	/** True when the two sides are both lines of the document, so a reviewer can settle it by pointing at one of them. */
+	sourceSelectable: boolean
+}
+/**
+ * What a reviewer's acceptance of a challenge rests on. Both need a written statement.
+ * "source_cited": the reviewer also pointed at a line of the document; code re-read it and it states the amount that will
+ * be paid. That shows the value is in the document, not that it is the amount owed when the document states another too.
+ * "assertion": the statement alone.
+ */
+export type Resolution = { challengeId: string; basis: "source_cited" | "assertion"; chosenRef: string | null; chosenValue: string | null }
+
+/** Something in a model's well-formed output that code found to be wrong and removed or refused. Kept for the audit trail. */
+export type OutputCheck = { at: string; agent: AgentName; kind: "unknown_evidence_ref" | "unknown_policy_rule" | "unknown_control" | "invalid_result"; detail: string }
+
+/** Why the model provider is refusing calls, when the refusal concerns the whole account and retrying cannot help. */
+export type ProviderFailureKind = "insufficient_credit" | "invalid_credentials" | "permission" | "unsupported_model" | "rate_limited" | "unavailable" | "network" | "unknown"
+export type ProviderBlock = { kind: ProviderFailureKind; message: string; advice: string; at: string }
 
 export type PaymentDraft = {
 	draftId: string
@@ -228,6 +272,10 @@ export type PaymentCase = {
 	version: number
 	/** Bumped on reprocess; writes from an older attempt are discarded. */
 	attempt: number
+	challenges?: Challenge[]
+	/** Settlements by a person, by challenge id. A challenge keeps its history: the disagreement is never erased. */
+	resolutions?: Record<string, Resolution & { at: string; reviewer: string }>
+	outputChecks?: OutputCheck[]
 	stage: Stage
 	extraction: StepStatus<Reading>
 	validation: StepStatus<Validation>
@@ -270,6 +318,19 @@ export type AgentInfo = { id: string; name: AgentName; role: string; model: stri
 
 export type Scenario = { docId: string; title: string; expect: string[]; controls: string[]; why: string }
 
+// ───────── interactive showcase: a guided run of a few synthetic scenarios through the real workflow ─────────
+
+export type ShowcaseKey = "legitimate" | "beneficiary" | "challenge" | "duplicate" | "injection"
+/**
+ * "confirmed": the enforced outcome is the one the scenario file expects. "unexpected": it settled on something else.
+ * "failed": the workflow did not finish. Derived from the case; never set by hand.
+ */
+export type ShowcaseResult = "not_run" | "running" | "confirmed" | "unexpected" | "failed"
+export type ShowcaseStep = { key: ShowcaseKey; docId: string; optional: boolean; expected: string[]; startedAt: string | null; result: ShowcaseResult; actual: string | null }
+export type Showcase = { id: string; startedAt: string; mode: "live" | "scripted"; steps: ShowcaseStep[] }
+/** A stored execution of an earlier run with live models. Read-only: replaying it calls no model and decides nothing. */
+export type Recording = { recordedAt: string; note: string; models: { fast: string; careful: string }; steps: ShowcaseStep[]; cases: PaymentCase[] }
+
 export type DeskSnapshot = {
 	startedAt: string | null
 	agents: AgentInfo[]
@@ -279,6 +340,8 @@ export type DeskSnapshot = {
 	cases: PaymentCase[]
 	scenarios: Scenario[]
 	dailyAutoApproved: Minor
+	/** Set while the provider refuses every call for a reason retrying cannot fix. Null when calls are going through. */
+	provider: ProviderBlock | null
 	cloudEnabled: boolean
 	models: { fast: string; careful: string }
 	inboxWaiting: number
@@ -286,6 +349,8 @@ export type DeskSnapshot = {
 	persisted: boolean
 	/** "scripted" only when the server was started with the test fixture model (npm run dev:scripted). */
 	modelMode: "live" | "scripted"
+	/** The guided demo, when one has been started. Its scenario documents are ordinary demo cases on this desk. */
+	showcase: Showcase | null
 	runtime: { participants: number; events: Record<string, number> }
 }
 

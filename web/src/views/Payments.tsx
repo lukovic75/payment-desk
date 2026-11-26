@@ -1,11 +1,13 @@
 import { useEffect } from "react"
+import { Receipt } from "@phosphor-icons/react"
 import type { DeskSnapshot, PaymentCase } from "../lib/api"
 import { needsPerson, riskRank } from "../lib/derive"
 import { go } from "../lib/router"
 import { PaymentDetail } from "../components/PaymentDetail"
 import { PaymentList } from "../components/PaymentList"
+import { Empty } from "../components/ui"
 
-/** Inbox and review queue share one workspace: the list on the left, the selected payment on the right. */
+/** Payments and the review queue share one workspace: the list on the left, the selected payment on the right. */
 export function Payments({ snapshot, view, id }: { snapshot: DeskSnapshot; view: "inbox" | "queue"; id: string | null }) {
 	const { cases } = snapshot
 	const current = id ? cases.find((c) => c.id === id) ?? null : null
@@ -32,12 +34,11 @@ export function Payments({ snapshot, view, id }: { snapshot: DeskSnapshot; view:
 					{current ? (
 						<PaymentDetail c={current} snapshot={snapshot} view={view} onDecided={onDecided} />
 					) : id ? (
-						<div className="empty"><h2>That payment is not on the desk</h2><p>“{id}” is not a document in this run. It may be from before the demo scenarios were run again.</p></div>
+						<Empty title="That payment is not on the desk" center>“{id}” is not a document in this run. It may be from before the demo was run again.</Empty>
 					) : (
-						<div className="empty">
-							<h2>{view === "queue" ? "Select a payment to review" : "Select a payment"}</h2>
-							<p>The workspace shows the decision and what you can do, how it was reached, every firewall control with its evidence, and the original document side by side. Use ↑ and ↓ to move through the list.</p>
-						</div>
+						<Empty icon={<Receipt size={18} />} title={view === "queue" ? "Select a payment to review" : "Select a payment"} center>
+							You will see what it is, whether it is safe and what you can do. Verification, evidence and agent activity are one tab away. Use ↑ and ↓ to move through the list.
+						</Empty>
 					)}
 				</div>
 			</div>

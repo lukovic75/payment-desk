@@ -1,10 +1,11 @@
 import { useMemo, useState, type ReactNode } from "react"
-import { ArrowLeft, CaretRight, CheckCircle, DownloadSimple, Flask, Lightning, Play, Prohibit, Scales, Stop, Warning, WarningCircle, XCircle } from "@phosphor-icons/react"
+import { ArrowLeft, CaretRight, CheckCircle, DownloadSimple, Lightning, Play, Prohibit, Scales, Stop, Warning, WarningCircle, XCircle } from "@phosphor-icons/react"
 import { cancelLabRun, labReportUrl, startLabRun, useLab, useLabDetail, type BenchmarkView, type ConfigMetrics, type LabItemView, type LabMode, type LabOverview, type LabRunView, type LabScenarioView, type Ratio } from "../lib/lab"
 import { loopsOf } from "../lib/derive"
 import { clock, count, duration, iban, money } from "../lib/format"
 import { href } from "../lib/router"
 import { DispositionTag, Prov, Spinner, StatusIcon, dispositionLabel } from "../components/bits"
+import { PageHead, Seg } from "../components/ui"
 import { Timeline, useNow } from "../components/Timeline"
 
 type Latest = { run: LabRunView; item: LabItemView } | null
@@ -60,60 +61,55 @@ export function Lab({ id }: { id: string | null }) {
 
 	return (
 		<main className="view" data-open={id != null}>
-			<section className="panel lab-hero">
-				<div className="panel-head"><Flask size={15} /><h2>Reliability under stress</h2><span className="right"><span className="tag line fit">Sandbox · synthetic data</span></span></div>
-				<div className="lab-top">
-					<p className="say">Twelve reproducible financial scenarios. Each one declares what must happen before it runs, and no agent is ever shown that declaration. Every execution gets its own process, with its own Mozaik runtime and case state, so nothing here can touch the payment inbox, its approval totals or its saved state.</p>
-					<div className="lab-controls">
-						<div className="seg" role="group" aria-label="Execution path">
-							<button aria-pressed={mode === "scripted"} onClick={() => setMode("scripted")}><Lightning size={13} /> Deterministic</button>
-							<button aria-pressed={mode === "live"} onClick={() => setMode("live")}><Play size={12} weight="fill" /> Live models</button>
-						</div>
-						<div className="lab-buttons">
-							{active ? (
-								<button className="btn" disabled={busy} onClick={cancel}><Stop size={13} weight="fill" /> Cancel run</button>
-							) : (
-								<button className="btn btn-primary" disabled={busy || liveBlocked} onClick={() => start({ kind: "suite", executions: data.scenarios.length }, mode, false)}>{busy ? <Spinner /> : <Play size={13} weight="fill" />} Run all {data.scenarios.length} scenarios</button>
-							)}
-							<a className="btn" href={href("lab", "benchmark")} aria-current={benchmark ? "page" : undefined}><Scales size={14} /> Single agent vs multi-agent</a>
-						</div>
-					</div>
+			<PageHead title="Financial Stress Lab" sub="Twelve reproducible scenarios. Each declares what must happen before it runs, and no agent ever sees that declaration.">
+				<Seg value={mode} onChange={setMode} label="Execution path" options={[{ value: "scripted", label: <><Lightning size={13} /> Deterministic</> }, { value: "live", label: <><Play size={11} weight="fill" /> Live models</> }]} />
+				<a className="btn" href={href("lab", "benchmark")} aria-current={benchmark ? "page" : undefined}><Scales size={14} /> Benchmark</a>
+				{active ? (
+					<button className="btn" disabled={busy} onClick={cancel}><Stop size={13} weight="fill" /> Cancel run</button>
+				) : (
+					<button className="btn btn-primary" disabled={busy || liveBlocked} onClick={() => start({ kind: "suite", executions: data.scenarios.length }, mode, false)}>{busy ? <Spinner /> : <Play size={12} weight="fill" />} Run all {data.scenarios.length}</button>
+				)}
+			</PageHead>
+
+			<div className="lab-top">
+				<details className="guide lab-about">
+					<summary><CaretRight size={12} weight="bold" className="caret" /> {mode === "scripted" ? "About the deterministic path: the real workflow, fixed agent words, no API key" : `About the live path: real models, spends API credit${data.live.available ? "" : " · no API key on the server"}`}</summary>
 					<p className="lab-note">
 						{mode === "scripted"
-							? <><b>Deterministic path.</b> The real Mozaik workflow runs: loops, tools, events, controls, enforcement. What the agents say comes from a fixed fixture, and the scripted Policy agent recommends approval for everything, so a pass means the controls held without help from a model. No API key, a few seconds. It does not test a language model.</>
-							: <><b>Live path.</b> Real models through Mozaik ({data.live.models.fast} and {data.live.models.careful}). It spends API credit, at most {data.limits.concurrency.live} scenarios run at once, and a repeat can word things differently.{!data.live.available && <> <b>No model API key on the server:</b> copy <code>.env.example</code> to <code>.env</code>, set <code>ANTHROPIC_API_KEY</code> and restart. The deterministic path needs none.</>}</>}
+							? <>The real Mozaik workflow runs: loops, tools, events, controls, enforcement. What the agents say comes from a fixed fixture, and the scripted Policy agent recommends approval for everything, so a pass means the controls held without help from a model. It takes a few seconds and does not test a language model.</>
+							: <>Real models through Mozaik ({data.live.models.fast} and {data.live.models.careful}). At most {data.limits.concurrency.live} scenarios run at once, and a repeat can word things differently.{!data.live.available && <> <b>No model API key on the server:</b> copy <code>.env.example</code> to <code>.env</code>, set <code>ANTHROPIC_API_KEY</code> and restart. The deterministic path needs none.</>}</>}
+						{" "}Every execution gets its own process, with its own Mozaik runtime and case state, so nothing here can touch the payment inbox.
 					</p>
-					{ask && (
-						<div className="banner warn" role="alertdialog" aria-label="Confirm a live run">
-							<Warning size={16} weight="bold" />
-							<div><b>This spends API credit.</b> {ask.kind === "benchmark" ? `${ask.executions} scenario executions (each benchmark scenario once per configuration)` : ask.kind === "suite" ? `${ask.executions} scenarios, ${docsTotal} documents` : "One scenario"} with live models. One run at a time; it can be cancelled.</div>
-							<span className="lab-buttons"><button className="btn btn-sm" onClick={() => setAsk(null)}>Not now</button><button className="btn btn-sm btn-primary" disabled={busy} onClick={() => start(ask, "live", true)}>Run live</button></span>
-						</div>
-					)}
-					{err && <div className="errbox" role="alert">{err}</div>}
-				</div>
-				<div className="stats five">
-					<div className="stat"><span className="k">Scenarios passed</span>{judged.length ? <span className="v">{judged.filter((r) => r.cur!.item.status === "pass").length}<small>of {judged.length} judged</small></span> : <span className="v none">not run</span>}</div>
-					<div className="stat"><span className="k">Checks passed</span>{judged.length ? <span className="v">{sum((r) => r.passed)}<small>of {sum((r) => r.checks)}</small></span> : <span className="v none">n/a</span>}</div>
-					<div className="stat"><span className="k" title="Values whose reference exists and resolves, out of all values the integrity verifier checked.">Evidence present</span>{judged.length ? <span className="v">{sum((r) => r.integrity.present)}<small>of {sum((r) => r.integrity.values)}</small></span> : <span className="v none">n/a</span>}</div>
-					<div className="stat"><span className="k" title="Of the references that can be checked mechanically, those whose source really contains the value.">Evidence correct</span>{judged.length ? <span className="v">{sum((r) => r.integrity.correct)}<small>of {sum((r) => r.integrity.checkable)} checkable</small></span> : <span className="v none">n/a</span>}</div>
-					<div className="stat"><span className="k">Execution time</span>{judged.length ? <span className="v">{duration(sum((r) => r.durationMs))}<small>{sum((r) => r.loops)} loops, {mode === "scripted" ? "scripted model" : "live models"}</small></span> : <span className="v none">n/a</span>}</div>
-				</div>
+				</details>
+				{ask && (
+					<div className="banner warn" role="alertdialog" aria-label="Confirm a live run">
+						<Warning size={16} weight="bold" />
+						<div><b>This spends API credit.</b> {ask.kind === "benchmark" ? `${ask.executions} scenario executions (each benchmark scenario once per configuration)` : ask.kind === "suite" ? `${ask.executions} scenarios, ${docsTotal} documents` : "One scenario"} with live models. One run at a time; it can be cancelled.</div>
+						<span className="lab-buttons"><button className="btn btn-sm" onClick={() => setAsk(null)}>Not now</button><button className="btn btn-sm btn-primary" disabled={busy} onClick={() => start(ask, "live", true)}>Run live</button></span>
+					</div>
+				)}
+				{err && <div className="errbox" role="alert">{err}</div>}
+			</div>
+
+			<section className="statbar glass" aria-label={`Results on the ${mode === "scripted" ? "deterministic" : "live"} path`}>
+				<div className="stat"><span className="k">Scenarios passed</span>{judged.length ? <span className="v">{judged.filter((r) => r.cur!.item.status === "pass").length}<small>of {judged.length} judged</small></span> : <span className="v none">Not run</span>}</div>
+				<div className="stat"><span className="k">Checks passed</span>{judged.length ? <span className="v">{sum((r) => r.passed)}<small>of {sum((r) => r.checks)}</small></span> : <span className="v none">Not run</span>}</div>
+				<div className="stat"><span className="k" title="Values whose reference exists and resolves, out of all values the integrity verifier checked.">Evidence present</span>{judged.length ? <span className="v">{sum((r) => r.integrity.present)}<small>of {sum((r) => r.integrity.values)}</small></span> : <span className="v none">Not run</span>}</div>
+				<div className="stat"><span className="k" title="Of the references that can be checked mechanically, those whose source really contains the value.">Evidence correct</span>{judged.length ? <span className="v">{sum((r) => r.integrity.correct)}<small>of {sum((r) => r.integrity.checkable)}</small></span> : <span className="v none">Not run</span>}</div>
+				<div className="stat"><span className="k">Execution time</span>{judged.length ? <span className="v">{duration(sum((r) => r.durationMs))}<small>{sum((r) => r.loops)} loops</small></span> : <span className="v none">Not run</span>}</div>
 			</section>
 
 			<div className="lab" data-open={id != null}>
-				<section className="panel lab-list" aria-label="Scenarios">
-					<div className="panel-head"><h2>Scenarios</h2><span className="right">{active ? <><Spinner /> {active.items.filter((i) => !["queued", "running"].includes(i.status)).length} of {active.items.length}</> : `${mode === "scripted" ? "deterministic" : "live"} results`}</span></div>
+				<section className="glass lab-list" aria-label="Scenarios">
 					{(["core", "extended"] as const).map((group) => (
 						<div key={group} className="lab-group">
-							<div className="lab-group-h">{group === "core" ? "Core scenarios" : "Extended scenarios"}</div>
+							<div className="lab-group-h">{group === "core" ? "Core scenarios" : "Extended scenarios"}{group === "core" && active && <> · {active.items.filter((i) => !["queued", "running"].includes(i.status)).length} of {active.items.length} finished</>}</div>
 							{rows.filter((r) => r.s.group === group).map(({ s, cur }) => (
 								<a key={s.id} className="lab-row" href={href("lab", s.id)} aria-current={selected?.id === s.id ? "true" : undefined}>
 									<ItemMark status={cur?.item.status ?? null} />
-									<span className="lab-id">{s.id}</span>
 									<span className="name">{s.name}</span>
 									<span className="lab-st">{statusText(cur)}</span>
-									<span className="meta">{[...new Set(Object.values(s.expected.outcomes).flat())].map(dispositionLabel).join(" or ")}{s.fault && <span className="tag line">fault injection</span>}</span>
+									<span className="meta"><span className="lab-id">{s.id}</span>{[...new Set(Object.values(s.expected.outcomes).flat())].map(dispositionLabel).join(" or ")}{s.fault && " · fault injected"}</span>
 								</a>
 							))}
 						</div>
@@ -213,11 +209,11 @@ function ScenarioPanel({ s, cur, mode, blocked, onRun }: { s: LabScenarioView; c
 							</div>
 							<div className="lab-docs">
 								{result.docs.map((d) => (
-									<div className="chain" key={d.doc}>
-										<div><span className="k"><span className="mono">{d.doc}</span></span><span className="lab-exp">declared: {d.expected.map(dispositionLabel).join(" or ")}</span></div>
-										<div><span className="k"><Prov kind="agent" label="Agent recommended" /></span>{d.recommended ? <DispositionTag value={d.recommended} /> : <span className="muted">no recommendation was made</span>}</div>
-										<div><span className="k"><Prov kind="computed" label="Controls allow" /></span>{d.floor ? <DispositionTag value={d.floor} /> : <span className="muted">not evaluated</span>}</div>
-										<div><span className="k">In force <span className={`mark ${d.correct ? "ok" : "off"}`}>{d.correct ? <CheckCircle size={13} weight="bold" /> : <XCircle size={13} weight="bold" />}</span></span><DispositionTag value={d.final} /></div>
+									<div className="chain across" key={d.doc}>
+										<div className="chain-step"><span className="k"><span>Declared for <span className="mono">{d.doc}</span></span></span><span className="lab-exp">{d.expected.map(dispositionLabel).join(" or ")}</span></div>
+										<div className="chain-step"><span className="k"><Prov kind="agent" label="Agent recommended" /></span>{d.recommended ? <DispositionTag value={d.recommended} /> : <span className="muted">no recommendation was made</span>}</div>
+										<div className="chain-step"><span className="k"><Prov kind="computed" label="Controls allow" /></span>{d.floor ? <DispositionTag value={d.floor} /> : <span className="muted">not evaluated</span>}</div>
+										<div className="chain-step"><span className="k">In force <span className={`mark ${d.correct ? "ok" : "off"}`}>{d.correct ? <CheckCircle size={13} weight="fill" /> : <XCircle size={13} weight="fill" />}</span></span><DispositionTag value={d.final} /></div>
 									</div>
 								))}
 							</div>
@@ -241,10 +237,10 @@ function ScenarioPanel({ s, cur, mode, blocked, onRun }: { s: LabScenarioView; c
 			{cur && cases.length > 0 && (
 				<section className="panel">
 					<div className="sec-head"><h3>Agent execution</h3><span className="right"><span className="truncate">recorded start and finish of every loop · isolated process</span></span></div>
-					<div className={`live-surface${running ? " is-live" : ""}`}>
+					<div>
 						<Timeline loops={loops} scope={cases.filter((c) => c.runs.length).length > 1 ? "inbox" : "case"} live={running} fit={!running} empty="No agent loop ran: the document was stopped before any agent was spent on it." />
 					</div>
-					<details className="fold" open={false}>
+					<details className="fold" open={false} style={{ borderTop: "1px solid var(--line)", padding: "0 var(--sp-4)" }}>
 						<summary><CaretRight size={12} weight="bold" className="caret" /> Execution records <span className="right">{runs.length} loop{runs.length === 1 ? "" : "s"} · {cases.reduce((n, c) => n + c.version, 0)} writes to shared state</span></summary>
 						<div className="grid-table" style={{ ["--cols" as string]: "minmax(150px, 1fr) minmax(100px, 0.9fr) 112px 92px 70px minmax(140px, 1.3fr)", maxHeight: 320 }}>
 							<div className="tr h"><span>Agent and model</span><span>Case</span><span>Execution id</span><span>Started</span><span className="num">Duration</span><span>Triggered by</span></div>
@@ -266,7 +262,7 @@ function ScenarioPanel({ s, cur, mode, blocked, onRun }: { s: LabScenarioView; c
 			{result && cur?.item.status !== "error" && (
 				<section className="panel">
 					<div className="sec-head"><h3>Evidence integrity</h3><span className="right"><Prov kind="computed" label="re-verified, no model" /></span></div>
-					<div className="stats four">
+					<div className="stats">
 						<div className="stat"><span className="k">Values checked</span><span className="v">{result.integrity.values}</span></div>
 						<div className="stat"><span className="k" title="A reference exists and the thing it points at exists.">Reference resolves</span><span className="v">{result.integrity.present}<small>of {result.integrity.values}</small></span></div>
 						<div className="stat"><span className="k" title="The referenced source really contains the value. Values that cannot be checked mechanically, such as dates in words, are left out.">Source supports value</span><span className="v">{result.integrity.correct}<small>of {result.integrity.checkable} checkable</small></span></div>
