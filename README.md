@@ -23,7 +23,7 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 | Evidence-backed resolution | Scenario 3 → *Resolve it with independent evidence* | `verify_amount` in [`server/desk.ts`](server/desk.ts#L1118) | `resolution.test.ts` |
 | Reproducible showcase | `npm ci && npm run demo` | [`server/showcase.ts`](server/showcase.ts) | `showcase.test.ts`, `npm run test:browser` |
 | Financial Stress Lab | Financial Stress Lab → Run all 12 | [`server/lab/`](server/lab) | `npm run lab`, `lab.test.ts` |
-| Automated evidence | | `server/test/`, `scripts/browser-smoke.mjs` | 114 tests, 12 lab scenarios, 17 browser checks |
+| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 114 tests, 12 lab scenarios, 17 browser checks |
 | Live models on this version | Opening screen states the mode; *Watch the recorded execution* for an earlier live run | | **Not verified** (provider credit): [`DEMO_READINESS.md`](DEMO_READINESS.md), [`FINAL_RELEASE_REPORT.md`](FINAL_RELEASE_REPORT.md) |
 
 Walkthrough: [`DEMO_GUIDE.md`](DEMO_GUIDE.md). Likely questions: [`JUDGE_QA.md`](JUDGE_QA.md).
@@ -334,7 +334,7 @@ cp .env.example .env     # only for live models
 | `npm run build` then `npm start` | static UI in `web/dist`, served by the API on :8787 | for live agents |
 | `npm run dev:scripted` | the scripted server alone on :8799, when the UI is already built | no |
 
-There is no linter in the project; the type checker and the tests are the gates.
+There is no linter in the project; the type checker and the tests are the gates. GitHub Actions (`.github/workflows/ci.yml`) runs install, typecheck, tests, build and the Stress Lab on Node 20 and 22, with no model key.
 
 ## Tests
 
@@ -459,4 +459,5 @@ HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 - **One sandbox workspace.** Showcase payments are ordinary demo documents on the desk and share its daily auto-approval budget. Starting the demo replaces the demo documents; a person's own documents, decisions and verifications are kept.
 - **Split-payment detection** groups by vendor and purchase order (or same invoice date) within a window; it does not look at history.
 - **Reference readings are hand-written** for the sixteen synthetic documents; field accuracy in the benchmark is measured against them and only on live runs.
-- **Browser coverage is a smoke suite** of seventeen checks on the showcase, outside `npm test`. There is no linter and no CI in the repository yet.
+- **Browser coverage is a smoke suite** of seventeen checks on the showcase, outside `npm test` and outside CI. There is no linter.
+- **CI is configured, and unproven until its first run** on GitHub.

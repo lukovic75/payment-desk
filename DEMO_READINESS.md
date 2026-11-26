@@ -80,8 +80,8 @@ It is evidence that the workflow ran with live models once. It is not verificati
 - **One sandbox workspace.** Scenario payments are demo documents on the desk and count toward the same daily auto-approval budget as anything else there. Starting the demo, or loading the full inbox, replaces the demo documents; documents a person added, their decisions and their callback verifications are kept (tested).
 - **Trusted records are synthetic fixtures.** A contradiction about an amount is settled by a vendor confirmation and a changed account by a callback record. The desk matches a reference to a record for the right vendor, invoice or account, currency and amount; it does not contact anyone. Without a record, a person can still approve a contradiction on a written statement, recorded as *accepted by a reviewer, not verified*.
 - **Local only.** The server listens on 127.0.0.1, refuses requests from other sites and foreign hostnames, and has no sign-in. Hosting it publicly is out of scope.
-- **Browser checks are a smoke suite**, run with `npm run test:browser`, not part of `npm test`.
-- **No CI in the repository yet.** A workflow is written; pushing it needs a credential with the `workflow` scope. They need Node 22 or newer and a local Chrome or Chromium.
+- **Browser checks are a smoke suite**, run with `npm run test:browser`, not part of `npm test` or of CI.
+- **CI is configured and has not run yet**: the workflow file is new in this release. They need Node 22 or newer and a local Chrome or Chromium.
 - No sign-in; text documents only; one JSON state file; drafts are JSON, not ISO 20022.
 
 ## Recommended sequence

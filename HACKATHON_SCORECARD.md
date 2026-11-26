@@ -14,7 +14,7 @@ Every claim below names the file that implements it and the evidence that it wor
 | `npm test` | 114 of 114 pass, about 4 seconds, nine files, on Node 20.20.2, 22.23.5 and 26.8.2 (see `QA_REPORT.md`, `AGENT_INTELLIGENCE_REPORT.md` and `TEST_MATRIX.md` for what they cover) |
 | `npm run test:browser` | 17 of 17 browser checks of the interactive showcase, headless Chrome against the scripted server |
 | Clean copy of the repository files | `npm ci`, typecheck, tests, build, lab, `npm run demo` and the browser checks all pass with no `.env`, no saved state and no build output |
-| GitHub Actions | a workflow for Node 20 and 22 is written; **not in the repository yet** (pushing it needs a credential with the `workflow` scope) |
+| GitHub Actions | configured (`.github/workflows/ci.yml`: Node 20 and 22); **not yet run remotely** |
 | Scripted showcase (`npm run demo`) | four scenarios, each ending as `scenarios.json` expects; looked at in dark and light, phone to wide desktop |
 | `npm run build` | passes |
 | `npm run lab` (12 stress scenarios, deterministic path) | 12 of 12 pass, 87 of 87 declared checks |
@@ -70,7 +70,7 @@ Every claim below names the file that implements it and the evidence that it wor
 **What is implemented**
 
 - Runs from the README: `npm ci` and `npm run demo` for the guided showcase with no key, `npm test` and `npm run lab`, or `.env` plus `npm run dev` for live agents. `DEMO_GUIDE.md` is a ten-minute walkthrough.
-- 114 automated tests in nine files: unit, workflow on the real runtime, financial safety at the edges, malformed and wrong model output, provider failures, cross-agent challenges, the showcase and its isolation, resolution with trusted records, Stress Lab, and the real server over HTTP under normal and hostile use. Seventeen browser checks of the showcase.
+- 114 automated tests in nine files: unit, workflow on the real runtime, financial safety at the edges, malformed and wrong model output, provider failures, cross-agent challenges, the showcase and its isolation, resolution with trusted records, Stress Lab, and the real server over HTTP under normal and hostile use. Seventeen browser checks of the showcase. A CI workflow for Node 20 and 22.
 - The server listens on the local machine only and refuses requests from other sites, so a page open in the same browser cannot start a run that spends model credit.
 - A deterministic path that needs no credentials and a live path, labelled apart in the UI, the CLI, the API and the reports.
 - Failure handling: bounded retries, loop timeouts, fail-closed stages, recoverable cases, persistence across restarts, a heartbeat on the event stream, honest error states in the UI.
@@ -80,7 +80,7 @@ Every claim below names the file that implements it and the evidence that it wor
 
 **Evidence**: the verification summary above. A defect found by the Stress Lab itself (a leftover loop spinning until its timeout after a document was run again) was fixed and is covered by test 14c, which fails on the previous code.
 
-**Limitations**: live verification is partial and the reason is mundane (API credit). No linter. Browser coverage is a smoke suite of the showcase. No CI in the repository yet. Tested on macOS only; the npm scripts need a POSIX shell. State is JSON files and the inbox is a single process.
+**Limitations**: live verification is partial and the reason is mundane (API credit). No linter. Browser coverage is a smoke suite of the showcase. CI has not run remotely yet. Tested on macOS only; the npm scripts need a POSIX shell. State is JSON files and the inbox is a single process.
 
 **Self-assessment: 20 of 25.** Everything that can be verified without a paid model call has been, repeatedly. The deduction is for the live path not having been seen end to end after the latest changes.
 
@@ -117,7 +117,7 @@ Every claim below names the file that implements it and the evidence that it wor
 | Text documents only | Financial usefulness | PDF intake was left out of the final sprint on purpose |
 | Trusted records for resolution are fixtures | Financial usefulness | Obtaining a confirmation from a vendor is outside the sandbox |
 | One synthetic company, sixteen documents | Financial usefulness, Integrity | Scope of a two-day build |
-| No CI in the repository yet | Working implementation | The workflow is written; pushing it needs a credential with the `workflow` scope |
+| CI not yet observed green | Working implementation | Needs the first push |
 
 ## Highest-impact remaining work
 

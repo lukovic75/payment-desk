@@ -10,11 +10,11 @@
 | Live AI showcase | **BLOCKED** | One live call attempted at 22:58 CET: refused, no provider credit. Not retried |
 | Financial safety | **VERIFIED WITHIN TESTED SCOPE** | Sections C and G. Not a claim of absolute safety |
 | Local demo | **READY** | Section F |
-| GitHub submission | **CONDITIONALLY READY** | The release is committed. The CI workflow is not in the repository yet |
+| GitHub submission | **CONDITIONALLY READY** | The release is committed; CI has not been observed green on GitHub |
 | Public hosted deployment | **OUT OF SCOPE** | No sign-in; the server answers on the local machine only |
 | Production banking deployment | **OUT OF SCOPE** | Synthetic data, sandbox drafts |
 
-Most important changes in this pass: a discrepancy about an amount can now be **resolved with independent evidence** instead of only accepted on a statement; the server no longer listens on the network or accepts requests from other sites; an architecture proof with file and line, a judge Q&A and synchronised pitch documents.
+Most important changes in this pass: a discrepancy about an amount can now be **resolved with independent evidence** instead of only accepted on a statement; the server no longer listens on the network or accepts requests from other sites; CI, an architecture proof with file and line, a judge Q&A and synchronised pitch documents.
 
 Remaining blocker, external: provider credit (live verification, live Stress Lab, benchmark).
 
@@ -24,7 +24,7 @@ Remaining blocker, external: provider credit (live verification, live Stress Lab
 |---|---|---|
 | Financial usefulness (30) | Receive, extract, verify, investigate, review, resolve with a trusted record, sandbox draft. Changed account, duplicate, arithmetic, limits, unknown vendor, missing evidence, contradiction, zero or negative amount. `DEMO_GUIDE.md` | No measured saving. Text documents only. Trusted records are fixtures |
 | Multi-agent on Mozaik (30) | One runtime, typed shared state, five agents on semantic events, Validator and Auditor in parallel, Auditor independent by input, challenges that start the Investigator, code enforcement. `ARCHITECTURE_PROOF.md` with file and line | No live run on this version. The benchmark of one agent against five has never completed |
-| Working implementation (25) | Fresh copy: `npm ci`, typecheck, 114 tests, build, lab, `npm run demo`, 17 browser checks. Node 20.20.2, 22.23.5, 26.8.2 | No CI in the repository yet. macOS only tested; POSIX shell needed |
+| Working implementation (25) | Fresh copy: `npm ci`, typecheck, 114 tests, build, lab, `npm run demo`, 17 browser checks. Node 20.20.2, 22.23.5, 26.8.2. CI workflow | CI not yet run on GitHub. macOS only tested; POSIX shell needed |
 | Financial data integrity (15) | Integer minor units; every value with a located quote or record; independent re-verification that blocks; a cited line is never called verification; unmeasured figures shown as unmeasured | Agreement of two readers is not proof; some field kinds cannot be checked mechanically |
 
 Self-assessment, not an official score: 82 of 100 (`HACKATHON_SCORECARD.md`).
@@ -126,10 +126,10 @@ Not addressed, by design: authentication, roles, rate limiting, TLS. Local demo 
 | Local-only server | `server/index.ts`, `web/vite.config.ts` | PD-17 |
 | Interface | `web/src/components/PaymentDetail.tsx`, `bits.tsx`, `web/src/views/Showcase.tsx`, `web/src/lib/api.ts`, `web/src/styles/views.css` | The confirmation field, the resolution panel in scenario 3, wording |
 | Tests | `server/test/resolution.test.ts`, `api.test.ts`, `lab.test.ts`, `scripts/browser-smoke.mjs` | Regression coverage |
-| Release | `package.json`, `package-lock.json` | The Node range that was actually tested |
+| Release | `.github/workflows/ci.yml`, `package.json`, `package-lock.json` | CI; the Node range that was actually tested |
 | Documents | `README.md`, `ARCHITECTURE_PROOF.md`, `JUDGE_QA.md`, `FINAL_RELEASE_REPORT.md`, and the six existing reports | Accuracy |
 
-Decisions worth knowing: text-layer PDF intake was **not** built (a parser plus page-aware evidence locations, with no time to test them properly). A CI workflow for Node 20 and 22 is written and **not** in this commit: the credential used for pushing lacks the `workflow` scope. No dependency was added or upgraded.
+Decisions worth knowing: text-layer PDF intake was **not** built (a parser plus page-aware evidence locations, with no time to test them properly). The browser checks are **not** in CI (untested on a runner). No dependency was added or upgraded.
 
 ## K. Git
 
@@ -138,11 +138,11 @@ Decisions worth knowing: text-layer PDF intake was **not** built (a parser plus 
 | Branch | `main` |
 | Last pushed commit | `0a0fec6`, equal to `origin/main` |
 | This release | Committed on top of `0a0fec6` |
-| CI workflow | Written, not pushed: it needs a credential with the `workflow` scope |
+| CI workflow | `.github/workflows/ci.yml`. Pushing a workflow file needs a credential with the `workflow` scope |
 
 ## L. Owner actions
 
-1. Grant the `workflow` scope (`gh auth refresh -h github.com -s workflow`) and push the commit that adds the CI workflow; then check the first run in the Actions tab.
+1. Open the Actions tab on GitHub and check that the CI run for the latest commit is green on Node 20 and 22.
 2. Add provider credit. Then, in order and stopping at the first failure: `npm run dev` → **Start demo** → scenarios 1, 2, 3; then `npm run lab:live`; then `npm run lab:benchmark`. Record what happens, whatever it is.
 3. Resubmit the repository on build.jigjoy.ai.
 4. Rehearse the three-minute demonstration once on `npm run demo`.

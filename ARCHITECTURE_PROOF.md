@@ -102,6 +102,8 @@ Run on Node 20.20.2, 22.23.5 and 26.8.2 (macOS, Apple silicon), from a copy that
 | `npm run demo` | builds and serves the scripted showcase on http://localhost:8799 |
 | `npm run test:browser` | 17 of 17 (Node 22 or newer and a local Chrome or Chromium) |
 
+GitHub Actions runs the first five on Node 20 and 22 ([.github/workflows/ci.yml](.github/workflows/ci.yml)).
+
 ## What is not proven here
 
 Anything about live language models on this version. The scripted model replays fixed answers, so these proofs cover the orchestration, the controls and the evidence checks. The stored live run is from an earlier version. `DEMO_READINESS.md` and `FINAL_RELEASE_REPORT.md` say exactly what was and was not run.
