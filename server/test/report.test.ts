@@ -70,6 +70,7 @@ test("a blocked payment: recommendation and enforcement are kept apart, no draft
 	assert.equal(r.decision.primaryReason, failing[0]!.detail)
 	assert.ok(r.deterministicControls.notPassed.some((k) => k.id === "beneficiary"))
 	assert.ok(r.trustedRecords.length > 0, "the vendor master record it was compared with is listed")
+	assert.match(r.trustedRecordsNote, /synthetic fixture/, "and the report says what a trusted record is here")
 	assert.equal(r.challenges.length, (c.challenges ?? []).length)
 })
 

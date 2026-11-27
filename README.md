@@ -32,6 +32,7 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 | Decision report of a payment | Any payment → Overview → *Decision report* → Open | [`server/report.ts`](server/report.ts) | `report.test.ts` |
 | What the desk has done, in numbers | Evidence & audit → *What the desk has done* | `operationalSummary` in [`server/report.ts`](server/report.ts) | `report.test.ts` |
 | Financial Stress Lab | Stress lab → Run all 12 | [`server/lab/`](server/lab) | `npm run lab`, `lab.test.ts` |
+| Data provenance and sandbox boundaries | | [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md) | every dataset, identifier and recording, with what is not known |
 | Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 158 tests, 12 lab scenarios, 31 browser checks (the browser checks run locally, not in CI) |
 | Real models on this version | Showcase opening → *Watch the recorded run of this version* (a local model, 27 Nov); *Watch the recorded execution* for the earlier hosted run | [`server/data/recordings/`](server/data/recordings) | Local model: 2 of 4 scenarios as expected, 2 failed safely. Hosted models: **not verified** (provider credit). See *Live verification* |
 
@@ -363,6 +364,8 @@ The sample PDFs are in [`server/data/documents/pdf/`](server/data/documents/pdf)
 ![Add documents: three synthetic PDFs parsed and waiting, one previewed as the original](docs/pdf-intake.jpg)
 
 ## The demo dataset
+
+**Where the data comes from:** [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md). Every file is synthetic and written for this project; the document lists each one, how the PDFs are regenerated, what the account numbers are and are not, what a "trusted record" means in this sandbox, and what could not be established.
 
 `server/data/documents/` holds sixteen synthetic documents; `server/data/scenarios.json` states the expected outcome of each. Trusted records are in `vendors.json`, `history.json`, `purchase-orders.json`, `callbacks.json` and `confirmations.json`. Nothing needs to be generated or seeded: the files are the dataset. **Start demo** runs four of them one at a time (`INV-2026-1041`, `INV-ES-55820`, `INV-2026-1049`, `INV-7701-rappel`, and optionally `INV-ADR-0101`); *load all sixteen* on the overview runs the whole inbox.
 

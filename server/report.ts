@@ -102,6 +102,7 @@ export function decisionReport(c: PaymentCase, policy: Policy) {
 			calculations: Object.values(c.ledger).filter((e) => e.calc).map((e) => ({ ref: e.id, label: e.label, method: e.calc!.method, inputs: e.calc!.inputs, result: e.calc!.result, currency: e.calc!.currency })),
 		},
 
+		trustedRecordsNote: "Rows of the sandbox's synthetic fixture files. A match is a match with such a row; nobody was called or contacted, and it does not establish who owns an account in the real world.",
 		trustedRecords: Object.values(c.ledger).filter((e) => e.record).map((e) => ({ ref: e.id, label: e.label, source: e.record!.source, recordId: e.record!.recordId, fields: e.record!.fields })),
 
 		enforcement: {

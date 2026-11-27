@@ -100,7 +100,7 @@ Synthetic document `INV-2026-1049`: the cover text asks for EUR 1,980.00, the in
 | Code | `CH:contradiction:gross:1`, raised by the Auditor: `1980.00` (line 7) against `1890.00` (line 23), status `requires_human_verification` ([server/challenges.ts:17](server/challenges.ts#L17)) |
 | Downstream | The Investigator is started; the challenge is in its input and in the Policy agent's input (`challengeBrief`, [server/desk.ts](server/desk.ts)) |
 | Enforcement | Held for a person under rule R14 |
-| Resolution | A verified vendor confirmation for this vendor, invoice and amount moves the challenge to `matched_to_record`; a reviewer's statement moves it only to `accepted_by_reviewer`; a line of the invoice never settles it |
+| Resolution | A verified vendor confirmation for this vendor, invoice and amount moves the challenge to `matched_to_record`; a reviewer's statement never releases a document that states two payable amounts (policy v7: refused with 422) and moves a judgement discrepancy only to `accepted_by_reviewer`; a line of the invoice never settles it |
 | See it | Showcase scenario 3 → *Inspect agent challenge* |
 | Tests | `server/test/intelligence.test.ts` (challenge protocol), `server/test/resolution.test.ts` (how it ends), `server/test/showcase.test.ts` |
 
