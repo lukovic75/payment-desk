@@ -77,7 +77,7 @@ Local, in a clean copy of the repository files with no `node_modules`, `.env`, s
 | Node 22.23.5 with npm 10.8.2 | `npm ci`, typecheck, 130 tests, build, lab: pass |
 | Node 26.8.2 with npm 11 | `npm ci`, typecheck, 130 tests, lab, `npm run demo` with the PDF flow over HTTP, 22 browser checks: pass |
 
-Remote: **not run.** Nothing in this pass has been committed or pushed, so GitHub Actions has not seen it. The last green run is for commit `6cd4727`, before this work. The workflow file is unchanged. The lockfile was updated with npm 10.
+Remote: **passed.** GitHub Actions run 45915311184 on commit `272ed34`, Node 20 and 22 on Linux: `npm ci`, typecheck, tests, build, lab. The workflow file is unchanged; the lockfile was updated with npm 10. The browser checks are not part of CI.
 
 ## H. Security
 
@@ -112,13 +112,13 @@ Changed: `server/domain.ts` (source map, page on evidence), `server/desk.ts` (an
 - The marker covers a line, not a value, and exists only where a box was measured.
 - Interpreting a PDF outside the registered set needs live models: **not run**, the provider account has no credit.
 - Encrypted PDFs, forms and attachments are not supported.
-- CI has not run on this work. Browser checks are local and use Chromium only.
+- Browser checks are local, not in CI, and use Chromium only.
 - The four text examples under *Paste text instead* are not registered fixtures, so in the scripted demo they are parsed and not interpreted, like any other unregistered document.
 
 ## L. Recommendation
 
-**Conditionally ready to merge.**
+**Ready to merge; merged.** Written as *conditionally ready* before the push, the condition being a green CI run. It was pushed as `272ed34` and CI passed.
 
 For: every gate passes locally on three Node versions from a clean copy; the existing 114 tests and 17 browser checks still pass unchanged in meaning; financial controls were run again on PDFs and hold; nothing is claimed that was not observed.
 
-The conditions: the work is uncommitted, so CI on Linux has not run on it, and the parser is new to that environment; and the submission deadline is today, so a red CI run after a push would need time to fix. Merge if CI is green after the push. If it is not, the release of 26 November (`6cd4727`) is intact and can stay as the submission.
+What remains open is not about merging: no PDF has been run through live models, and only single-column synthetic invoices were tested.

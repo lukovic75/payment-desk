@@ -82,7 +82,7 @@ It is evidence that the workflow ran with live models once. It is not verificati
 - **Trusted records are synthetic fixtures.** A contradiction about an amount is settled by a vendor confirmation and a changed account by a callback record. The desk matches a reference to a record for the right vendor, invoice or account, currency and amount; it does not contact anyone. Without a record, a person can still approve a contradiction on a written statement, recorded as *accepted by a reviewer, not verified*.
 - **Local only.** The server listens on 127.0.0.1, refuses requests from other sites and foreign hostnames, and has no sign-in. Hosting it publicly is out of scope.
 - **Browser checks are a smoke suite**, run with `npm run test:browser`, not part of `npm test` or of CI.
-- **CI** passed on commit `4c5b2ba` (Node 20 and 22, Linux): install, types, tests, build, Stress Lab. Its first run failed at `npm ci` and found a lockfile that npm 10 rejected, which is fixed. They need Node 22 or newer and a local Chrome or Chromium.
+- **CI** passed on commit `272ed34`, which includes PDF intake (Node 20 and 22, Linux): install, types, tests, build, Stress Lab. Its first run failed at `npm ci` and found a lockfile that npm 10 rejected, which is fixed. They need Node 22 or newer and a local Chrome or Chromium.
 - **PDF: text layer only, no OCR.** Reading order is top to bottom; a multi-column layout can be read interleaved. The marker covers a line, where the parser measured one. Interpreting a PDF that is not a registered fixture needs live models and is unverified.
 - No sign-in; one JSON state file; drafts are JSON, not ISO 20022.
 
