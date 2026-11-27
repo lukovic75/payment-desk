@@ -68,6 +68,18 @@ Yes: `npm ci && npm run demo`. That is the real Mozaik runtime, loops, tools, ev
 **Has this version run with a real model?**
 Yes, with a local one. On 27 November `gemma2:9b` ran the four showcase scenarios on this version, on the same laptop, through Ollama, with no cloud provider. The clean invoice was approved and the changed account was blocked; there the Policy agent recommended only "needs approval" and the controls kept it blocked. The other two scenarios ended as processing errors, with nothing approved: the small model's Investigator returned an invalid result twice, and its Auditor did not report the second amount (the control in code did). The run is stored and replays in the app. Hosted models have not been run on this version.
 
+**What does "500 of 556 values verified" mean, and what about the other 56?**
+The integrity verifier re-reads every value against its source. 115 of the 556 are critical: a decision rests on them. All 115 are verified. The 56 that a program cannot check are 30 dates, 20 sentences written by agents and 6 quoted passages; none is critical, and none is counted as verified. No approval rests on a value that could not be checked.
+
+**A quote can contain a number that is the wrong field. Does the code catch that?**
+Not always, and the fault-injection test shows the exact case: a line item quoted correctly and reported as the total passed every code control. It was stopped because the Auditor read the document independently and reported another amount. That is the reason for the second reading. If both readers made the same mistake on the same line, nothing here would catch it; the limits and a person on larger amounts are what is left.
+
+**Does the blocked amount mean money saved?**
+No. It is the sum of payments that are blocked right now, per currency. Some are duplicates of invoices already paid. Nothing measures prevented loss or time saved.
+
+**Has the fix for the local-model failure been tested on a real model?**
+No. The stored run failed because the adapter removed list limits from the schema the model server enforces. The fix is tested against a stand-in server. The laptop cannot run the model again before the demonstration.
+
 **Has it run with hosted models?**
 An earlier version did, on 26 November 2026: 67 agent loops on 16 documents, 12 decided before the credit ran out. The five showcase documents of that run are replayable in the app (three decided). **The current version has not run with hosted models**; the last attempt, 26 November 23:56 CET, was refused for lack of credit. It has run with a local model, as described above.
 

@@ -144,6 +144,16 @@ export function operationalSummary(cases: PaymentCase[]) {
 		return Object.entries(sums).sort().map(([currency, minor]) => ({ currency, minor, formatted: formatMinor(minor, currency), payments: list.filter((c) => c.exposure?.currency === currency).length }))
 	}
 	const values = cases.flatMap((c) => c.integrity?.values ?? [])
+	const critical = values.filter((v) => v.critical)
+	// What cannot be checked mechanically, by what it is: a date or a name has no value a program can compare, a narrative is an agent's sentence.
+	const kinds = (list: typeof values) => {
+		const out: Record<string, number> = {}
+		for (const v of list) {
+			const k = /date/i.test(v.subject) ? "dates (the quoted line is there; the date format is not compared)" : /^(Investigator|Validator):/.test(v.subject) ? "agent statements (the cited evidence exists; the sentence is not a value)" : "quoted passages (the text is in the document; it is not a value)"
+			out[k] = (out[k] ?? 0) + 1
+		}
+		return out
+	}
 	const challenges = cases.flatMap((c) => c.challenges ?? [])
 	const settled = challenges.filter((k) => ["matched_to_record", "accepted_by_reviewer"].includes(k.status))
 	const controls = cases.flatMap((c) => c.controls).filter((k) => k.status !== "na")
@@ -154,7 +164,7 @@ export function operationalSummary(cases: PaymentCase[]) {
 			documents: "Documents on the desk, one case each. A document processed again is still one document.",
 			obligations: "Distinct supplier and invoice number pairs among the documents read as payment requests. Two documents for the same invoice count once.",
 			restricted: "Amounts of payments that are blocked or waiting for a person right now, per currency. Not a prevented loss.",
-			evidence: "Values the integrity verifier re-read against their source. 'Verified' means the reference resolves and the source contains the value; values that cannot be checked mechanically (names, dates) are counted apart.",
+			evidence: "Values the integrity verifier re-read against their source. 'Verified' means the reference resolves and the source contains the value; what cannot be checked mechanically (dates, agent statements, quoted passages) is counted apart and never counted as verified. Critical values are those a payment decision rests on; they are reported separately.",
 		},
 		documents: cases.length,
 		obligations: obligations.size,
@@ -171,9 +181,16 @@ export function operationalSummary(cases: PaymentCase[]) {
 			inProgress: by("PROCESSING").length,
 		},
 		controls: { evaluated: controls.length, passed: controls.filter((k) => k.status === "pass").length, notPassed: controls.filter((k) => k.status !== "pass").length },
-		evidence: { valuesChecked: values.length, verified: values.filter((v) => v.present && v.correct === true).length, notMechanicallyCheckable: values.filter((v) => v.present && v.correct === null).length, failed: values.filter((v) => !v.present || v.correct === false).length },
+		evidence: {
+			valuesChecked: values.length, verified: values.filter((v) => v.present && v.correct === true).length, notMechanicallyCheckable: values.filter((v) => v.present && v.correct === null).length, failed: values.filter((v) => !v.present || v.correct === false).length,
+			// The values a payment decision rests on (creditor, amount, currency, account, exposure, draft, trusted records and calculations), counted apart:
+			// the overall figure must not hide one missing critical value, and a narrative that cannot be checked must not look like one.
+			critical: { checked: critical.length, verified: critical.filter((v) => v.present && v.correct === true).length, notMechanicallyCheckable: critical.filter((v) => v.present && v.correct === null).length, failed: critical.filter((v) => !v.present || v.correct === false).length },
+			notCheckableByKind: kinds(values.filter((v) => v.present && v.correct === null)),
+		},
 		challenges: { raised: challenges.length, settled: settled.length, open: challenges.length - settled.length, byAuditor: challenges.filter((k) => k.raisedBy === "Auditor").length, byValidator: challenges.filter((k) => k.raisedBy === "Validator").length, byCode: challenges.filter((k) => k.raisedBy === "Firewall").length },
-		restricted: { blocked: perCurrency(blocked), waitingForPerson: perCurrency(held) },
+		// Part of what is blocked is a second copy of an invoice that is already paid or already on the desk. That part is named, so the blocked total is not read as new money at risk.
+		restricted: { blocked: perCurrency(blocked), blockedAsDuplicates: perCurrency(blocked.filter((c) => c.controls.some((k) => k.id === "duplicate" && k.status === "fail"))), waitingForPerson: perCurrency(held) },
 		approved: perCurrency([...by("AUTO_APPROVED"), ...by("APPROVED_BY_HUMAN")]),
 		sandboxDrafts: cases.filter((c) => c.draft).length,
 	}

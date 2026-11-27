@@ -289,7 +289,7 @@ function Stage({ step, index, total, c, mode, snapshot, canAct, busy, running, o
 						{c && !live && <ReplayControls r={replay} title={copy.short} />}
 					</LivingWorkspace>
 				)
-				const note = c && !live && replay.at != null && replay.span && replay.span.ms < 1500 ? <p className="fine">Replay of this run from its recorded timestamps. The run itself took {duration(replay.span.ms)}; the outcome was decided then, not now.</p> : null
+				const note = c && !live && replay.at != null && replay.span && replay.span.ms < 1500 ? <p className="fine">Replay of the recorded run ({duration(replay.span.ms)}).</p> : null
 				if (c && !live) return <Result step={step} c={c} mode={mode} snapshot={snapshot} onRetry={onRun} canAct={canAct && busy == null && !running} stage={stage} note={note} next={nextAction} />
 				return (
 					<div className="sc-live">

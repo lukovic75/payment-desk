@@ -47,7 +47,7 @@ export function PaymentRow({ c, view, current }: { c: PaymentCase; view: View; c
 				<span className="amt">{c.exposure ? <Money value={c.exposure.minor} ccy={c.exposure.currency} /> : <span className="muted">no amount</span>}</span>
 				{/* one signal per row: the exception that matters most while a person is needed, the status otherwise */}
 				{top && needsPerson(c)
-					? <span className={`why ${isBlocking(top) ? "tone-bad" : "tone-warn"}`} title={`${c.stage === "blocked" ? "Blocked" : "Needs approval"}. ${flags.map((k) => `${controlShort(k)}: ${k.detail}`).join(" ")}`}>{isBlocking(top) ? <XCircle size={12} weight="fill" /> : <Warning size={12} weight="fill" />}{controlShort(top)}{flags.length > 1 && <span className="more">+{flags.length - 1}</span>}<span className="sr-only">, {c.stage === "blocked" ? "blocked" : "needs approval"}</span></span>
+					? <span className={`why ${isBlocking(top) ? "tone-bad" : "tone-warn"}`} title={`${c.stage === "blocked" ? "Blocked" : "Needs approval"}. ${flags.map((k) => `${controlShort(k)}: ${k.detail}`).join(" ")}`}>{isBlocking(top) ? <XCircle size={12} weight="fill" /> : <Warning size={12} weight="fill" />}{controlShort(top)}<span className="sr-only">, {c.stage === "blocked" ? "blocked" : "needs approval"}</span></span>
 					: <StageStatus stage={c.stage} />}
 			</span>
 		</a>

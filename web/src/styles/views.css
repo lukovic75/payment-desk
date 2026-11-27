@@ -904,3 +904,7 @@ dialog.sheet.intake { width: min(var(--sheet-w-wide), calc(100vw - 32px)); max-h
 .report-actions { display: flex; gap: var(--sp-2); }
 .ops .ops-kv { padding: var(--sp-3) 0 var(--sp-2); }
 .ops .fine { max-width: 110ch; }
+
+/* a reason and the lines it rests on, on one line */
+.reason-line { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-1) var(--sp-2); }
+.reason.more .fine { color: var(--ink-3); }

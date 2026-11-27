@@ -70,7 +70,6 @@ export function ControlTags({ list, max = 1 }: { list: Control[]; max?: number }
 	return (
 		<>
 			{list.slice(0, max).map((k) => <ControlTag key={k.id} k={k} />)}
-			{list.length > max && <span className="more" title={list.slice(max).map(controlShort).join(", ")}>+{list.length - max}</span>}
 		</>
 	)
 }

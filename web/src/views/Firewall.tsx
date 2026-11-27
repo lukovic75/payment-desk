@@ -72,8 +72,8 @@ export function Firewall({ snapshot, id }: { snapshot: DeskSnapshot; id: string 
 
 function nextAction(c: PaymentCase): string {
 	if (c.stage === "blocked") return c.controls.find((k) => k.id === "beneficiary")?.status === "fail"
-		? "Call the vendor on a number you already trust and record the callback reference, or reject the payment. It cannot be approved as it stands."
-		: "Reject it, ask the vendor to verify, or run it again once the document is corrected. It cannot be approved as it stands."
+		? "Next step: call the vendor on a number you already trust and record the callback reference, or reject it."
+		: "Next step: reject it, or run it again once the document is corrected."
 	if (c.stage === "awaiting_approval") return "Look at the evidence, then approve or reject."
 	if (c.stage === "error") return "An agent failed on this document. Run it again."
 	if (isRunning(c)) return "The agents are still working on this document."
@@ -130,8 +130,9 @@ function Investigation({ c, snapshot }: { c: PaymentCase; snapshot: DeskSnapshot
 
 				<div className="d-body">
 					<section className="block">
-						<p className="fw-ex">{top ? `${controlShort(top)}. ${top.detail}` : "No control is flagging this payment."}</p>
-						<p>{nextAction(c)}</p>
+						<p className="fw-ex">{top ? `${controlShort(top)}.` : "No control is flagging this payment."}</p>
+						{top && <p>{top.detail}</p>}
+						<p className="next-step">{nextAction(c)}</p>
 					</section>
 
 					{flags.length > 0 && (

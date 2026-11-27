@@ -296,7 +296,7 @@ export function PaymentDetail({ c, snapshot, view, onDecided }: Props) {
 								{c.decision.result && (
 									<section className="block" aria-label="How the decision was made">
 										<div className="block-h"><h3>Decision</h3></div>
-										<p className="say">{c.controls.length} checks completed{flags.length ? `, ${flags.length} need${flags.length === 1 ? "s" : ""} review` : ", all passed or not applicable"}. In force: <b style={{ color: "var(--ink)" }}>{dispositionLabel(outcomeOf(c)).toLowerCase()}</b>, the stricter of what the Policy agent recommended and what the controls allow.</p>
+										<p className="say">{c.controls.length} checks{flags.length ? `, ${flags.length} need${flags.length === 1 ? "s" : ""} review` : ", all passed or not applicable"}. In force: <b style={{ color: "var(--ink)" }}>{dispositionLabel(outcomeOf(c)).toLowerCase()}</b>.</p>
 										<details className="fold">
 											<summary><CaretRight size={12} weight="bold" className="caret" /> How it was decided</summary>
 											<div className="chain" style={{ paddingTop: "var(--sp-2)" }}>
@@ -319,7 +319,7 @@ export function PaymentDetail({ c, snapshot, view, onDecided }: Props) {
 										</details>
 										<button type="button" className="btn btn-link" style={{ justifySelf: "start", marginLeft: -6 }} onClick={() => setTab("verification")}>See all {c.controls.length} checks <ArrowRight size={12} className="nudge" /></button>
 										<div className="report-row" data-report>
-											<span className="fine"><b>Decision report.</b> Everything behind this decision in one record: source facts, agent findings, controls, trusted records, enforcement, review history and what is still open. Assembled by code from this case; no model writes it.</span>
+											<span className="fine"><b>Decision report.</b> Everything behind this decision in one record.</span>
 											<span className="report-actions">
 												<a className="btn btn-sm" href={reportUrl(c.id)} target="_blank" rel="noreferrer"><FileText size={13} /> Open</a>
 												<a className="btn btn-sm" href={reportUrl(c.id, true)} download={`decision-report-${c.id}.json`}><DownloadSimple size={13} /> JSON</a>
@@ -626,21 +626,27 @@ export function Verdict({ c, snapshot, onDecided, chip }: VerdictProps) {
 			{rest}
 		</section>
 	)
-	// Each reason in one sentence, then the values it rests on, each one a reference to its source.
-	const reasons = flags.length > 0 && (
+	// Each reason in one sentence with the lines it rests on beside it. What decides the payment comes first and alone:
+	// on a blocked payment only the blocking reasons are listed, and a reason that rests on the same lines as one already
+	// shown is not repeated. Everything else is one step away, under Verification.
+	const seen = new Set<string>()
+	const shown = (flags.some(isBlocking) ? flags.filter(isBlocking) : flags).flatMap((k) => {
+		const facts = k.refs.map((r) => c.ledger[r]).filter((e) => e?.doc?.lineStart != null)
+		const lines = [...new Set(facts.map((e) => e!.doc!.lineStart!))].sort((a, b) => a - b)
+		const key = lines.join(",")
+		if (key && seen.has(key)) return []
+		if (key) seen.add(key)
+		return [{ k, facts: lines.slice(0, 2).map((n) => facts.find((e) => e!.doc!.lineStart === n)!) }]
+	})
+	const reasons = shown.length > 0 && (
 		<ul className="reasons">
-			{flags.map((k) => {
-				const facts = k.refs.map((r) => c.ledger[r]).filter((e) => e?.doc?.normalized != null).slice(0, 3)
-				return (
-					<li key={k.id} className={`reason${isBlocking(k) ? " block-it" : ""}`} title={k.detail}>
-						{isBlocking(k) ? <XCircle size={14} weight="fill" /> : <Warning size={14} weight="fill" />}
-						<span>
-							<b>{issueLine(k)}</b>
-							{facts.length > 0 && <span className="facts-inline">{facts.map((e) => <span key={e!.id}>{e!.label.replace(/ as read by the (Extractor|Auditor)/, "")}: <b className="mono">{e!.doc!.normalized}</b> {chip?.(e!.id)}</span>)}</span>}
-						</span>
-					</li>
-				)
-			})}
+			{shown.map(({ k, facts }) => (
+				<li key={k.id} className={`reason${isBlocking(k) ? " block-it" : ""}`} title={k.detail}>
+					{isBlocking(k) ? <XCircle size={14} weight="fill" /> : <Warning size={14} weight="fill" />}
+					<span className="reason-line"><b>{issueLine(k)}</b>{facts.map((e) => <span key={e!.id}>{chip?.(e!.id)}</span>)}</span>
+				</li>
+			))}
+			{flags.length > shown.length && <li className="reason more"><span /><span className="fine">{flags.length - shown.length} more under Verification</span></li>}
 		</ul>
 	)
 	const last = [...c.review].reverse().find((r) => r.outcome === "applied" && (r.action === "approve" || r.action === "reject"))
@@ -664,13 +670,13 @@ export function Verdict({ c, snapshot, onDecided, chip }: VerdictProps) {
 			: failing("amount_confirmation") ? "Next step: reject it and ask the vendor for a corrected invoice. The confirmation on record states another amount."
 			: "Next step: reject it and ask the vendor for a corrected document."
 		return shell("bad", <ShieldWarning size={20} weight="fill" />, "Blocked",
-			<>It cannot be approved as it stands. <span className="next-step">{next}</span></>,
+			<span className="next-step">{next}</span>,
 			<>{reasons}<div className="verdict-act"><Actions c={c} snapshot={snapshot} onDecided={onDecided} /></div></>)
 	}
 	if (c.stage === "awaiting_approval") {
 		const open = openDiscrepancies(c).length > 0
 		const settled = c.controls.find((k) => k.settledBy)?.settledBy
-		return shell("warn", <Hourglass size={20} weight="fill" />, open ? "This payment needs verification" : "Needs your approval", open ? <>Something on it does not agree. <span className="next-step">{openDiscrepancies(c).some((k) => k.id === "stated_amounts") ? "Next step: attach a vendor confirmation for the amount, or reject it." : "Next step: check the reasons below, then state how it was resolved, or reject it."}</span></> : settled ? <>The document states two amounts. A vendor confirmation on record {chip?.(settled)} states which one is payable, and it is the amount this payment would pay. A person still approves.</> : <>Nothing is wrong with it. The policy asks for a person at this amount. <span className="next-step">Next step: approve or reject.</span></>,
+		return shell("warn", <Hourglass size={20} weight="fill" />, open ? "This payment needs verification" : "Needs your approval", open ? <><span className="next-step">{openDiscrepancies(c).some((k) => k.id === "stated_amounts") ? "Next step: attach a vendor confirmation for the amount, or reject it." : "Next step: check the reasons below, then state how it was resolved, or reject it."}</span></> : settled ? <>The document states two amounts. A vendor confirmation on record {chip?.(settled)} states which one is payable, and it is the amount this payment would pay. A person still approves.</> : <>The policy asks for a person at this amount. <span className="next-step">Next step: approve or reject.</span></>,
 			<>{reasons}<div className="verdict-act"><Actions c={c} snapshot={snapshot} onDecided={onDecided} /></div></>)
 	}
 	if (c.stage === "approved") {
@@ -722,7 +728,7 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 						<input className="input mono" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} placeholder="VC-…" autoComplete="off" spellCheck={false} maxLength={80} />
 					</label>
 					{btn("verify_amount", "Verify payable amount", "", <SealCheck size={14} />, confirmation.trim() === "")}
-					<p className="fine">The only way to release this payment: a verified confirmation on record for this vendor, this invoice and this currency. A written statement or a line of this document cannot say which of its two amounts is owed. If the confirmation states another amount than this payment would pay, the payment is blocked. Without one, reject it and ask the vendor for a corrected invoice. The desk matches the record; it does not contact the vendor.</p>
+					<p className="fine">The only way to release this payment: a verified vendor confirmation for this invoice. A written statement cannot say which of the two amounts is owed.</p>
 				</div>
 			)}
 			{pickable.map((ch) => (
@@ -734,12 +740,12 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 							<b className="mono">{s.value}</b><span className="fine">{s.by}</span>
 						</label>
 					))}
-					<p className="fine">Code re-reads the line you cite. If it is not the amount this payment would pay, the approval is refused. Citing a line shows that the value is in the document; it does not settle which value is owed, so your written statement is still required.</p>
+					<p className="fine">Code re-reads the line you cite. Your written statement is still required.</p>
 				</fieldset>
 			))}
 			{c.stage !== "error" && (
 				<label className="label">
-					{amountDisputed ? "Note for the audit trail (optional; it does not release the payment)" : open ? "How was it resolved? Required to approve. Recorded as your statement, not as evidence" : "Note for the audit trail (optional)"}
+					{amountDisputed ? "Note (optional; it does not release the payment)" : open ? "How was it resolved? Required to approve" : "Note (optional)"}
 					<textarea className="textarea" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={c.stage === "blocked" ? "e.g. sent back to the vendor for a corrected invoice" : open ? "e.g. vendor confirmed by phone that the invoice total is the amount due" : "e.g. within the Q4 budget, confirmed with the cost-centre owner"} />
 				</label>
 			)}
@@ -750,7 +756,7 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 						<input className="input mono" value={callback} onChange={(e) => setCallback(e.target.value)} placeholder="CB-…" autoComplete="off" spellCheck={false} />
 					</label>
 					{btn("verify_beneficiary", "Verify beneficiary change", "", <PhoneCall size={14} />, callback.trim() === "")}
-					<p className="fine">The only way past this block: a callback record against this vendor and this exact IBAN. The desk matches the reference to the record; it does not place the call. The vendor master is never changed from here.</p>
+					<p className="fine">The only way past this block: a callback record for this vendor and this exact IBAN.</p>
 				</div>
 			)}
 			{err && <div className="errbox" role="alert">{err}</div>}
@@ -762,7 +768,7 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 				{!open && (c.stage === "awaiting_approval" || c.stage === "blocked") && btn("request_verification", c.verificationRequested ? "Verification requested" : "Request verification", "", <PhoneCall size={14} />, c.verificationRequested)}
 				{(c.stage === "blocked" || c.stage === "error") && c.extraction.status !== "skipped" && btn("reprocess", "Run again", c.stage === "error" ? "btn-primary" : "", <ArrowsClockwise size={14} />)}
 				{(c.stage === "awaiting_approval" || c.stage === "blocked") && btn("reject", "Reject", "btn-danger", <XCircle size={14} weight="bold" />)}
-				<span className="hint">{open && c.verificationRequested ? "Verification requested. " : ""}{c.stage === "blocked" ? "A blocked payment cannot be approved. " : c.stage === "awaiting_approval" ? "Approving creates a sandbox draft. Nothing is sent. " : ""}Acting as {snapshot.reviewer}.</span>
+				<span className="hint">{open && c.verificationRequested ? "Verification requested. " : ""}{c.stage === "blocked" ? "A blocked payment cannot be approved." : c.stage === "awaiting_approval" ? "Sandbox: approving sends nothing." : ""}</span>
 			</div>
 		</>
 	)
