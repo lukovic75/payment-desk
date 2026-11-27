@@ -33,7 +33,7 @@ npm run demo             # builds the UI, serves it on http://localhost:8799
 | Check | Result |
 |---|---|
 | `npm run typecheck` | pass |
-| `npm test` | 165 of 165, thirteen files, about a minute (the PDF tests parse real files) |
+| `npm test` | 166 of 166, thirteen files, about a minute (the PDF tests parse real files) |
 | `npm run lab` | 12 of 12 scenarios |
 | `npm run build` | pass |
 | `npm run test:browser` | 32 of 32: the agent inspector's model label, the two-amount rule in the workspace, PDF evidence on its page with the line marked, document intake (sample parsed, previewed, processed on request; refusals; an unregistered document; a duplicate), and startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |

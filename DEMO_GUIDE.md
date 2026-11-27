@@ -68,7 +68,7 @@ In scripted mode a run takes about a quarter of a second, so it is played back o
 ## Other checks
 
 ```bash
-npm test                 # 165 tests on the real Mozaik runtime with a scripted model
+npm test                 # 166 tests on the real Mozaik runtime with a scripted model
 npm run lab              # 12 stress scenarios, deterministic path
 npm run test:browser     # 32 browser checks of the showcase and PDF intake (after npm run build; needs Node 22+ and a Chrome or Chromium)
 ```

@@ -164,6 +164,24 @@ const TOTAL_LABEL = /\b(total|gesamtbetrag|rechnungsbetrag|gesamtsumme|endbetrag
 const NOT_THE_TOTAL = /\b(sub-?total|zwischensumme|total ht|hors taxe|net|netto|vat|tva|mwst|ust|iva|pdv|btw|qty|unit|tax)\b/i
 export const statesAnAmountToPay = (line: string) => PAY_PHRASE.test(line) || (TOTAL_LABEL.test(line) && !NOT_THE_TOTAL.test(line))
 
+/**
+ * The net amount and the tax amount as the document itself labels them, when each is stated on exactly one line with
+ * exactly one amount. Used only when a reader did not report them: the arithmetic rule (net + tax = gross) must not
+ * depend on whether an agent chose to fill in two optional fields. Seen from a real model on 27 November: an invoice
+ * stating net 1,500.00, VAT 300.00 and total 1,900.00 was read without net and tax, in both the one-agent and the
+ * five-agent configuration, and the arithmetic control had nothing to add up. Anything ambiguous returns null.
+ */
+const NET_LABEL = /\b(net|netto|sub-?total|zwischensumme|total ht|hors taxe|base imponible|osnovica)\b/i
+const NET_IS_THE_AMOUNT_TO_PAY = /net [àa] payer|netto zu zahlen/i
+const TAX_LABEL = /\b(vat|tva|mwst|ust|iva|pdv|btw|käibemaks|tax)\b/i
+export function statedNetAndTax(text: string): { net: { line: number; text: string; minor: Minor }; tax: { line: number; text: string; minor: Minor } } | null {
+	const lines = text.split("\n").map((t, i) => ({ line: i + 1, text: t.trim(), amounts: strictAmountsIn(t) })).filter((l) => l.amounts.length === 1)
+	const net = lines.filter((l) => NET_LABEL.test(l.text) && !NET_IS_THE_AMOUNT_TO_PAY.test(l.text) && !TAX_LABEL.test(l.text))
+	const tax = lines.filter((l) => TAX_LABEL.test(l.text) && !NET_LABEL.test(l.text) && !statesAnAmountToPay(l.text))
+	if (net.length !== 1 || tax.length !== 1) return null
+	return { net: { line: net[0]!.line, text: net[0]!.text, minor: net[0]!.amounts[0]! }, tax: { line: tax[0]!.line, text: tax[0]!.text, minor: tax[0]!.amounts[0]! } }
+}
+
 // ───────── the controls ─────────
 
 export type Evaluation = {
@@ -302,7 +320,21 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 		const id = calc("C:arithmetic", "Net plus tax against gross", "net + tax, compared with the gross amount on the document", [{ label: "Net", value: formatMinor(x.net), ref: ref("net") }, { label: "Tax", value: formatMinor(x.tax), ref: ref("tax") }, { label: "Gross on the document", value: formatMinor(x.gross), ref: ref("gross") }], `${formatMinor(sum)} computed; difference ${formatMinor(x.gross - sum)}`, x.currency)
 		if (sum === x.gross) add("arithmetic", "Arithmetic", "R8", "pass", "block", `Net ${formatMinor(x.net)} + tax ${formatMinor(x.tax)} = gross ${formatMinor(x.gross)}.`, [id])
 		else add("arithmetic", "Arithmetic", "R8", "fail", "block", `Net ${formatMinor(x.net)} + tax ${formatMinor(x.tax)} is ${formatMinor(sum)}, but the document asks for ${formatMinor(x.gross)}: a difference of ${formatMinor(Math.abs(x.gross - sum), x.currency)}.`, [id])
-	} else add("arithmetic", "Arithmetic", null, "na", "info", "Not applicable: the document states one total and no separate net and tax, so there is nothing to add up.", [ref("gross")])
+	} else {
+		// the reader left net or tax out: the rule does not depend on that, where the document labels both unambiguously
+		const stated = doc && x.gross != null ? statedNetAndTax(doc.text) : null
+		if (stated && doc && x.gross != null) {
+			const line = (kind: "net" | "tax") => {
+				const l = stated[kind], id = `D:${kind}:${l.line}`
+				entries.push({ id, category: "source_document", label: `${kind === "net" ? "Net amount" : "Tax amount"} stated in the document`, by: "Desk", doc: { docId: doc.id, field: kind, lineStart: l.line, lineEnd: l.line, excerpt: l.text, original: formatMinor(l.minor), normalized: formatMinor(l.minor), located: true, supportsValue: true } })
+				return id
+			}
+			const sum = stated.net.minor + stated.tax.minor
+			const id = calc("C:arithmetic", "Net plus tax against gross", "net and tax as the document labels them (read by code: the reading did not report them), added and compared with the gross amount", [{ label: "Net", value: formatMinor(stated.net.minor), ref: line("net") }, { label: "Tax", value: formatMinor(stated.tax.minor), ref: line("tax") }, { label: "Gross on the document", value: formatMinor(x.gross), ref: ref("gross") }], `${formatMinor(sum)} computed; difference ${formatMinor(x.gross - sum)}`, x.currency)
+			if (sum === x.gross) add("arithmetic", "Arithmetic", "R8", "pass", "block", `Net ${formatMinor(stated.net.minor)} (line ${stated.net.line}) + tax ${formatMinor(stated.tax.minor)} (line ${stated.tax.line}) = gross ${formatMinor(x.gross)}. Read by code from the document; the reading did not report net and tax.`, [id])
+			else add("arithmetic", "Arithmetic", "R8", "fail", "block", `Net ${formatMinor(stated.net.minor)} (line ${stated.net.line}) + tax ${formatMinor(stated.tax.minor)} (line ${stated.tax.line}) is ${formatMinor(sum)}, but the document asks for ${formatMinor(x.gross)}: a difference of ${formatMinor(Math.abs(x.gross - sum), x.currency)}. Read by code from the document; the reading did not report net and tax.`, [id])
+		} else add("arithmetic", "Arithmetic", null, "na", "info", "Not applicable: the document states one total and no separate net and tax, so there is nothing to add up.", [ref("gross")])
+	}
 	if (x.lines.length >= 2 && x.lines.every((l) => l.ref && c.ledger[l.ref]?.doc?.supportsValue)) {
 		const target = x.net ?? x.gross
 		const sum = x.lines.reduce((s, l) => s + l.amount, 0)

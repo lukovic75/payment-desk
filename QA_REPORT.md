@@ -114,7 +114,7 @@ Investigated from the stored execution records of the live run of 26 November, 1
 | `api.test.ts`, one test added for PD-17 | | 10 of 10 |
 | `pdf.test.ts` (PDF intake pass, 27 Nov) | parser, limits, refusals, text/PDF equivalence, page evidence, integrity, duplicates, financial controls on PDFs, HTTP, persistence | 16 of 16 |
 | `local.test.ts` (recovery pass, 27 Nov) | local inference over a stand-in server, mode labels, the intake rule | 12 of 12 |
-| **`npm test` total** | | **165 of 165**, about a minute (the PDF tests parse real files) |
+| **`npm test` total** | | **166 of 166**, about a minute (the PDF tests parse real files) |
 | `npm run test:browser` | headless Chrome against the scripted server, in the repository | 32 of 32 |
 | Live Stress Lab, one scenario, 26 Nov 22:58 CET | | **BLOCKED** again (provider credit) |
 | `npm run lab` | 12 scenarios, scripted | 12 of 12, 87 checks |

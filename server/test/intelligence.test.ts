@@ -392,3 +392,34 @@ test("a second reader that files the only amount as net, with no tax stated, has
 	assert.notEqual(outcomeOf(c), "AUTO_APPROVED", "a net amount that is not the amount to pay does not stand in for it")
 	assert.match(c.controls.find((k) => k.id === "agent_agreement")!.detail, /could not find gross amount|differ/)
 })
+
+test("net plus tax is checked from the document's own labelled lines when the readers leave them out", async () => {
+	// What real readers did in the benchmark of 27 November: net 1,500.00, VAT 300.00, total 1,900.00, read without net and tax.
+	const BAD = "INV-BP-2291"
+	const bare = structuredClone(READINGS[BAD]!)
+	delete bare.fields!.net
+	delete bare.fields!.tax
+	desk.resetDesk()
+	desk.setModelRunner(scriptedModel({ readings: { ...READINGS, [BAD]: bare }, audits: { [BAD]: bare } }))
+	desk.addDocument(BAD, DOCS[BAD]!.text, "demo")
+	await desk.whenSettled(30_000)
+	const c = desk.peek(BAD)
+	const k = c.controls.find((x) => x.id === "arithmetic")!
+	assert.equal(k.status, "fail", "the rule does not depend on an agent filling in two optional fields")
+	assert.match(k.detail, /1,500\.00 \(line 16\) \+ tax 300\.00 \(line 17\) is 1,800\.00, but the document asks for 1,900\.00/)
+	assert.equal(outcomeOf(c), "BLOCKED")
+	assert.ok(c.ledger["D:net:16"]?.doc?.excerpt.includes("1,500.00") && c.ledger["D:tax:17"]?.doc?.excerpt.includes("300.00"), "both lines are in the ledger as code read them")
+	assert.equal(c.integrity?.findings.filter((f) => f.critical && /D:(net|tax)/.test(f.ref ?? "")).length, 0, "and they verify against the document")
+	// the same invoice with a total that does add up passes on the same lines, and an invoice with no labelled tax is left alone
+	const fixed = DOCS[BAD]!.text.replace("TOTAL EUR 1,900.00", "TOTAL EUR 1,800.00")
+	const ok = structuredClone(bare)
+	ok.fields!.gross = { value: "1800.00", quote: "TOTAL EUR 1,800.00" }
+	ok.fields!.currency = { value: "EUR", quote: "TOTAL EUR 1,800.00" }
+	desk.resetDesk()
+	desk.setModelRunner(scriptedModel({ readings: { ...READINGS, [BAD]: ok }, audits: { [BAD]: ok } }))
+	desk.addDocument(BAD, fixed, "demo")
+	desk.addDocument(CLEAN, DOCS[CLEAN]!.text, "demo")
+	await desk.whenSettled(30_000)
+	assert.equal(desk.peek(BAD).controls.find((x) => x.id === "arithmetic")!.status, "pass")
+	assert.equal(desk.peek(CLEAN).controls.find((x) => x.id === "arithmetic")!.status, "na", "no tax amount is stated there, so nothing is added up")
+})

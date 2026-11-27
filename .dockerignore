@@ -1,0 +1,15 @@
+node_modules
+web/dist
+dist
+.git
+.github
+.env
+.env.*
+!.env.example
+.desk-state.json*
+.lab-results.json*
+*.log
+.claude
+.DS_Store
+docs/history
+docs/demo

@@ -132,7 +132,7 @@ Run on Node 20.20.2, 22.23.5 and 26.8.2 (macOS, Apple silicon), from a copy that
 |---|---|
 | `npm ci` | installs from the lockfile |
 | `npm run typecheck` | passes |
-| `npm test` | 165 of 165, thirteen files, about a minute |
+| `npm test` | 166 of 166, thirteen files, about a minute |
 | `npm run build` | passes |
 | `npm run lab` | 12 of 12 stress scenarios |
 | `npm run demo` | builds and serves the scripted showcase on http://localhost:8799 |

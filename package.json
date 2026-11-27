@@ -23,7 +23,9 @@
     "fixtures:pdf": "tsx scripts/make-pdf-fixtures.ts",
     "demo:local": "npm run build && DESK_INFERENCE=local DESK_PERSIST=off NODE_ENV=production API_PORT=8798 tsx server/index.ts",
     "heldout": "node scripts/heldout.mjs",
-    "heldout:pdf": "tsx scripts/make-heldout-pdf.ts"
+    "heldout:pdf": "tsx scripts/make-heldout-pdf.ts",
+    "doctor": "node scripts/doctor.mjs",
+    "verify": "npm run typecheck && npm test && npm run build && npm run lab && npm run experiment"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
