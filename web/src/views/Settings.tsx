@@ -48,8 +48,9 @@ export function Settings({ snapshot, health, link, mode, onMode, still, onStill 
 						<div className="panel-body">
 							<dl className="kv">
 								<div><dt>Desk server</dt><dd>{yes(link.state === "live", link.state === "live" ? "event stream open, heartbeat every 10 s" : `${link.state}, attempt ${link.attempts}`)}</dd></div>
-								<div><dt>Model API key</dt><dd>{health ? yes(health.hasModelKey, health.hasModelKey ? "found in the server environment" : "missing: set ANTHROPIC_API_KEY in .env and restart") : yes(null, "unknown while the server is unreachable")}</dd></div>
+								<div><dt>Model API key</dt><dd>{health ? yes(health.hasModelKey, health.hasModelKey ? (snapshot.inference?.kind === "local" ? "not needed: inference is local" : snapshot.inference?.kind === "scripted" ? "not needed: scripted demo" : "found in the server environment") : "missing: set ANTHROPIC_API_KEY in .env and restart") : yes(null, "unknown while the server is unreachable")}</dd></div>
 								<div><dt>Models</dt><dd className="mono">{snapshot.models.fast} · {snapshot.models.careful}</dd></div>
+								<div><dt>Inference</dt><dd>{snapshot.inference?.kind === "local" ? <>on this machine, {snapshot.inference.provider} at <span className="mono">{snapshot.inference.endpoint}</span>; no cloud provider is called</> : snapshot.inference?.kind === "scripted" ? "predefined responses; no model is called" : <>cloud provider ({snapshot.inference?.provider ?? "unknown"})</>}</dd></div>
 								<div><dt>Mozaik runtime</dt><dd>{yes(link.state === "live" ? snapshot.runtime.participants > 0 : null, `${snapshot.runtime.participants} participants joined, in-process`)}</dd></div>
 								<div><dt>Mozaik Cloud trace</dt><dd>{yes(snapshot.cloudEnabled, snapshot.cloudEnabled ? "this machine is paired; loops are visible at app.jigjoy.ai" : "not paired (optional): npx @mozaik-ai/cloud-sdk pair")}</dd></div>
 								<div><dt>Case state</dt><dd>{yes(snapshot.persisted, snapshot.persisted ? "saved to .desk-state.json; survives a restart" : "in memory only")}</dd></div>

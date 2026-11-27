@@ -68,7 +68,8 @@ test("a verified vendor confirmation for this vendor, invoice and amount settles
 	const before = amounts(c)
 	assert.equal(before.length, 1)
 	assert.equal(before[0]!.status, "requires_human_verification")
-	refused(() => desk.act(DISPUTED, "approve", {}), 422, /State how it was resolved/)
+	refused(() => desk.act(DISPUTED, "approve", {}), 422, /two payable amounts/)
+	refused(() => desk.act(DISPUTED, "approve", { reason: "the vendor told me on the phone which amount is right" }), 422, /two payable amounts/)
 
 	const held = desk.act(DISPUTED, "verify_amount", { confirmationRef: GOOD })
 	assert.equal(held.stage, "awaiting_approval", "the record does not approve anything; a person still does")
@@ -89,7 +90,7 @@ test("a verified vendor confirmation for this vendor, invoice and amount settles
 	assert.equal(outcomeOf(done), "APPROVED_BY_HUMAN")
 	assert.equal(done.draft?.amount.minor, 189000)
 	assert.ok(done.review.at(-1)!.refs.includes(`VC:${GOOD}`), "the approval cites the confirmation it rests on")
-	assert.deepEqual(done.review.map((r) => [r.action, r.outcome]), [["approve", "refused"], ["verify_amount", "applied"], ["approve", "applied"]], "the whole resolution history is kept")
+	assert.deepEqual(done.review.map((r) => [r.action, r.outcome]), [["approve", "refused"], ["approve", "refused"], ["verify_amount", "applied"], ["approve", "applied"]], "the whole resolution history is kept")
 	assert.equal(amounts(done)[0]!.status, "matched_to_record", "approval does not relabel it")
 })
 
@@ -113,11 +114,11 @@ test("what cannot settle it: no reference, an unknown one, another vendor's, an 
 	assert.equal(amounts(c)[0]!.status, "requires_human_verification")
 	assert.equal(c.review.filter((r) => r.action === "verify_amount" && r.outcome === "refused").length, attempts.length, "every refused attempt is on record")
 	assert.ok(c.review.every((r) => (r.reason ?? "").length < 400), "an oversized reference is not copied into the history")
-	refused(() => desk.act(DISPUTED, "approve", {}), 422, /State how it was resolved/)
+	refused(() => desk.act(DISPUTED, "approve", {}), 422, /two payable amounts/)
 	// a line of the invoice itself is still not evidence of which amount is owed
 	const ch = amounts(c)[0]!
 	const paid = [ch.challenged, ch.observed].find((s) => Number(String(c.ledger[s.ref!]!.doc!.normalized).replace(/[^0-9]/g, "")) === c.exposure!.minor)!
-	refused(() => desk.act(DISPUTED, "approve", { resolutions: [{ challengeId: ch.id, chosenRef: paid.ref! }] }), 422, /State how it was resolved/)
+	refused(() => desk.act(DISPUTED, "approve", { resolutions: [{ challengeId: ch.id, chosenRef: paid.ref! }] }), 422, /two payable amounts/)
 })
 
 test("a verified confirmation that states the other amount blocks the payment: it is evidence against it", async () => {
@@ -290,7 +291,7 @@ test("HTTP: the resolution of the showcase's third scenario, start to finish, wi
 	const draft = await (await fetch(`${BASE}/api/cases/${DISPUTED}/draft`)).json()
 	assert.deepEqual([draft.sandbox, draft.amount.formatted], [true, "1,890.00 EUR"])
 	const s = await (await fetch(`${BASE}/api/state`)).json()
-	assert.equal(s.policy.name, "Accounts payable policy v6 (synthetic)")
+	assert.equal(s.policy.name, "Accounts payable policy v7 (synthetic)")
 	const step = s.showcase.steps.find((k: any) => k.key === "challenge")
 	assert.deepEqual([step.result, step.actual], ["confirmed", "NEEDS_APPROVAL"], "the scenario still reports what the workflow decided")
 })

@@ -114,10 +114,13 @@ test("the scenario result is what the workflow decided, not what a person did af
 	fresh()
 	desk.startShowcase()
 	await play("challenge")
-	desk.act("INV-2026-1049", "approve", { reason: "Vendor confirmed in writing that the invoice total is due" })
+	refused(() => desk.act("INV-2026-1049", "approve", { reason: "Vendor confirmed in writing that the invoice total is due" }), 422)
+	desk.act("INV-2026-1049", "verify_amount", { confirmationRef: "VC-2026-1126-01" })
+	desk.act("INV-2026-1049", "approve", {})
+	assert.equal(desk.peek("INV-2026-1049").stage, "approved")
 	assert.deepEqual([step("challenge").result, step("challenge").actual], ["confirmed", "NEEDS_APPROVAL"])
 	const ch = desk.peek("INV-2026-1049").challenges!.find((k) => k.category === "document_contradiction")!
-	assert.equal(ch.status, "accepted_by_reviewer", "an approved contradiction is accepted, not verified")
+	assert.equal(ch.status, "matched_to_record", "released by a record, and shown as that")
 })
 
 test("the demo leaves a person's own documents, decisions and verifications alone", async () => {

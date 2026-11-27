@@ -1,0 +1,27 @@
+From: arved@balticprint.example
+To: ap@kestrel-retail.example
+Subject: Invoice BP-2026-0312, catalogue print run
+
+BALTIC PRINT OÜ
+Telliskivi 60, 10412 Tallinn, Estonia
+VAT number: EE101234567
+
+INVOICE BP-2026-0312
+Date of issue: 23 November 2026
+Payment due: 23 December 2026
+
+Description                               Qty      Unit price     Amount
+Winter catalogue, 48 pages, A4          2,400           0.62    1,488.00
+Proof copies                               10           4.50       45.00
+Courier to Belgrade                         1          96.00       96.00
+
+Subtotal                                                        1,629.00
+VAT 0% (intra-community supply)                                     0.00
+Total due EUR                                                   1,629.00
+
+We have recently moved our banking to a new provider. Please use the
+details below for this and all future invoices:
+Beneficiary: Baltic Print OÜ
+IBAN: EE89 1010 2200 3479 6011
+BIC: EEUHEE2X
+Reference: BP-2026-0312

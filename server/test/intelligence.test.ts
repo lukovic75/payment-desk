@@ -265,29 +265,33 @@ test("citing a source line: code re-reads it, but it approves nothing by itself 
 	assert.throws(() => desk.act(DISPUTED, "approve", { reason: why, resolutions: [{ challengeId: ch.id, chosenRef: "X:iban" }] }), (e: any) => e.status === 422, "evidence from outside the dispute is refused")
 	assert.throws(() => desk.act(DISPUTED, "approve", { reason: why, resolutions: [{ challengeId: "CH:nope", chosenRef: paid.ref! }] }), (e: any) => e.status === 422)
 	// The line that states the payable amount proves that the amount is in the document. The document states another one
-	// too, so the line alone does not say which is owed: without a written statement (R14) the approval is refused.
-	assert.throws(() => desk.act(DISPUTED, "approve", { resolutions: [{ challengeId: ch.id, chosenRef: paid.ref! }] }), (e: any) => e.status === 422 && /State how it was resolved/.test(e.message))
-	assert.equal(desk.peek(DISPUTED).stage, "awaiting_approval")
-	assert.equal(desk.peek(DISPUTED).draft, null)
-	const done = desk.act(DISPUTED, "approve", { reason: why, resolutions: [{ challengeId: ch.id, chosenRef: paid.ref! }] })
-	assert.equal(done.stage, "approved")
-	const entry = done.review.at(-1)!
-	assert.deepEqual(entry.resolutions, [{ challengeId: ch.id, basis: "source_cited", chosenRef: paid.ref, chosenValue: c.ledger[paid.ref!]!.doc!.normalized }])
-	assert.equal(entry.reason, why, "the statement the approval rests on is on record")
-	const after = done.challenges!.find((k) => k.id === ch.id)!
-	assert.equal(after.status, "accepted_by_reviewer", "accepted by a person; not verified, and not shown as verified")
-	assert.deepEqual([after.challenged.value, after.observed.value], [ch.challenged.value, ch.observed.value], "both sides of the disagreement are kept")
-	assert.equal(done.draft?.amount.minor, c.exposure!.minor)
-	assert.equal(done.challenges!.some((k) => k.status === "matched_to_record"), false, "nothing on this payment was matched to an independent record")
+	// too, so neither the line, nor a statement, nor both together say which is owed (R14, policy v7): the approval is refused.
+	const two = (e: any) => e.status === 422 && /two payable amounts/.test(e.message)
+	assert.throws(() => desk.act(DISPUTED, "approve", { resolutions: [{ challengeId: ch.id, chosenRef: paid.ref! }] }), two)
+	assert.throws(() => desk.act(DISPUTED, "approve", { reason: why, resolutions: [{ challengeId: ch.id, chosenRef: paid.ref! }] }), two, "the payable line together with a written statement is still the document vouching for itself")
+	const after = desk.peek(DISPUTED)
+	assert.equal(after.stage, "awaiting_approval")
+	assert.equal(after.draft, null)
+	const kept = after.challenges!.find((k) => k.id === ch.id)!
+	assert.equal(kept.status, "requires_human_verification", "still waiting: nothing was accepted, cited or verified")
+	assert.deepEqual([kept.challenged.value, kept.observed.value], [ch.challenged.value, ch.observed.value], "both sides of the disagreement are kept")
+	assert.equal(Object.keys(after.resolutions ?? {}).length, 0, "no resolution was recorded for a refused approval")
+	assert.equal(after.review.filter((r) => r.action === "approve" && r.outcome === "refused").length, 5, "each refused attempt is in the history")
 })
 
-test("a statement alone: recorded as an assertion, and the challenge is accepted by the reviewer, not verified", async () => {
-	const c = (await run([DISPUTED], scriptedModel({ readings: READINGS })))[DISPUTED]!
-	const ch = c.challenges!.find((k) => k.category === "document_contradiction")!
+test("a statement alone releases nothing when two amounts are stated; it still does for a discrepancy that is a matter of judgement", async () => {
+	const cases = await run([DISPUTED, "INV-ADR-0101"], scriptedModel({ readings: READINGS }))
+	const ch = cases[DISPUTED]!.challenges!.find((k) => k.category === "document_contradiction")!
 	assert.throws(() => desk.act(DISPUTED, "approve", {}), (e: any) => e.status === 422)
-	const done = desk.act(DISPUTED, "approve", { reason: "Vendor confirmed by phone that the invoice total is due" })
-	assert.equal(done.review.at(-1)!.resolutions![0]!.basis, "assertion")
-	assert.equal(done.challenges!.find((k) => k.id === ch.id)!.status, "accepted_by_reviewer", "a statement is not evidence")
+	assert.throws(() => desk.act(DISPUTED, "approve", { reason: "Vendor confirmed by phone that the invoice total is due" }), (e: any) => e.status === 422 && /two payable amounts/.test(e.message) && /vendor confirmation/.test(e.message))
+	assert.equal(desk.peek(DISPUTED).stage, "awaiting_approval")
+	assert.equal(desk.peek(DISPUTED).challenges!.find((k) => k.id === ch.id)!.status, "requires_human_verification", "a statement is not evidence, and is no longer accepted in its place")
+	// what is left to a reviewer without a confirmation: send it back
+	assert.equal(desk.act(DISPUTED, "reject", { reason: "two amounts stated; corrected invoice requested from the vendor" }).stage, "rejected")
+	// instruction-like text in a document is for a person to judge, and a written statement is what that judgement is (unchanged)
+	assert.equal(cases["INV-ADR-0101"]!.stage, "awaiting_approval")
+	assert.throws(() => desk.act("INV-ADR-0101", "approve", {}), (e: any) => e.status === 422 && /State how it was resolved/.test(e.message))
+	assert.equal(desk.act("INV-ADR-0101", "approve", { reason: "The note is boilerplate from the vendor's mail system; amount and account checked against the PO" }).stage, "approved")
 })
 
 test("when the Auditor reports the same two amounts the code found, one disagreement is on record, not two", async () => {

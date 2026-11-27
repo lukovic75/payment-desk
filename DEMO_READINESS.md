@@ -32,10 +32,10 @@ npm run demo             # builds the UI, serves it on http://localhost:8799
 | Check | Result |
 |---|---|
 | `npm run typecheck` | pass |
-| `npm test` | 130 of 130, ten files, about 45 seconds (the PDF tests parse real files); also on Node 20.20.2 and 22.23.5 |
+| `npm test` | 142 of 142, eleven files, about a minute (the PDF tests parse real files); also on Node 20.20.2 and 22.23.5 |
 | `npm run lab` | 12 of 12 scenarios |
 | `npm run build` | pass |
-| `npm run test:browser` | 22 of 22: PDF evidence on its page with the line marked, document intake (sample parsed, previewed, processed on request; refusals; an unregistered document; a duplicate), and startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
+| `npm run test:browser` | 24 of 24: the agent inspector's model label, the two-amount rule in the workspace, PDF evidence on its page with the line marked, document intake (sample parsed, previewed, processed on request; refusals; an unregistered document; a duplicate), and startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
 | Looked at in a browser | Opening, each scenario, both drawers, summary, recorded view and failure state; dark and light; 375, 768, 1024, 1280, 1440 and 1920 px wide with no horizontal overflow; reduced motion |
 
 What the scripted demonstration does not show: anything about a language model. The agents' answers are fixed text.
@@ -79,7 +79,7 @@ It is evidence that the workflow ran with live models once. It is not verificati
 
 - **Live models unverified on this version**, and the benchmark has never completed.
 - **One sandbox workspace.** Scenario payments are demo documents on the desk and count toward the same daily auto-approval budget as anything else there. Starting the demo, or loading the full inbox, replaces the demo documents; documents a person added, their decisions and their callback verifications are kept (tested).
-- **Trusted records are synthetic fixtures.** A contradiction about an amount is settled by a vendor confirmation and a changed account by a callback record. The desk matches a reference to a record for the right vendor, invoice or account, currency and amount; it does not contact anyone. Without a record, a person can still approve a contradiction on a written statement, recorded as *accepted by a reviewer, not verified*.
+- **Trusted records are synthetic fixtures.** A contradiction about an amount is settled by a vendor confirmation and a changed account by a callback record. The desk matches a reference to a record for the right vendor, invoice or account, currency and amount; it does not contact anyone. Without a record, a document that states two payable amounts is not released at all: a written statement is refused (policy v7), and the reviewer rejects it and asks for a corrected invoice.
 - **Local only.** The server listens on 127.0.0.1, refuses requests from other sites and foreign hostnames, and has no sign-in. Hosting it publicly is out of scope.
 - **Browser checks are a smoke suite**, run with `npm run test:browser`, not part of `npm test` or of CI.
 - **CI** passed on commit `272ed34`, which includes PDF intake (Node 20 and 22, Linux): install, types, tests, build, Stress Lab. Its first run failed at `npm ci` and found a lockfile that npm 10 rejected, which is fixed. They need Node 22 or newer and a local Chrome or Chromium.

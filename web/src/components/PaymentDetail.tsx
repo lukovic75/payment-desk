@@ -59,13 +59,13 @@ export function placeOf(src: DocSource | null, e: EvidenceEntry | undefined): { 
 	return { page: first.page, box: last && last.page !== first.page ? null : box }
 }
 
-export function useDocument(id: string, recorded = false): { text: string | null; error: string | null } {
-	const key = `${recorded ? "rec:" : ""}${id}`
+export function useDocument(id: string, recorded = false, hash?: string): { text: string | null; error: string | null } {
+	const key = `${recorded ? `rec:${hash ?? ""}:` : ""}${id}`
 	const [doc, setDoc] = useState<{ key: string; text: string | null; error: string | null }>({ key, text: null, error: null })
 	useEffect(() => {
 		let gone = false
 		let p = docCache.get(key)
-		if (!p) { p = fetchDocument(id, recorded); docCache.set(key, p); p.catch(() => docCache.delete(key)) }
+		if (!p) { p = fetchDocument(id, recorded, hash); docCache.set(key, p); p.catch(() => docCache.delete(key)) }
 		p.then((text) => !gone && setDoc({ key, text, error: null })).catch((e: Error) => !gone && setDoc({ key, text: null, error: e.message }))
 		return () => { gone = true }
 	}, [key])
@@ -158,7 +158,7 @@ function Excerpt({ text, from, to }: { text: string; from: number; to: number })
 /** The contextual inspector for one piece of evidence: the value, where it comes from, the source lines, and whether code verified it. */
 export function EvidenceDrawer({ c, sel, open, onClose, chip, onFullDocument, recorded }: { c: PaymentCase; sel: string | null; open: boolean; onClose: () => void; chip: ChipFn; onFullDocument?: () => void; recorded?: boolean }) {
 	const e = sel ? c.ledger[sel] : undefined
-	const doc = useDocument(c.id, recorded)
+	const doc = useDocument(c.id, recorded, recorded ? c.hash : undefined)
 	const src = useSource(c.id, recorded)
 	const here = e?.doc && e.doc.located && e.doc.docId === c.id
 	const place = here ? placeOf(src, e) : null
@@ -678,12 +678,14 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 	const beneficiary = c.controls.find((k) => k.id === "beneficiary")?.status === "fail"
 	// A discrepancy is resolved, not just approved: the server refuses the approval without a written resolution.
 	const open = c.stage === "awaiting_approval" && openDiscrepancies(c).length > 0
-	// R14: a discrepancy is approved only on a written statement. The reviewer may also cite the line that states the amount
+	// R14: a discrepancy is approved only on a written statement, except two stated payable amounts, which only a vendor
+	// confirmation releases (policy v7). For other fields the reviewer may also cite the line that states the value
 	// to pay; code re-reads it. A cited line shows the value is in the document, not which of two stated values is owed.
 	const [picks, setPicks] = useState<Record<string, string>>({})
 	const waiting = (c.challenges ?? []).filter((ch) => ch.status === "requires_human_verification" || ch.status === "unresolved" || ch.status === "open")
-	const pickable = open ? waiting.filter((ch) => ch.sourceSelectable) : []
-	const amountDisputed = open && waiting.some((ch) => ch.category === "document_contradiction" && /gross|amount|total/i.test(ch.field))
+	const amountDisputed = open && (waiting.some((ch) => ch.category === "document_contradiction" && /gross|amount|total/i.test(ch.field)) || openDiscrepancies(c).some((k) => k.id === "stated_amounts"))
+	// Two payable amounts in one document are settled by a vendor confirmation only (policy v7): no line to cite, no statement to approve on.
+	const pickable = open && !amountDisputed ? waiting.filter((ch) => ch.sourceSelectable) : []
 	const resolved = reason.trim().length >= 10
 	const run = async (action: Action) => {
 		if (busy) return
@@ -707,7 +709,7 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 						<input className="input mono" value={confirmation} onChange={(e) => setConfirmation(e.target.value)} placeholder="VC-…" autoComplete="off" spellCheck={false} maxLength={80} />
 					</label>
 					{btn("verify_amount", "Verify payable amount", "", <SealCheck size={14} />, confirmation.trim() === "")}
-					<p className="fine">Settles the two amounts with evidence that does not come from this document: a verified confirmation on record for this vendor, this invoice and this currency. If it states another amount than this payment would pay, the payment is blocked. The desk matches the record; it does not contact the vendor.</p>
+					<p className="fine">The only way to release this payment: a verified confirmation on record for this vendor, this invoice and this currency. A written statement or a line of this document cannot say which of its two amounts is owed. If the confirmation states another amount than this payment would pay, the payment is blocked. Without one, reject it and ask the vendor for a corrected invoice. The desk matches the record; it does not contact the vendor.</p>
 				</div>
 			)}
 			{pickable.map((ch) => (
@@ -724,7 +726,7 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 			))}
 			{c.stage !== "error" && (
 				<label className="label">
-					{open ? "How was it resolved? Required to approve. Recorded as your statement, not as evidence" : "Note for the audit trail (optional)"}
+					{amountDisputed ? "Note for the audit trail (optional; it does not release the payment)" : open ? "How was it resolved? Required to approve. Recorded as your statement, not as evidence" : "Note for the audit trail (optional)"}
 					<textarea className="textarea" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} placeholder={c.stage === "blocked" ? "e.g. sent back to the vendor for a corrected invoice" : open ? "e.g. vendor confirmed by phone that the invoice total is the amount due" : "e.g. within the Q4 budget, confirmed with the cost-centre owner"} />
 				</label>
 			)}
@@ -741,7 +743,7 @@ export function Actions({ c, snapshot, onDecided }: VerdictProps) {
 			{err && <div className="errbox" role="alert">{err}</div>}
 			<div className="buttons">
 				{open && !c.verificationRequested && btn("request_verification", "Request verification", "btn-primary", <PhoneCall size={14} />)}
-				{c.stage === "awaiting_approval" && (open
+				{c.stage === "awaiting_approval" && (amountDisputed ? null : open
 					? btn("approve", "Resolve and approve", resolved && c.verificationRequested ? "btn-good" : "", <CheckCircle size={14} weight="bold" />, !resolved, resolved ? undefined : "State in writing how the discrepancy was resolved.")
 					: btn("approve", "Approve payment", "btn-good", <CheckCircle size={14} weight="bold" />))}
 				{!open && (c.stage === "awaiting_approval" || c.stage === "blocked") && btn("request_verification", c.verificationRequested ? "Verification requested" : "Request verification", "", <PhoneCall size={14} />, c.verificationRequested)}

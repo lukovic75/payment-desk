@@ -16,8 +16,9 @@ const benchmark = args.includes("--benchmark")
 const only = args.includes("--only") ? (args[args.indexOf("--only") + 1] ?? "").split(",").filter(Boolean) : null
 process.env.DESK_PERSIST = "off"
 if (!live) { process.env.MOZAIK_CREDENTIALS_FILE = "/nonexistent/mozaik-credentials.json"; delete process.env.MOZAIK_API_KEY }
-if (live && !(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)) {
-	console.error("A live run needs a model API key. Copy .env.example to .env and set ANTHROPIC_API_KEY. `npm run lab` without --live needs none.")
+const local = (process.env.DESK_INFERENCE ?? "").toLowerCase() === "local"
+if (live && !local && !(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)) {
+	console.error("A live run needs a model: a provider key (copy .env.example to .env and set ANTHROPIC_API_KEY), or local inference (DESK_INFERENCE=local and LOCAL_MODEL). `npm run lab` without --live needs neither.")
 	process.exit(2)
 }
 
@@ -31,13 +32,13 @@ type Result = Awaited<ReturnType<typeof runScenario>>
 
 const scenarios = LAB_SCENARIOS.filter((s) => (only ? only.includes(s.id) : true) && (benchmark ? s.benchmark : true))
 const mode = live ? "live" : "scripted"
-console.log(`\nFinancial Stress Lab · ${scenarios.length} scenario(s) · ${live ? "LIVE models through Mozaik" : "SCRIPTED model (fixed agent output; tests the workflow and the controls, not a language model)"} · synthetic data, sandbox\n`)
+console.log(`\nFinancial Stress Lab · ${scenarios.length} scenario(s) · ${live ? (local ? `LIVE LOCAL models through Mozaik (${process.env.LOCAL_MODEL ?? "see LOCAL_FAST_MODEL / LOCAL_CAREFUL_MODEL"}, on this machine)` : "LIVE models through Mozaik") : "SCRIPTED model (fixed agent output; tests the workflow and the controls, not a language model)"} · synthetic data, sandbox\n`)
 
 const results: Result[] = []
 for (const config of benchmark ? (["single", "multi"] as const) : (["multi"] as const)) {
 	if (benchmark) console.log(config === "single" ? "Configuration A: single-agent baseline" : "\nConfiguration B: Payment Desk multi-agent workflow")
 	for (const s of scenarios) {
-		const r = await runScenario(s, { mode, config, timeoutMs: live ? 240_000 : 30_000 })
+		const r = await runScenario(s, { mode, config, timeoutMs: live ? (local ? 2_400_000 : 240_000) : 30_000 })
 		results.push(r)
 		const mark = r.status === "pass" ? "PASS " : r.status === "fail" ? "FAIL " : "ERROR"
 		console.log(`${mark} ${s.id} ${s.name.padEnd(46)} ${r.docs.map((d) => `${d.doc}: ${d.final}`).join(", ")}  (${r.loops} loops, peak ${r.peakParallel} in parallel, ${(r.durationMs / 1000).toFixed(1)} s)`)
@@ -71,5 +72,12 @@ if (benchmark) {
 	console.log(`${"".padEnd(54)} ${"single agent".padEnd(16)} multi-agent`)
 	for (const [label, x, y] of rows) console.log(`${label.padEnd(54)} ${x.padEnd(16)} ${y}`)
 	console.log(`\nHow each figure is computed: ${Object.keys(METRIC_NOTES).length} definitions in server/lab/metrics.ts. Model cost is not reported: no reliable price table is bundled.`)
+}
+// --out <file>: the same results as a file, so that a live run can be kept as it happened.
+if (args.includes("--out")) {
+	const { writeFileSync } = await import("node:fs")
+	const { MODELS, inferenceNow } = await import("../desk.js")
+	const brief = (r: Result) => ({ scenario: r.scenarioId, name: scenarios.find((x) => x.id === r.scenarioId)?.name ?? r.scenarioId, config: r.config, models: r.models, status: r.status, error: r.error ?? null, documents: r.docs.map((d) => ({ doc: d.doc, expected: d.expected, recommended: d.recommended ?? null, final: d.final })), failedChecks: r.checks.filter((k) => !k.pass).map((k) => ({ doc: k.doc, label: k.label, expected: k.expected, actual: k.actual })), loops: r.loops, peakParallel: r.peakParallel, durationMs: r.durationMs })
+	writeFileSync(args[args.indexOf("--out") + 1]!, JSON.stringify({ at: new Date().toISOString(), mode, inference: live ? inferenceNow() : { kind: "scripted" }, models: live ? MODELS : null, scenarios: scenarios.map((x) => x.id), results: results.map(brief), metrics: benchmark ? { single: metricsOf(results, "single"), multi: metricsOf(results, "multi") } : null }, null, 2))
 }
 process.exit(results.every((r) => r.status === "pass") ? 0 : 1)

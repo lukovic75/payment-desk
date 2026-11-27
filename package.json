@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "A team of concurrent Mozaik agents that turns supplier invoices into reviewed SEPA payment drafts, with a human approving anything above policy.",
+  "description": "AI investigates, code decides: five Mozaik agents independently verify supplier invoices and deterministic controls decide what may be approved. Sandbox, synthetic data.",
   "scripts": {
     "dev": "concurrently -n server,web -c blue,magenta \"npm:dev:server\" \"npm:dev:web\"",
     "dev:server": "tsx watch server/index.ts",
@@ -19,7 +19,10 @@
     "test": "node --import tsx --test server/test/*.test.ts",
     "dev:scripted": "DESK_SCRIPTED=1 DESK_PERSIST=off MOZAIK_CREDENTIALS_FILE=/nonexistent API_PORT=8799 tsx server/index.ts",
     "test:browser": "node scripts/browser-smoke.mjs",
-    "fixtures:pdf": "tsx scripts/make-pdf-fixtures.ts"
+    "fixtures:pdf": "tsx scripts/make-pdf-fixtures.ts",
+    "demo:local": "npm run build && DESK_INFERENCE=local DESK_PERSIST=off NODE_ENV=production API_PORT=8798 tsx server/index.ts",
+    "heldout": "node scripts/heldout.mjs",
+    "heldout:pdf": "tsx scripts/make-heldout-pdf.ts"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"

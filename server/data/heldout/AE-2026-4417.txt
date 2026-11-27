@@ -1,0 +1,27 @@
+From: rechnung@alpenstrom.example
+To: ap@kestrel-retail.example
+Subject: Rechnung AE-2026-4417 / Stromlieferung November
+
+ALPENSTROM ENERGIE AG
+Bahnhofstrasse 9, 6020 Innsbruck, Austria
+UID: ATU12345678
+
+RECHNUNG / INVOICE
+Rechnungsnummer: AE-2026-4417
+Rechnungsdatum: 24.11.2026
+Zahlbar bis: 15.12.2026
+Kunde: Kestrel Retail d.o.o., Belgrade
+
+Pos  Leistung                                Menge        Preis      Betrag
+1    Energie Tag (kWh)                       6.850      0,1220      835,70
+2    Energie Nacht (kWh)                     3.120      0,0890      277,68
+3    Netzentgelt pauschal                        1      171,22      171,22
+
+Nettobetrag                                                      1.284,60
+USt 0% (Reverse Charge)                                              0,00
+Rechnungsbetrag EUR                                              1.284,60
+
+Bankverbindung: Bank Austria
+IBAN: AT61 1904 3002 3457 3201
+BIC: BKAUATWWXXX
+Verwendungszweck: AE-2026-4417

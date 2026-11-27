@@ -139,7 +139,7 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | U-16 | Server stops and returns under an open page | Says so, pauses actions, reconnects, shows the server's real state | PASS | Browser |
 | U-17 | Horizontal overflow, ten routes, nine widths | None | PASS | Browser |
 | U-18 | Text contrast, seven pages, both appearances | WCAG AA | PASS | Browser, measured from pixels |
-| U-19 | Automated browser suite in the repository | A smoke suite of the showcase and PDF intake | PASS, 22 of 22 | `npm run test:browser` |
+| U-19 | Automated browser suite in the repository | A smoke suite of the showcase and PDF intake | PASS, 24 of 24 | `npm run test:browser` |
 
 ## Interactive showcase
 
@@ -154,7 +154,7 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | S-07 | A person's document already uses a scenario's id | The scenario does not take it over | PASS | `showcase.test.ts` |
 | S-08 | Execution mode | A scripted server says scripted everywhere and never "Live AI"; a live server without a key runs nothing and substitutes nothing | PASS | `showcase.test.ts`, browser |
 | S-09 | Recorded execution | Served as stored; not on the desk; no action possible; no model call; documents served only when they are the recorded ones | PASS | `showcase.test.ts`, browser |
-| S-10 | Citing the line with the payable amount on a contradictory document | Not an approval without a written statement; never shown as verified (was FAIL: PD-14) | PASS | `intelligence.test.ts`, `showcase.test.ts` |
+| S-10 | Citing the line with the payable amount on a contradictory document, with or without a written statement | Refused: two stated amounts are released only by a vendor confirmation (policy v7; was FAIL: PD-14, tightened again as PD-23) | PASS | `intelligence.test.ts`, `showcase.test.ts` |
 | S-11 | Auditor and code find the same two amounts | One cross-check on record (was FAIL: PD-16) | PASS | `intelligence.test.ts` |
 | S-12 | A figure in the showcase | Opens the cited line of the document or the trusted record | PASS | browser |
 | S-13 | Provider refuses every call (injected, labelled) | Banner with the kind and the advice; scenario failed; nothing approved; nothing confirmed | PASS | browser |
@@ -177,3 +177,18 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | R-10 | Later invoice to an account a callback confirmed | Held for a person, not auto-approved, cites the callback | PASS | `resolution.test.ts` |
 | R-11 | Missing currency; currency read two ways | Blocked | PASS | `resolution.test.ts` |
 | R-12 | Request from another site, or under a foreign hostname; server on the network address | 403; not reachable | PASS (was FAIL: PD-17) | `api.test.ts` |
+
+## Local inference and execution-mode labels
+
+| ID | Scenario | Expected | Status | Where |
+|---|---|---|---|---|
+| L-01 | `DESK_INFERENCE=local` with a remote address, no model, or a limit out of range | Refused at start, with the reason | PASS | `local.test.ts` |
+| L-02 | Local server not running, or without the model | The desk stops at startup and says so; nothing takes its place | PASS | `local.test.ts` |
+| L-03 | A clean invoice through the local transport, both tool protocols | Tool results round-trip, reported usage is kept, the same controls decide | PASS | `local.test.ts` (stand-in server) |
+| L-04 | Labels in a local run | Every loop and agent named with the local model; no cloud model name anywhere | PASS | `local.test.ts` |
+| L-05 | Concurrency limit of one and of two | Model requests never exceed it; the Validator and Auditor loops still overlap | PASS | `local.test.ts` |
+| L-06 | Broken arguments, no tool call, a body that is not JSON, no answer at all, a server that goes away | Nothing approved, no draft, no scripted answer substituted, a cloud key in the environment ignored | PASS | `local.test.ts` |
+| L-07 | The scripted server | Agents and loops labelled "scripted fixture"; the showcase names the PDF it runs on (was FAIL: PD-20, PD-21) | PASS | `local.test.ts`, browser |
+| L-08 | An unregistered document on the scripted server, by either intake route | 409 before a case exists (was FAIL: PD-22) | PASS | `local.test.ts` |
+| L-09 | A real local model, the four showcase scenarios | See `README.md`, *Live verification* | see there | stored run in the app |
+| L-10 | A real local model, five held-out invoices | See `README.md`, *Live verification* | see there | `npm run heldout` |

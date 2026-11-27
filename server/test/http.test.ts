@@ -22,7 +22,7 @@ const until = async <T>(fn: () => Promise<T | null | false | undefined>, ms = 30
 const stageOf = (s: any, id: string) => s.cases.find((c: any) => c.id === id)?.stage
 
 before(async () => {
-	server = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], { cwd: ROOT, stdio: "ignore", env: { ...process.env, API_PORT: String(PORT), DESK_SCRIPTED: "1", DESK_PERSIST: "off", LAB_PERSIST: "off", MOZAIK_CREDENTIALS_FILE: "/nonexistent/mozaik-credentials.json", MOZAIK_API_KEY: "" } })
+	server = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], { cwd: ROOT, stdio: "ignore", env: { ...process.env, API_PORT: String(PORT), DESK_SCRIPTED: "1", DESK_SCRIPTED_OPEN_INTAKE: "1", DESK_PERSIST: "off", LAB_PERSIST: "off", MOZAIK_CREDENTIALS_FILE: "/nonexistent/mozaik-credentials.json", MOZAIK_API_KEY: "" } })
 	await until(async () => { try { return (await get("/api/health")).body.ok } catch { return false } })
 })
 after(() => { server?.kill("SIGKILL") })
@@ -57,7 +57,7 @@ test("HTTP: the whole workflow, from intake to a sandbox draft and the audit tra
 	assert.equal(stageOf(s, "INV-2026-1049"), "awaiting_approval")
 	const silent = await post("/api/cases/INV-2026-1049/actions", { action: "approve" })
 	assert.equal(silent.status, 422, "conflicting amounts are not approved without a resolution")
-	assert.match(silent.body.error, /unresolved discrepancy/i)
+	assert.match(silent.body.error, /two payable amounts/i)
 	assert.equal((await post("/api/cases/INV-2026-1049/actions", { action: "approve", reason: "ok" })).status, 422, "a token note is not a resolution")
 	assert.equal(stageOf((await get("/api/state")).body, "INV-2026-1049"), "awaiting_approval")
 	assert.equal((await post("/api/cases/INV-PX-3001/actions", { action: "reject", reason: "vendor not onboarded" })).status, 200)

@@ -52,13 +52,24 @@ A green baseline, and still twelve defects underneath it. None of them was visib
 | PD-18 | P3 | The browser suite could end with a raw stack trace when the headless browser was slow to open its debugging port | One start, one fixed wait | A second start on another port; anything that stops the suite is reported as "not run" with the reason, exit code 2 | nine consecutive runs after the change |
 | PD-19 | P1 | `npm ci` failed with npm 10, the npm that ships with Node 20 and 22: "Missing: @mozaik-ai/core@4.2.0 from lock file". `npm install` worked, and so did `npm ci` with npm 11, which is why every earlier clean-copy check passed | Found by the first GitHub Actions run. `@mozaik-ai/cloud-sdk` (a dependency of `@mozaik-ai/core` 6) declares an optional peer on core 4 or 5; npm 11 leaves it out of the lockfile and npm 10 insists on it | An `overrides` entry points that peer at the project's own `@mozaik-ai/core`, which is what it resolved to at run time anyway; the lockfile was regenerated with npm 10 | `npm ci`, typecheck, 114 tests, build and lab with npm 10.8.2 on Node 20.20.2 and 22.23.5, and `npm ci` plus tests with npm 11.19.1 on Node 26.8.2 |
 
-Resolved: 19 of 19 (one P0, six P1, seven P2, five P3). PD-13 was found in the agent intelligence pass, PD-14 to PD-16 in the showcase pass and PD-17 to PD-19 in the final release pass; see `AGENT_INTELLIGENCE_REPORT.md` and `DEMO_READINESS.md`. For PD-04 the unsafe acceptance was observed (the second call returned 200 and the cases were restarted); damage beyond the restart was not separately demonstrated.
+Resolved: 19 of 19 (one P0, six P1, seven P2, five P3) through the final release pass; PD-20 to PD-23 below were found by the practical jury evaluation of 27 November and are also resolved. PD-13 was found in the agent intelligence pass, PD-14 to PD-16 in the showcase pass and PD-17 to PD-19 in the final release pass; see `AGENT_INTELLIGENCE_REPORT.md` and `DEMO_READINESS.md`. For PD-04 the unsafe acceptance was observed (the second call returned 200 and the cases were restarted); damage beyond the restart was not separately demonstrated.
+
+## Found by the practical jury evaluation, 27 November
+
+| ID | Severity | What was wrong | Fix | Evidence |
+|---|---|---|---|---|
+| PD-20 | P2 | On the scripted server the agent inspector showed the configured model (`claude-sonnet-5-5`) for a loop that had run on the scripted fixture, with "tokens not reported by the provider" | The inspector shows the model its loops were recorded with; the server's agent list no longer names a configured model in scripted mode | `local.test.ts`; browser check |
+| PD-21 | P3 | The *Ready* card of the two-page scenario named `INV-2026-1049.txt` although the scenario runs on the PDF | Each showcase step carries the file name it runs on | `local.test.ts` |
+| PD-22 | P3 | The older request shape of `POST /api/documents` (name and text in one call) skipped the scripted registry: an unregistered document became a case that ended as a processing error, where the documentation said no case is created. No control was bypassed and nothing was approved | Both routes obey the same rule; an unregistered document is refused with 409 before a case exists | `local.test.ts` |
+| PD-23 | P2 | A document stating two payable amounts could be approved on a written statement of ten characters, by a single reviewer with no sign-in. It was labelled *accepted by a reviewer, not verified*, but it was released | Policy v7: only a verified vendor confirmation releases it; a statement or a cited line is refused. Statements still apply to discrepancies that are a matter of judgement | `intelligence.test.ts`, `resolution.test.ts`, `api.test.ts`, browser check |
+| PD-24 | P2 | A model that returned neither text nor a tool call left its agent loop waiting for the loop timeout. Found on the first run with a local model | An empty answer is recorded as an invalid result and the loop closes at once | `local.test.ts` (no tool call, not JSON) |
 
 ## Policy changes made in this pass, stated explicitly
 
 1. **R15 added:** "The amount due must be greater than zero." Effect: blocked.
 2. **R14 clarified:** a disagreement or conflicting statement is approved only with a written statement of how it was resolved. The disposition (needs approval) is unchanged.
 3. The policy file is now `v5`. No control was weakened and no scenario expectation was changed to make a test pass.
+6. **Recovery pass, R14 tightened, policy `v7`:** a document that states two payable amounts is released only by a verified vendor confirmation. A written statement, with or without a cited line, no longer approves it; the reviewer rejects it and asks for a corrected invoice. Five tests that asserted the looser behaviour were rewritten to assert the stricter one. No expected scenario outcome changed.
 5. **Final release pass, R14 extended, policy `v6`:** a conflicting amount can now also be settled by a verified vendor confirmation on record for that vendor, invoice and currency that states the amount to be paid; a confirmation that states another amount blocks the payment. This adds a way to resolve with evidence and a new way to be blocked. It removes nothing: a statement alone is still labelled as not verified, and a person still approves.
 4. **Showcase pass, no change to the policy text:** the implementation now does what R14 says. Citing a source line no longer approves a contradictory document without a written statement (PD-14). Two tests that asserted the looser behaviour were rewritten to assert the stricter one; no expected financial outcome changed.
 
@@ -102,8 +113,9 @@ Investigated from the stored execution records of the live run of 26 November, 1
 | `resolution.test.ts` (final release pass) | vendor confirmation, callback, currency; in process and over HTTP | 12 of 12 |
 | `api.test.ts`, one test added for PD-17 | | 10 of 10 |
 | `pdf.test.ts` (PDF intake pass, 27 Nov) | parser, limits, refusals, text/PDF equivalence, page evidence, integrity, duplicates, financial controls on PDFs, HTTP, persistence | 16 of 16 |
-| **`npm test` total** | | **130 of 130**, about 45 s (the PDF tests parse real files); also on Node 20.20.2 and 22.23.5 |
-| `npm run test:browser` | headless Chrome against the scripted server, in the repository | 22 of 22, three consecutive runs |
+| `local.test.ts` (recovery pass, 27 Nov) | local inference over a stand-in server, mode labels, the intake rule | 12 of 12 |
+| **`npm test` total** | | **142 of 142**, about a minute (the PDF tests parse real files) |
+| `npm run test:browser` | headless Chrome against the scripted server, in the repository | 24 of 24 |
 | Live Stress Lab, one scenario, 26 Nov 22:58 CET | | **BLOCKED** again (provider credit) |
 | `npm run lab` | 12 scenarios, scripted | 12 of 12, 87 checks |
 | Live Stress Lab, one scenario | genuine Mozaik with live models | **BLOCKED** (provider credit) |

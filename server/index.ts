@@ -6,7 +6,7 @@ import { extname, join, normalize, dirname, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as lab from "./lab/manager.js"
 import { randomUUID } from "node:crypto"
-import { DeskError, MODELS, act, addDocument, exportDraft, findSame, flush, getDocumentFile, getDocumentSource, getDocumentText, getRecordedDocumentText, pdfFixtureBytes, pdfFixtures, prepare, recordingView, resetDemo, runDemo, runShowcaseStep, setModelRunner, snapshot, startShowcase, subscribe, type Action } from "./desk.js"
+import { DeskError, LOCAL, MODELS, currentRecordingView, inferenceNow, act, addDocument, exportDraft, findSame, flush, getDocumentFile, getDocumentSource, getDocumentText, getRecordedDocumentText, pdfFixtureBytes, pdfFixtures, prepare, recordingView, resetDemo, runDemo, runShowcaseStep, setModelRunner, snapshot, startShowcase, subscribe, type Action } from "./desk.js"
 import { contentHash, loadDocuments } from "./data.js"
 import type { DocumentSource } from "./domain.js"
 import { DocumentError, LIMITS, parsePdf, sniff } from "./pdf.js"
@@ -44,9 +44,18 @@ if (SCRIPTED) {
 	const failWith = process.env.DESK_SCRIPTED_FAULT === "insufficient_credit" ? '400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the API."}} [injected by DESK_SCRIPTED_FAULT for a test; no provider was called]' : undefined
 	setModelRunner(scriptedModel({ readings: READINGS, policy: "AUTO_APPROVED", latencyMs: Number(process.env.DESK_SCRIPTED_LATENCY_MS ?? 40), ...SHOWCASE_RESPONSES, failWith }), "scripted")
 }
-const hasKey = SCRIPTED || Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)
-/** A live Stress Lab run needs a real key even when this server itself runs on the scripted model. */
-const hasLiveKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)
+// Local inference is checked once, before anything is served: a missing server or model is said here, and nothing stands in for it.
+if (LOCAL && !SCRIPTED) {
+	const { probeLocal } = await import("./local.js")
+	const probe = await probeLocal(LOCAL)
+	if (!probe.ok) { console.error(`Local inference is selected (DESK_INFERENCE=local) and cannot start. ${probe.error}`); process.exit(1) }
+}
+const cloudKey = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY)
+const hasKey = SCRIPTED || LOCAL != null || cloudKey
+/** A live Stress Lab run needs a real model even when this server itself runs on the scripted one: a cloud key, or local inference. */
+const hasLiveKey = LOCAL != null || cloudKey
+/** DESK_SCRIPTED_OPEN_INTAKE=1 lets the scripted server take a document it has no predefined answer for, so that tests can check where such a document ends (as a processing error, never as an approval). Off in the demo. */
+const OPEN_INTAKE = process.env.DESK_SCRIPTED_OPEN_INTAKE === "1"
 const NO_KEY = "No model API key. Copy .env.example to .env and set ANTHROPIC_API_KEY, then restart."
 const ACTIONS: Action[] = ["approve", "reject", "request_verification", "verify_beneficiary", "verify_amount", "reprocess"]
 
@@ -121,7 +130,7 @@ async function inspect(body: any) {
 	return describe(p)
 }
 function describe(p: Pending) {
-	const interpretable = hasKey && (!SCRIPTED || p.fixture != null)
+	const interpretable = hasKey && (!SCRIPTED || OPEN_INTAKE || p.fixture != null)
 	return {
 		token: p.token, fileName: p.fileName, format: p.format, size: p.size, chars: p.text.length, lines: p.text.split("\n").length,
 		pages: p.pdf?.source.pages.length ?? null, fileHash: p.pdf?.source.fileHash ?? null, textHash: p.textHash, parser: p.pdf?.source.parser ?? null, warnings: p.pdf?.source.warnings ?? [],
@@ -159,7 +168,7 @@ const server = createServer(async (req, res) => {
 	const m = req.method
 	try {
 		if (path.startsWith("/api/")) guard(req)
-		if (m === "GET" && path === "/api/health") return json(res, 200, { ok: true, hasModelKey: hasKey, hasLiveKey, mode: SCRIPTED ? "scripted" : "live", models: MODELS, limits: LIMITS })
+		if (m === "GET" && path === "/api/health") return json(res, 200, { ok: true, hasModelKey: hasKey, hasLiveKey, mode: SCRIPTED ? "scripted" : "live", inference: inferenceNow(), models: MODELS, limits: LIMITS })
 		if (m === "GET" && path === "/api/state") return json(res, 200, snapshot())
 		if (m === "GET" && path === "/api/events") {
 			res.writeHead(200, { "content-type": "text/event-stream", "cache-control": "no-store", connection: "keep-alive", "x-accel-buffering": "no" })
@@ -183,10 +192,10 @@ const server = createServer(async (req, res) => {
 			return json(res, 200, runShowcaseStep(typeof body.key === "string" ? body.key : ""))
 		}
 		// A stored execution of an earlier live run. GET only: there is nothing to start, approve or change.
-		if (m === "GET" && path === "/api/recording") return json(res, 200, { recording: recordingView() })
+		if (m === "GET" && path === "/api/recording") return json(res, 200, { recording: recordingView(), current: currentRecordingView() })
 		const recDoc = path.match(/^\/api\/recording\/documents\/([^/]+)$/)
 		if (m === "GET" && recDoc) {
-			const text = getRecordedDocumentText(param(recDoc[1]!))
+			const text = getRecordedDocumentText(param(recDoc[1]!), url.searchParams.get("hash"))
 			if (text == null) throw new DeskError(404, "There is no such document in the recording.")
 			res.writeHead(200, { "content-type": "text/plain; charset=utf-8" })
 			return res.end(text)
@@ -214,13 +223,22 @@ const server = createServer(async (req, res) => {
 			const body = await readBody(req)
 			if (typeof body.token === "string") {
 				const p = taken(body.token)
-				if (SCRIPTED && !p.fixture) throw new DeskError(409, NEEDS_LIVE)
+				if (SCRIPTED && !OPEN_INTAKE && !p.fixture) throw new DeskError(409, NEEDS_LIVE)
 				// On the scripted model a fixture runs under its own id, because that is what its predefined answers belong to.
 				const c = addDocument(p.fixture ?? p.fileName, p.text, "user", undefined, p.pdf ? { fileName: p.fileName, bytes: p.pdf.bytes, source: p.pdf.source } : undefined)
 				pending.delete(p.token)
 				return json(res, 200, c)
 			}
-			return json(res, 200, addDocument(typeof body.name === "string" ? body.name : "", typeof body.text === "string" ? body.text : ""))
+			// The older request shape: name and text in one call. It obeys the same rule as the two-step route. On the scripted
+			// model only a registered document is interpreted, under its own id; anything else is refused before a case exists.
+			const name = typeof body.name === "string" ? body.name : "", text = typeof body.text === "string" ? body.text : ""
+			const wellFormed = text.trim().length >= 20 && text.length <= LIMITS.textChars && !/\u0000/.test(text)
+			if (SCRIPTED && !OPEN_INTAKE && wellFormed) {
+				const fixture = FIXTURES.get(contentHash(text))
+				if (!fixture) throw new DeskError(409, NEEDS_LIVE)
+				return json(res, 200, addDocument(fixture, text))
+			}
+			return json(res, 200, addDocument(name, text))
 		}
 		const original = path.match(/^\/api\/documents\/([^/]+)\/(source|file)$/)
 		if (m === "GET" && original) {
@@ -282,6 +300,6 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => { 
 await prepare()
 server.listen(PORT, HOST, () => {
 	if (!LOOPBACK.has(HOST)) console.log(`Listening on ${HOST}: reachable from the network, with no sign-in. Anyone who can reach it can start runs.`)
-	console.log(`Payment Desk API on http://localhost:${PORT}  (${SCRIPTED ? "scripted model: real orchestration, predefined model responses" : `model key: ${hasKey ? "found" : "MISSING: set ANTHROPIC_API_KEY in .env"}`})`)
+	console.log(`Payment Desk API on http://localhost:${PORT}  (${SCRIPTED ? "scripted model: real orchestration, predefined model responses" : LOCAL ? `local inference: ${[...new Set([LOCAL.fast, LOCAL.careful])].join(", ")} through ${LOCAL.provider} at ${LOCAL.baseURL}; no cloud provider is used` : `model key: ${hasKey ? "found" : "MISSING: set ANTHROPIC_API_KEY in .env"}`})`)
 	if (process.env.NODE_ENV === "production" || SCRIPTED) console.log(existsSync(WEB_DIST) ? `Open http://localhost:${PORT}/#/showcase` : "The UI is not built yet: run `npm run build`, or use `npm run dev`.")
 })

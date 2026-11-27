@@ -36,14 +36,19 @@ import { checkIntegrity } from "./integrity.js"
 import { formatIban, isValidIban, normalizeIban } from "./lib/iban.js"
 import { formatMinor, parseMoney } from "./money.js"
 import { awaitsPerson, classifyProviderError, deriveChallenges, providerBlock } from "./challenges.js"
-import { blankSteps, loadRecording, recordedDocumentText, refreshSteps } from "./showcase.js"
+import { blankSteps, loadCurrentRecording, loadRecording, recordedDocumentText, refreshSteps } from "./showcase.js"
+import { localConfig, localLabel, localRunner, type Inference } from "./local.js"
 
-export const MODELS = {
+/** Set when DESK_INFERENCE=local: the models run on this machine, and no cloud provider or scripted model stands in for them. */
+export const LOCAL = localConfig(process.env)
+export const MODELS = LOCAL ? { fast: LOCAL.fast, careful: LOCAL.careful } : {
 	fast: process.env.FAST_MODEL ?? "claude-haiku-4-5",
 	careful: process.env.CAREFUL_MODEL ?? "claude-sonnet-5-5",
 }
+const providerOf = (model: string) => (/^claude/.test(model) ? "Anthropic" : /^gemini/.test(model) ? "Google" : /^(gpt|o\d)/.test(model) ? "OpenAI" : "cloud provider")
 export const REVIEWER = "Demo reviewer"
-const LOOP_TIMEOUT_MS = Number(process.env.AGENT_TIMEOUT_MS ?? 90_000)
+// A local model answers in tens of seconds, and requests wait for one another: a loop gets more time there.
+const LOOP_TIMEOUT_MS = Number(process.env.AGENT_TIMEOUT_MS ?? (LOCAL ? 600_000 : 90_000))
 const MAX_RETRIES = 1
 const RETRY_DELAY_MS = Number(process.env.DESK_RETRY_DELAY_MS ?? 800)
 const MAX_DOCUMENT_CHARS = LIMITS.textChars
@@ -99,7 +104,8 @@ function annotate(c: PaymentCase) {
 let lastDailyTotal = -1
 /** The guided demo, when one has been started. Its scenario documents are ordinary demo cases; this only remembers which were run. */
 let showcase: Showcase | null = null
-const showcaseView = (): Showcase | null => showcase && { ...showcase, steps: refreshSteps(showcase.steps, (id) => state.cases.get(id)) }
+/** Each step also says which file it runs on, so that the interface never has to guess an extension. */
+const showcaseView = (): Showcase | null => showcase && { ...showcase, steps: refreshSteps(showcase.steps, (id) => state.cases.get(id)).map((s) => ({ ...s, fileName: state.cases.get(s.docId)?.fileName ?? showcasePdf.get(s.docId)?.doc.fileName ?? `${s.docId}.txt` })) }
 function touch(c: PaymentCase) {
 	c.version += 1
 	annotate(c)
@@ -183,10 +189,16 @@ const unblock = () => { if (blocked) { blocked = null; emit("provider", null) } 
 type RunHandle = { c: PaymentCase; agent: AgentName; attempt: number; run: AgentRun; step: StepKey; submitted: boolean; invalid: number; timer: ReturnType<typeof setTimeout> | undefined; over: boolean }
 const handles = new Map<string, RunHandle>()
 
-let model: InferenceRunner = runtime.getInferenceRunner()
+let model: InferenceRunner = LOCAL ? localRunner(LOCAL) : runtime.getInferenceRunner()
 /** Tests swap the model for a scripted one. Everything else (loops, tools, events, enforcement) is the real thing. */
 export function setModelRunner(r: InferenceRunner, mode: "live" | "scripted" = "scripted") { model = r; modelMode = mode }
 let modelMode: "live" | "scripted" = "live"
+/** Where the answers come from right now: predefined text, a cloud provider, or a model on this machine. Shown as it is; never inferred from configuration alone. */
+export const inferenceNow = (): Inference => modelMode === "scripted" ? { kind: "scripted", provider: "predefined responses, no model", endpoint: null }
+	: LOCAL ? { kind: "local", provider: LOCAL.provider, endpoint: LOCAL.baseURL, maxConcurrency: LOCAL.maxConcurrency }
+	: { kind: "cloud", provider: providerOf(MODELS.careful), endpoint: null }
+/** The model a loop that starts now would be recorded with. */
+const modelLabel = (agent: AgentName) => modelMode === "scripted" ? "scripted fixture" : LOCAL ? localLabel(MODEL_OF[agent], LOCAL.provider) : MODEL_OF[agent]
 
 /**
  * Fault injection, used only by the Financial Stress Lab and the tests, and always labelled as such in the case timeline.
@@ -243,7 +255,16 @@ function wellFormed(h: RunHandle, out: InferenceOutput): InferenceOutput {
 			if (held) return { items: [ModelMessageItem.rehydrate({ text: `${ERROR_MARK}${held.kind.replace(/_/g, " ")}: ${held.advice} (not sent: the provider refused an earlier call at ${held.at.slice(11, 19)})` })], tokenUsage: undefined, rowResponse: null }
 			for (let tryNo = 0; ; tryNo++) {
 				try {
-					const out = h ? wellFormed(h, injected(h, await model.run(req))) : await model.run(req)
+					const raw = await model.run(req)
+					// A model that returns neither text nor a tool call has given the runtime nothing to act on. That is an
+					// invalid result like any other: recorded as it was and closed at once, instead of leaving the loop to time out.
+					if (h && !raw.items.some((i) => i instanceof FunctionCallItem || (i instanceof ModelMessageItem && i.content.text.trim() !== ""))) {
+						const choice = raw.rowResponse?.choices?.[0]
+						const why = `the model returned an empty response: no text and no tool call${choice?.finish_reason ? ` (finish reason "${choice.finish_reason}"${raw.tokenUsage ? `, ${raw.tokenUsage.outputTokens} output tokens` : ""})` : ""}`
+						outputCheck(h.c, h.agent, "invalid_result", why)
+						return { items: [ModelMessageItem.rehydrate({ text: `${ERROR_MARK}${why}` })], tokenUsage: raw.tokenUsage, rowResponse: raw.rowResponse }
+					}
+					const out = h ? wellFormed(h, injected(h, raw)) : raw
 					const usage = out.tokenUsage
 					if (h && usage) {
 						h.run.tokens = { input: (h.run.tokens?.input ?? 0) + usage.inputTokens, output: (h.run.tokens?.output ?? 0) + usage.outputTokens }
@@ -426,7 +447,7 @@ function failStep(c: PaymentCase, step: StepKey, error: string) {
 /** Starts one Mozaik loop for one agent on one case, with tools bound to that case and attempt. */
 function startLoop(agent: AgentName, c: PaymentCase, message: string, tools: (h: RunHandle) => Tool[], trigger: string) {
 	// With the scripted test model no language model is called, and the record says so instead of naming one.
-	const run: AgentRun = { id: `run_${randomUUID().slice(0, 10)}`, agent, model: modelMode === "scripted" ? "scripted fixture" : MODEL_OF[agent], attempt: c.attempt, retry: 0, startedAt: nowIso(), finishedAt: null, status: "running", tokens: null, trigger, error: null }
+	const run: AgentRun = { id: `run_${randomUUID().slice(0, 10)}`, agent, model: modelLabel(agent), attempt: c.attempt, retry: 0, startedAt: nowIso(), finishedAt: null, status: "running", tokens: null, trigger, error: null }
 	c.runs.push(run)
 	const h: RunHandle = { c, agent, attempt: c.attempt, run, step: STEP_OF[agent], submitted: false, invalid: 0, timer: undefined, over: false }
 	const ctx = ModelContext.create().addContextItem(DeveloperMessageItem.create(INSTRUCTIONS[agent]))
@@ -934,7 +955,7 @@ restore()
 export function snapshot(): DeskSnapshot {
 	return {
 		startedAt: state.startedAt,
-		agents: (["Extractor", "Validator", "Auditor", "Investigator", "Policy"] as AgentName[]).map((name): AgentInfo => ({ id: AGENT[name].getId(), name, role: ROLE[name], model: MODEL_OF[name] })),
+		agents: (["Extractor", "Validator", "Auditor", "Investigator", "Policy"] as AgentName[]).map((name): AgentInfo => ({ id: AGENT[name].getId(), name, role: ROLE[name], model: modelLabel(name) })),
 		policy: state.policy,
 		vendors: state.vendors,
 		history: state.history,
@@ -948,6 +969,7 @@ export function snapshot(): DeskSnapshot {
 		reviewer: REVIEWER,
 		persisted: PERSIST,
 		modelMode,
+		inference: inferenceNow(),
 		showcase: showcaseView(),
 		runtime: { participants: state.participants.size, events: Object.fromEntries(state.events) },
 	}
@@ -1028,7 +1050,8 @@ export function findSame(textHash: string, fileHash: string | null): { id: strin
 export const modelModeNow = (): "live" | "scripted" => modelMode
 /** The stored execution of an earlier live run. Read-only: nothing here touches the desk. */
 export const recordingView = (): Recording | null => loadRecording(state.scenarios)
-export const getRecordedDocumentText = (id: string): string | null => recordedDocumentText(id, state.scenarios)
+export const currentRecordingView = (): Recording | null => loadCurrentRecording(state.scenarios)
+export const getRecordedDocumentText = (id: string, hash?: string | null): string | null => recordedDocumentText(id, state.scenarios, hash, [...showcasePdf.values()].map((p) => ({ id: p.doc.id, text: p.doc.text })))
 export const peek = (id: string): PaymentCase => getCase(id)
 export const isSettled = (): boolean => [...state.cases.values()].every((c) => !inFlight(c))
 
@@ -1225,6 +1248,7 @@ export function act(id: string, action: Action, input: { reason?: string | null;
 		if (c.stage === "blocked" || ev.floor === "BLOCKED") refuse(409, `A blocked payment cannot be approved. Blocking: ${c.controls.filter((k) => k.status === "fail" && k.severity === "block").map((k) => k.label.toLowerCase()).join(", ")}.`)
 		if (c.stage !== "awaiting_approval" || ev.floor === "PROCESSING_ERROR") refuse(409, `This payment is not waiting for approval (it is ${c.stage.replace(/_/g, " ")}).`)
 		// A discrepancy is not approved by a click (R14): the reviewer states in writing how it was resolved, and that statement
+		// (two stated payable amounts are stricter still; see below)
 		// is what the approval rests on. The reviewer may also point at one of the two lines in dispute; code re-reads the line
 		// and refuses it unless it states the amount this payment would pay. A cited line shows that the value is in the
 		// document. It does not show which of two stated values is owed, so it is recorded as cited, never as verified.
@@ -1244,6 +1268,11 @@ export function act(id: string, action: Action, input: { reason?: string | null;
 			}
 			settled.push({ challengeId: ch!.id, basis: "source_cited", chosenRef: r.chosenRef, chosenValue: value })
 		}
+		// R14 as tightened in policy v7. When the document itself states two payable amounts, nothing a reviewer writes and no line
+		// of that document can say which one is owed. Only a record that is independent of the document settles it (verify_amount);
+		// once it has, the control carries settledBy and is no longer open here.
+		const amountInDispute = open.some((k) => k.id === "stated_amounts") || (c.challenges ?? []).some((ch) => awaitsPerson(ch) && ch.category === "document_contradiction" && /gross|amount|total/i.test(ch.field))
+		if (amountInDispute) refuse(422, "This document states two payable amounts, and nothing independent of it says which one is owed. A written statement or a cited line cannot release it. Attach a verified vendor confirmation (Verify payable amount), or reject the payment and ask the vendor for a corrected invoice.")
 		const waiting = (c.challenges ?? []).filter((ch) => awaitsPerson(ch) && !settled.some((r) => r.challengeId === ch.id))
 		if (open.length > 0 && (reason?.length ?? 0) < 10) refuse(422, `This payment has an unresolved discrepancy (${open.map((k) => k.label.toLowerCase()).join(", ")}). State how it was resolved before approving it.`)
 		const all: Resolution[] = [...settled, ...waiting.map((ch): Resolution => ({ challengeId: ch.id, basis: "assertion", chosenRef: null, chosenValue: null }))]

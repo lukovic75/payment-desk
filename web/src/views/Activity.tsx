@@ -131,17 +131,20 @@ export function Activity({ snapshot, id, sub }: { snapshot: DeskSnapshot; id: st
 					const mine = shown.filter((l) => l.agent === picked)
 					const done = mine.filter((l) => l.end != null && !l.errored)
 					const t = usageOf(mine)
+					// what these loops were recorded with; the configured model is named only when no loop has run, and as that
+					const ran = [...new Set(mine.map((l) => l.run.model).filter(Boolean))]
+					const predefined = ran.length > 0 && ran.every((m) => m === "scripted fixture")
 					const retries = mine.reduce((n, l) => n + l.run.retry, 0)
 					const found = focus ? findingsOf(picked, focus) : null
 					return (
 						<>
 							<p className="say">{a?.role ?? ROLE[picked]}.</p>
 							<dl className="kv">
-								<div><dt>Model</dt><dd className="mono">{a?.model ?? "unknown"}</dd></div>
+								<div><dt>Model</dt><dd className="mono">{ran.length ? ran.join(", ") : <>{a?.model ?? "unknown"} <span className="muted">(configured; no loop has run)</span></>}</dd></div>
 								<div><dt>Loops</dt><dd>{mine.length}{mine.some((l) => l.end == null) ? `, ${mine.filter((l) => l.end == null).length} running` : ""}{mine.some((l) => l.errored) ? `, ${mine.filter((l) => l.errored).length} failed` : ""}</dd></div>
 								<div><dt>{focus ? "Duration" : "Average duration"}</dt><dd>{done.length ? duration(done.reduce((s, l) => s + (l.end! - l.start), 0) / done.length) : <span className="muted">not measured</span>}</dd></div>
 								<div><dt>Retries</dt><dd>{mine.length ? retries : <span className="muted">not measured</span>}</dd></div>
-								<div><dt>Tokens</dt><dd>{t.reported > 0 ? <>{count(t.tokens)} <span className="muted">reported for {t.reported} of {mine.length} loops</span></> : <span className="muted">not reported by the provider</span>}</dd></div>
+								<div><dt>Tokens</dt><dd>{t.reported > 0 ? <>{count(t.tokens)} <span className="muted">reported for {t.reported} of {mine.length} loops</span></> : <span className="muted">{predefined ? "none: predefined responses, no model was called" : "not reported by the provider"}</span>}</dd></div>
 							</dl>
 							{found && <div className="facts"><div className="sub-h">Findings on this payment <Prov kind="agent" /></div>{found.length ? <ul className="bullets">{found.map((f, n) => <li key={n}>{f}</li>)}</ul> : <p className="muted">Nothing recorded by this agent for this payment.</p>}</div>}
 							{mine.length > 0 && (

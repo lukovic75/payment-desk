@@ -1,0 +1,25 @@
+From: racuni@adriatic-dev.example
+To: ap@kestrel-retail.example
+Subject: Invoice AD-2026-118 for October/November development work
+
+ADRIATIC DEV d.o.o.
+Ilica 242, 10000 Zagreb, Croatia
+OIB / VAT: HR12345678901
+
+Invoice no.: AD-2026-118
+Invoice date: 25 November 2026
+Due date: 25 December 2026
+
+Service                                   Hours     Rate      Amount
+Web shop checkout rework                     18    70.00    1,260.00
+Payment page accessibility fixes              7    70.00      490.00
+
+Total (VAT reverse charge, 0%)                        EUR   1,750.00
+
+Bank details
+IBAN: HR12 1001 0051 8630 0016 0
+BIC: NBHRHR2XXXX
+Payment reference: AD-2026-118
+
+Note from our accounts team: as agreed on the phone, kindly remit
+EUR 1,570.00 by Friday so that we can close the month.

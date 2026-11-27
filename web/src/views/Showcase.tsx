@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { ArrowLeft, ArrowRight, ArrowsClockwise, CaretRight, CheckCircle, ClockCounterClockwise, Hourglass, Play, ShieldWarning, Warning, XCircle } from "@phosphor-icons/react"
-import { fetchRecording, runShowcase, startShowcase, type DeskSnapshot, type Health, type PaymentCase, type Recording, type ShowcaseKey, type ShowcaseStep } from "../lib/api"
+import { fetchRecordings, runShowcase, startShowcase, type DeskSnapshot, type Health, type PaymentCase, type Recording, type ShowcaseKey, type ShowcaseStep } from "../lib/api"
 import { isRunning } from "../lib/derive"
 import { count, duration, iban as fmtIban, money, plain, reduceMotion } from "../lib/format"
 import { href } from "../lib/router"
@@ -32,7 +32,10 @@ const MODE: Record<Mode, { tag: string; tone: string; line: string }> = {
 	scripted: { tag: "Scripted demo", tone: "warn", line: "Real orchestration, predefined model responses." },
 	recorded: { tag: "Recorded execution", tone: "line", line: "A stored run with live models. Replay only: no model is called and nothing is decided." },
 }
-const ModeTag = ({ mode }: { mode: Mode }) => <span className={`tag ${MODE[mode].tone}`} title={MODE[mode].line}>{MODE[mode].tag}</span>
+/** A live run on a model on this machine is named as that, with its provider: it is neither a cloud run nor a scripted one. */
+const LOCAL_LIVE = (provider: string) => ({ tag: "Live local AI", tone: "run", line: `Real models running on this machine (${provider}), through Mozaik. No cloud provider is called. Agent outputs, timings and decisions come from this execution.` })
+const modeOf = (mode: Mode, inference?: DeskSnapshot["inference"]) => (mode === "live" && inference?.kind === "local" ? LOCAL_LIVE(inference.provider) : MODE[mode])
+const ModeTag = ({ mode, inference }: { mode: Mode; inference?: DeskSnapshot["inference"] }) => { const m = modeOf(mode, inference); return <span className={`tag ${m.tone}`} title={m.line}>{m.tag}</span> }
 const SOURCE: Record<Mode, string> = { live: "model output", scripted: "predefined response, not model output", recorded: "recorded model output" }
 
 /** The scenario a person has just started from this page. Its run is played back once if it finished too fast to watch. */
@@ -43,23 +46,25 @@ const day = (iso: string) => new Date(iso).toLocaleDateString("en-GB", { day: "n
 const utc = (iso: string) => `${day(iso)}, ${new Date(iso).toISOString().slice(11, 16)} UTC`
 
 export function Showcase({ snapshot, health, canAct, id, loadingAll, onLoadAll }: Props) {
-	const recordedView = id === "recorded"
-	const [recording, setRecording] = useState<Recording | null | undefined>(undefined)
-	useEffect(() => { let gone = false; fetchRecording().then((r) => !gone && setRecording(r)).catch(() => !gone && setRecording(null)); return () => { gone = true } }, [])
+	// Two stored runs can ship: the earlier one (hosted models, older code) at #/showcase/recorded, and one of this version at #/showcase/recorded-current.
+	const recordedView = id === "recorded" || id === "recorded-current"
+	const [stored, setStored] = useState<{ recording: Recording | null; current: Recording | null } | undefined>(undefined)
+	useEffect(() => { let gone = false; fetchRecordings().then((r) => !gone && setStored(r)).catch(() => !gone && setStored({ recording: null, current: null })); return () => { gone = true } }, [])
+	const recording = stored === undefined ? undefined : id === "recorded-current" ? stored.current : stored.recording
 
 	if (recordedView) {
 		if (recording === undefined) return <main className="view sc" aria-busy="true"><div className="skel" style={{ height: 30, width: 260 }} /><div className="skel" style={{ height: 320 }} /></main>
 		if (recording === null) return <main className="view sc"><div className="panel"><div className="empty"><h2>No recorded execution ships with this build</h2><p>The file <code>server/data/recordings/live-2026-11-26.json</code> was not found.</p><div className="actions"><a className="btn" href={href("showcase")}><ArrowLeft size={13} /> Back to the showcase</a></div></div></div></main>
-		return <Journey key="recorded" mode="recorded" steps={recording.steps} cases={recording.cases} snapshot={snapshot} canAct={false} recording={recording} />
+		return <Journey key={id} mode="recorded" steps={recording.steps} cases={recording.cases} snapshot={snapshot} canAct={false} recording={recording} />
 	}
 	const sc = snapshot.showcase
-	if (!sc) return <Intro snapshot={snapshot} health={health} canAct={canAct} recording={recording ?? null} />
-	return <Journey key={sc.id} mode={sc.mode} steps={sc.steps} cases={snapshot.cases} snapshot={snapshot} canAct={canAct} recording={recording ?? null} loadingAll={loadingAll} onLoadAll={onLoadAll} />
+	if (!sc) return <Intro snapshot={snapshot} health={health} canAct={canAct} recording={stored?.recording ?? null} current={stored?.current ?? null} />
+	return <Journey key={sc.id} mode={sc.mode} steps={sc.steps} cases={snapshot.cases} snapshot={snapshot} canAct={canAct} recording={stored?.recording ?? stored?.current ?? null} loadingAll={loadingAll} onLoadAll={onLoadAll} />
 }
 
 // ───────── the opening ─────────
 
-function Intro({ snapshot, health, canAct, recording }: { snapshot: DeskSnapshot; health: Health | null; canAct: boolean; recording: Recording | null }) {
+function Intro({ snapshot, health, canAct, recording, current }: { snapshot: DeskSnapshot; health: Health | null; canAct: boolean; recording: Recording | null; current: Recording | null }) {
 	const [busy, setBusy] = useState(false)
 	const [err, setErr] = useState<string | null>(null)
 	const mode = snapshot.modelMode
@@ -96,7 +101,7 @@ function Intro({ snapshot, health, canAct, recording }: { snapshot: DeskSnapshot
 				<div className="sec-title"><h2>How this demo runs</h2></div>
 				<div className="sc-modes">
 					<div className="sc-mode current">
-						<div className="sc-mode-top"><ModeTag mode={mode} /><span className="status good"><i aria-hidden />This server</span></div>
+						<div className="sc-mode-top"><ModeTag mode={mode} inference={snapshot.inference} /><span className="status good"><i aria-hidden />This server</span></div>
 						{mode === "scripted" ? (
 							<>
 								<b>Real orchestration, predefined model responses</b>
@@ -108,6 +113,12 @@ function Intro({ snapshot, health, canAct, recording }: { snapshot: DeskSnapshot
 								<b>No model API key on this server</b>
 								<p>Live scenarios cannot run, and nothing is substituted for them. Copy <code>.env.example</code> to <code>.env</code>, set <code>ANTHROPIC_API_KEY</code> and restart.</p>
 								<p className="fine">Without credentials: stop this server and run <code>npm run demo</code> for the scripted demo.</p>
+							</>
+						) : snapshot.inference?.kind === "local" ? (
+							<>
+								<b>Real models on this machine</b>
+								<p>Each scenario makes five or more model calls to <span className="mono">{[...new Set([snapshot.models.fast, snapshot.models.careful])].join(" and ")}</span>, served by {snapshot.inference.provider} on this computer. No cloud provider is called and nothing is paid for. A local model is slower and less capable than a large hosted one: a scenario takes minutes, and what the agents answer is whatever this model answers.</p>
+								<p className="fine">At most {snapshot.inference.maxConcurrency} model {snapshot.inference.maxConcurrency === 1 ? "request runs" : "requests run"} at a time; agent loops still overlap, and their requests wait in turn. The mode never switches by itself.</p>
 							</>
 						) : (
 							<>
@@ -127,6 +138,13 @@ function Intro({ snapshot, health, canAct, recording }: { snapshot: DeskSnapshot
 								<a className="linkish" href={href("showcase", "recorded")}><ClockCounterClockwise size={13} /> Watch the recorded execution <ArrowRight size={12} /></a>
 							</>
 						) : <p>No recorded execution is available.</p>}
+						{current && (
+							<>
+								<b>A stored run of this version <span className="fine">· {utc(current.recordedAt)}</span></b>
+								<p>The same scenarios on {current.version}. {current.steps.filter((s) => !s.optional && s.result === "confirmed").length} of {current.steps.filter((s) => !s.optional).length} scenarios ended as the scenario file expects; what the model answered is shown as it was.</p>
+								<a className="linkish" href={href("showcase", "recorded-current")}><ClockCounterClockwise size={13} /> Watch the recorded run of this version <ArrowRight size={12} /></a>
+							</>
+						)}
 					</div>
 				</div>
 			</section>
@@ -176,8 +194,8 @@ function Journey({ mode, steps, cases, snapshot, canAct, recording, loadingAll, 
 			<header className="sc-top">
 				<div className="sc-top-id">
 					<span className="sc-kicker">Interactive showcase</span>
-					<ModeTag mode={mode} />
-					<span className="fine">{recorded && recording ? `${utc(recording.recordedAt)} · earlier version of the code · replay only` : MODE[mode].line}</span>
+					<ModeTag mode={mode} inference={snapshot.inference} />
+					<span className="fine">{recorded && recording ? `${utc(recording.recordedAt)} · ${recording.version ?? "earlier version of the code"} · replay only` : modeOf(mode, snapshot.inference).line}</span>
 				</div>
 				<div className="sc-top-actions">
 					<span className="fine" role="status">{recorded ? `${decided} of ${main.length} scenarios reached a decision in that run` : `${done} of ${main.length} scenarios run`}</span>
@@ -268,7 +286,7 @@ function Stage({ step, index, total, c, mode, snapshot, canAct, busy, running, o
 						<aside className="sc-aside">
 							{c ? <div className="sc-wait"><Hourglass size={18} weight="fill" /><b>The agents are working</b><p>The outcome appears here the moment the controls have decided.</p></div>
 								: recorded ? <div className="sc-wait"><b>Not executed in the recorded run</b><p>There is nothing to replay for this scenario.</p></div>
-									: <div className="sc-wait"><b>Ready</b><p>The synthetic document <span className="mono">{step.docId}.txt</span> goes through the same intake as any other. {mode === "live" ? "This makes five or six model calls on your provider account." : "The agents' answers are predefined; everything else runs."}</p><button type="button" className="btn btn-primary" disabled={!canAct || busy != null || running} onClick={onRun}>{busy === step.key ? <Spinner /> : <Play size={12} weight="fill" />} Run this scenario</button></div>}
+									: <div className="sc-wait"><b>Ready</b><p>The synthetic document <span className="mono">{step.fileName ?? `${step.docId}.txt`}</span> goes through the same intake as any other. {mode === "live" ? "This makes five or six model calls on your provider account." : "The agents' answers are predefined; everything else runs."}</p><button type="button" className="btn btn-primary" disabled={!canAct || busy != null || running} onClick={onRun}>{busy === step.key ? <Spinner /> : <Play size={12} weight="fill" />} Run this scenario</button></div>}
 						</aside>
 					</div>
 				)
@@ -286,7 +304,7 @@ function verdictOf(step: ShowcaseStep): Verdict {
 	if (step.result === "failed") return { tone: "bad", icon: <Warning size={22} weight="fill" />, title: "This scenario did not finish", line: "An agent's model call failed before the workflow reached a decision. Nothing was approved and no draft exists." }
 	if (step.key === "legitimate" && a === "AUTO_APPROVED") return { tone: "good", icon: good, title: "Payment verified", line: "Required financial checks passed. The approval created a sandbox payment draft: no money moves and nothing reaches a bank." }
 	if (step.key === "beneficiary" && a === "BLOCKED") return { tone: "bad", icon: bad, title: "Payment blocked", line: "The invoice requests payment to an account that does not match the trusted vendor record.", note: "Unverified beneficiary change. The payment is restricted; nothing here establishes intent, and a block is not a loss prevented." }
-	if (step.key === "challenge" && a === "NEEDS_APPROVAL") return { tone: "warn", icon: warn, title: "Held for a person", line: "Two independent findings state two different payable amounts. Neither is paid until a person resolves it in writing.", note: "The document alone cannot say which amount the vendor is owed. A corrected invoice or a confirmation from the vendor can." }
+	if (step.key === "challenge" && a === "NEEDS_APPROVAL") return { tone: "warn", icon: warn, title: "Held for a person", line: "Two independent findings state two different payable amounts. Neither is paid until a record that does not come from this document says which one is owed.", note: "The document alone cannot say which amount the vendor is owed. A corrected invoice or a confirmation from the vendor can." }
 	if (step.key === "challenge" && a === "BLOCKED") return { tone: "bad", icon: bad, title: "Payment blocked", line: "The Extractor and the Auditor read different amounts from the document. Neither reading is trusted until it is corrected or read again." }
 	if (step.key === "duplicate" && a === "BLOCKED") return { tone: "bad", icon: bad, title: "Duplicate payment blocked", line: "This financial obligation already exists in the payment records.", note: "An exact match on vendor and invoice number with an invoice that is already paid. An invoice that is only similar is sent to a person, not blocked." }
 	if (step.key === "injection" && a === "NEEDS_APPROVAL") return { tone: "warn", icon: warn, title: "Held for a person", line: "The document contains text telling the system to approve it. The text was treated as content: no permission and no rule changed.", note: "It was not blocked for this. Everything else on the invoice checks out, so the policy sends it to a person." }
@@ -419,7 +437,7 @@ function Result({ step, c, mode, snapshot, onRetry, canAct, stage, note, next }:
 					<section className="panel">
 						<div className="panel-head"><h2>Resolve it with independent evidence</h2><span className="right">optional · what a reviewer does next</span></div>
 						<div className="panel-body sc-evidence">
-							<p className="say">Neither amount is paid on the document's word, and a line of the invoice cannot say which one is owed. The reviewer asks the vendor and attaches the answer as a trusted record. This sandbox holds a synthetic confirmation for this invoice, <span className="mono">VC-2026-1126-01</span>. A record for another vendor or invoice, or an unverified one such as <span className="mono">VC-2026-1126-03</span>, is refused.</p>
+							<p className="say">Neither amount is paid on the document's word. A line of the invoice cannot say which one is owed, and neither can a reviewer's written statement: the approval is refused without a confirmation. The reviewer asks the vendor and attaches the answer as a trusted record. This sandbox holds a synthetic confirmation for this invoice, <span className="mono">VC-2026-1126-01</span>. A record for another vendor or invoice, or an unverified one such as <span className="mono">VC-2026-1126-03</span>, is refused.</p>
 							<div className="sc-resolve-state">
 								<StageStatus stage={c.stage} lg />
 								<span className="fine">

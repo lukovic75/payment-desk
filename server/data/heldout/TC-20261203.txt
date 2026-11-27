@@ -1,0 +1,21 @@
+From: invoices@tulpcloud.example
+To: ap@kestrel-retail.example
+Subject: Tulp Cloud invoice TC-20261203 (reserved capacity)
+
+TULP CLOUD B.V.
+Keizersgracht 100, 1015 AA Amsterdam, The Netherlands
+VAT: NL123456789B01
+
+Invoice TC-20261203
+Issued: 03 Dec 2026 · Due: 17 Dec 2026 (14 days)
+
+Reserved compute, eu-west, 12 months        per contract TC-C-0088
+Premium support                             per contract TC-C-0088
+
+The amount due for this period is the one stated in your contract
+schedule. Please pay it in full by the due date.
+
+Bank: ABN AMRO
+IBAN NL91 ABNA 0417 1643 00
+BIC ABNANL2AXXX
+Reference TC-20261203

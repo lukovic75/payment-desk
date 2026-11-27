@@ -19,7 +19,7 @@ const STATE = join(TMP, "state.json")
 let server: ChildProcess
 
 const start = async (persist: boolean) => {
-	server = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], { cwd: ROOT, stdio: "ignore", env: { ...process.env, API_PORT: String(PORT), DESK_SCRIPTED: "1", DESK_PERSIST: persist ? "on" : "off", DESK_STATE_FILE: STATE, LAB_PERSIST: "off", MOZAIK_CREDENTIALS_FILE: "/nonexistent/mozaik-credentials" } })
+	server = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], { cwd: ROOT, stdio: "ignore", env: { ...process.env, API_PORT: String(PORT), DESK_SCRIPTED: "1", DESK_SCRIPTED_OPEN_INTAKE: "1", DESK_PERSIST: persist ? "on" : "off", DESK_STATE_FILE: STATE, LAB_PERSIST: "off", MOZAIK_CREDENTIALS_FILE: "/nonexistent/mozaik-credentials" } })
 	await until(async () => { try { return (await get("/api/health")).body.ok } catch { return false } })
 }
 const stop = async () => { server?.kill("SIGKILL"); await new Promise((r) => setTimeout(r, 250)) }
@@ -201,14 +201,21 @@ test("API: conflicting amounts cannot be approved without a resolution, and the 
 		const r = await post("/api/cases/INV-2026-1049/actions", { action: "approve", reason })
 		assert.equal(r.status, 422, `"${reason}" is not a resolution`)
 	}
+	// policy v7: a full written statement does not release it either. Nothing a reviewer writes says which of two amounts is owed.
+	const stated = await post("/api/cases/INV-2026-1049/actions", { action: "approve", reason: "Vendor confirmed by phone that 1,890.00 is the amount due" })
+	assert.equal(stated.status, 422)
+	assert.match(stated.body.error, /two payable amounts/)
 	assert.equal((await caseOf("INV-2026-1049")).stage, "awaiting_approval")
-	const ok = await post("/api/cases/INV-2026-1049/actions", { action: "approve", reason: "Vendor confirmed by phone that 1,890.00 is the amount due" })
+	assert.equal((await get("/api/cases/INV-2026-1049/draft")).status, 409, "still no draft")
+	// an independent record does: the vendor confirmation on file for this vendor, invoice and amount
+	assert.equal((await post("/api/cases/INV-2026-1049/actions", { action: "verify_amount", confirmationRef: "VC-2026-1126-01" })).status, 200)
+	const ok = await post("/api/cases/INV-2026-1049/actions", { action: "approve" })
 	assert.equal(ok.status, 200)
 	const entry = ok.body.review.at(-1)
 	assert.equal(entry.outcome, "applied")
-	assert.match(entry.reason, /confirmed by phone/)
-	for (const ref of conflict.refs) assert.ok(entry.refs.includes(ref), `the resolution cites ${ref}`)
-	assert.equal(ok.body.review.filter((r: any) => r.outcome === "refused").length, 5, "every refused attempt is on the record")
+	assert.ok(entry.refs.includes("VC:VC-2026-1126-01"), "the approval cites the record it rests on")
+	for (const ref of conflict.refs) assert.ok(Object.keys(ok.body.ledger).includes(ref), `${ref} is still in the ledger: the contradiction is not erased`)
+	assert.equal(ok.body.review.filter((r: any) => r.outcome === "refused").length, 6, "every refused attempt is on the record")
 	assert.equal((await get("/api/cases/INV-2026-1049/draft")).status, 200)
 })
 

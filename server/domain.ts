@@ -361,10 +361,10 @@ export type ShowcaseKey = "legitimate" | "beneficiary" | "challenge" | "duplicat
  * "failed": the workflow did not finish. Derived from the case; never set by hand.
  */
 export type ShowcaseResult = "not_run" | "running" | "confirmed" | "unexpected" | "failed"
-export type ShowcaseStep = { key: ShowcaseKey; docId: string; optional: boolean; expected: string[]; startedAt: string | null; result: ShowcaseResult; actual: string | null }
+export type ShowcaseStep = { key: ShowcaseKey; docId: string; optional: boolean; expected: string[]; startedAt: string | null; result: ShowcaseResult; actual: string | null; /** The file this step runs on, as it is named on the desk. Absent in recordings made before it was recorded. */ fileName?: string }
 export type Showcase = { id: string; startedAt: string; mode: "live" | "scripted"; steps: ShowcaseStep[] }
 /** A stored execution of an earlier run with live models. Read-only: replaying it calls no model and decides nothing. */
-export type Recording = { recordedAt: string; note: string; models: { fast: string; careful: string }; steps: ShowcaseStep[]; cases: PaymentCase[] }
+export type Recording = { recordedAt: string; note: string; models: { fast: string; careful: string }; steps: ShowcaseStep[]; cases: PaymentCase[]; /** Which stored run this is: "earlier" (26 November, hosted models, older code) or "current" (this version of the code). */ id?: "earlier" | "current"; /** One line on what ran it and on which code, shown beside the date. */ version?: string }
 
 export type DeskSnapshot = {
 	startedAt: string | null
@@ -384,6 +384,8 @@ export type DeskSnapshot = {
 	persisted: boolean
 	/** "scripted" only when the server was started with the test fixture model (npm run dev:scripted). */
 	modelMode: "live" | "scripted"
+	/** Where the agents' answers come from: predefined text, a cloud provider, or a model running on this machine. */
+	inference: import("./local.js").Inference
 	/** The guided demo, when one has been started. Its scenario documents are ordinary demo cases on this desk. */
 	showcase: Showcase | null
 	runtime: { participants: number; events: Record<string, number> }

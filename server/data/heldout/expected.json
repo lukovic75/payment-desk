@@ -1,0 +1,41 @@
+{
+  "about": "Held-out synthetic invoices. None of them is in the scripted response registry, and no predefined answer exists for any of them. The facts and outcomes below were written before any model read the documents; they are never shown to an agent or returned by a tool. Vendors and accounts refer to server/data/vendors.json.",
+  "documents": [
+    {
+      "id": "AE-2026-4417", "file": "AE-2026-4417.txt", "kind": "A. legitimate invoice, new number, German number format",
+      "facts": { "vendorId": "V-005", "creditor": "Alpenstrom Energie AG", "invoiceNumber": "AE-2026-4417", "gross": "1284.60", "currency": "EUR", "iban": "AT611904300234573201" },
+      "grossQuote": "Rechnungsbetrag EUR",
+      "discrepancy": null,
+      "expected": ["AUTO_APPROVED"]
+    },
+    {
+      "id": "BP-2026-0312", "file": "BP-2026-0312.txt", "kind": "B. known vendor, different bank account",
+      "facts": { "vendorId": "V-007", "creditor": "Baltic Print OÜ", "invoiceNumber": "BP-2026-0312", "gross": "1629.00", "currency": "EUR", "iban": "EE891010220034796011" },
+      "grossQuote": "Total due EUR",
+      "discrepancy": "beneficiary",
+      "expected": ["BLOCKED"]
+    },
+    {
+      "id": "AD-2026-118", "file": "AD-2026-118.txt", "kind": "C. contradictory payment instructions (1,750.00 invoiced, 1,570.00 asked for)",
+      "facts": { "vendorId": "V-006", "creditor": "Adriatic Dev d.o.o.", "invoiceNumber": "AD-2026-118", "gross": "1750.00", "currency": "EUR", "iban": "HR1210010051863000160" },
+      "grossQuote": "Total (VAT reverse charge, 0%)",
+      "discrepancy": "conflicting_amounts",
+      "otherAmount": "1570.00",
+      "expected": ["NEEDS_APPROVAL", "BLOCKED"]
+    },
+    {
+      "id": "TC-20261203", "file": "TC-20261203.txt", "kind": "D. missing critical field (no amount is stated)",
+      "facts": { "vendorId": "V-003", "creditor": "Tulp Cloud B.V.", "invoiceNumber": "TC-20261203", "gross": null, "currency": null, "iban": "NL91ABNA0417164300" },
+      "grossQuote": null,
+      "discrepancy": "missing_field",
+      "expected": ["BLOCKED"]
+    },
+    {
+      "id": "FA-2026-0331", "file": "FA-2026-0331.pdf", "kind": "E. legitimate text-layer PDF, French, layout unlike the samples",
+      "facts": { "vendorId": "V-002", "creditor": "Atelier Lumière SAS", "invoiceNumber": "FA-2026-0331", "gross": "1948.00", "currency": "EUR", "iban": "FR7630006000011234567890189" },
+      "grossQuote": "NET À PAYER",
+      "discrepancy": null,
+      "expected": ["AUTO_APPROVED"]
+    }
+  ]
+}

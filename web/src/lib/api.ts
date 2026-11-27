@@ -5,7 +5,7 @@ import type { AgentRun, Challenge, Control, DeskSnapshot, EvidenceEntry, Payment
 export type { AgentRun, Challenge, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, Recording, ReviewEntry, Scenario, Showcase, ShowcaseKey, ShowcaseStep, TimelineEntry, Vendor }
 export type Tokens = Record<string, { input: number; output: number; calls: number }>
 export type Limits = { pdfBytes: number; pages: number; textChars: number; parseMs: number; batch: number; concurrent: number }
-export type Health = { ok: boolean; hasModelKey: boolean; hasLiveKey: boolean; mode: "live" | "scripted"; models: { fast: string; careful: string }; limits?: Limits }
+export type Health = { ok: boolean; hasModelKey: boolean; hasLiveKey: boolean; mode: "live" | "scripted"; inference?: DeskSnapshot["inference"]; models: { fast: string; careful: string }; limits?: Limits }
 /** How a document's text maps back to its original file. A text document has no pages; a PDF has pages and, per line, a page and usually a box. */
 export type DocSource = { format: "text"; fileName: string } | (DocumentSource & { available: boolean })
 /** A document that the server has validated and parsed, and that waits for "Process". Nothing has run on it yet. */
@@ -103,7 +103,7 @@ export const runDemo = async (): Promise<DeskSnapshot> => expectOk(await post("/
 export const resetDemo = async (): Promise<DeskSnapshot> => expectOk(await post("/api/reset"))
 export const startShowcase = async (): Promise<DeskSnapshot> => expectOk(await post("/api/showcase/start"))
 export const runShowcase = async (key: ShowcaseKey): Promise<DeskSnapshot> => expectOk(await post("/api/showcase/run", { key }))
-export const fetchRecording = async (): Promise<Recording | null> => (await expectOk<{ recording: Recording | null }>(await fetch("/api/recording"))).recording
+export const fetchRecordings = async (): Promise<{ recording: Recording | null; current: Recording | null }> => { const r = await expectOk<{ recording: Recording | null; current?: Recording | null }>(await fetch("/api/recording")); return { recording: r.recording, current: r.current ?? null } }
 export const act = async (id: string, action: Action, input: { reason?: string; callbackRef?: string; confirmationRef?: string; resolutions?: { challengeId: string; chosenRef: string }[] } = {}): Promise<PaymentCase> =>
 	expectOk(await post(`/api/cases/${encodeURIComponent(id)}/actions`, { action, ...input }))
 export const addDocument = async (name: string, text: string): Promise<PaymentCase> => expectOk(await post("/api/documents", { name, text }))
@@ -119,8 +119,8 @@ export const fetchSource = async (id: string): Promise<DocSource> => expectOk(aw
 export const draftUrl = (id: string) => `/api/cases/${encodeURIComponent(id)}/draft`
 
 /** The source text of a document on the desk, or (recorded) of a document in the stored execution. */
-export async function fetchDocument(id: string, recorded = false): Promise<string> {
-	const r = await fetch(`/api/${recorded ? "recording/" : ""}documents/${encodeURIComponent(id)}`)
-	if (!r.ok) throw new Error(`The source document could not be loaded (${r.status}).`)
-	return r.text()
+export async function fetchDocument(id: string, recorded = false, hash?: string): Promise<string> {
+	const res = await fetch(recorded ? `/api/recording/documents/${encodeURIComponent(id)}${hash ? `?hash=${encodeURIComponent(hash)}` : ""}` : `/api/documents/${encodeURIComponent(id)}`)
+	if (!res.ok) throw new Error(recorded ? "The source text of this recorded document is not available." : `The document could not be loaded (${res.status}).`)
+	return res.text()
 }
