@@ -26,7 +26,7 @@ export const SHOWCASE_RESPONSES: Pick<Script, "audits" | "validations" | "invest
 	},
 	validations: {
 		"INV-2026-1041": { summary: "Nordlicht Logistik GmbH is vendor V-001. The IBAN passes the checksum and is the one on file. No earlier payment or document carries this invoice number." },
-		"INV-ES-55820": { summary: "Iberia Office Supplies S.L. is vendor V-004. The IBAN on the document passes the checksum but is not the one on file. The lookup returned no callback record for this vendor and this account.", issues: [{ code: "IBAN_MISMATCH", severity: "block", message: "The document asks for ES66 2100 0418 4012 3456 7891. The vendor master has ES91 2100 0418 4502 0005 1332.", refs: ["X:iban", "V:V-004"] }] },
+		"INV-ES-55820": { summary: "Iberia Office Supplies S.L. is vendor V-004. The IBAN on the document passes the checksum but is not the one on file. The lookup returned no callback record for this vendor and this account.", issues: [{ code: "IBAN_MISMATCH", severity: "block", message: "The document asks for ES07 0012 0345 0300 0006 7890. The vendor master has ES91 2100 0418 4502 0005 1332.", refs: ["X:iban", "V:V-004"] }] },
 		"INV-2026-1049": { summary: "Nordlicht Logistik GmbH is vendor V-001. The IBAN passes the checksum and is the one on file. No earlier payment or document carries this invoice number." },
 		"INV-7701-rappel": { summary: "Atelier Lumière SAS is vendor V-002 and the IBAN is the one on file. Payment history H-0001 shows invoice 7701 for this vendor, EUR 1,120.00, paid on 2026-10-28.", duplicateOf: "H-0001", issues: [{ code: "DUPLICATE_INVOICE", severity: "block", message: "Invoice 7701 from this vendor is in the payment history as H-0001, paid on 2026-10-28.", refs: ["X:invoiceNumber", "H:H-0001"] }] },
 		"INV-ADR-0101": { summary: "Adriatic Dev d.o.o. is vendor V-006. The IBAN passes the checksum and is the one on file. No earlier payment or document carries this invoice number." },
@@ -36,7 +36,7 @@ export const SHOWCASE_RESPONSES: Pick<Script, "audits" | "validations" | "invest
 			category: "Beneficiary account differs from the vendor master", assessment: "confirmed_discrepancy",
 			verifiedFacts: [
 				{ text: "The creditor matches vendor V-004, Iberia Office Supplies S.L.", refs: ["X:creditorName", "V:V-004"] },
-				{ text: "The document asks for payment to ES66 2100 0418 4012 3456 7891. The vendor master holds ES91 2100 0418 4502 0005 1332.", refs: ["X:iban", "V:V-004"] },
+				{ text: "The document asks for payment to ES07 0012 0345 0300 0006 7890. The vendor master holds ES91 2100 0418 4502 0005 1332.", refs: ["X:iban", "V:V-004"] },
 				{ text: "The amount requested is EUR 2,744.00, above the 2,500.00 limit for automatic approval.", refs: ["X:gross", "C:limit"] },
 			],
 			conflictingEvidence: [{ text: "The document says the vendor changed bank. The trusted record does not show that change.", refs: ["X:iban", "V:V-004"] }],

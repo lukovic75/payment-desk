@@ -186,9 +186,9 @@ test("the same confirmation attached twice, or approved twice, authorises one pa
 
 /** An invoice from vendor V-001 that asks for the account the callback fixture confirms. */
 function changedAccount(number: string) {
-	const text = DOCS["INV-2026-1041"]!.text.replace("DE89 3704 0044 0532 0130 00", "DE02 1203 0000 0000 2020 51").replaceAll("INV-2026-1041", number)
+	const text = DOCS["INV-2026-1041"]!.text.replace("DE89 3704 0044 0532 0130 00", "DE62 3704 0044 0532 0130 01").replaceAll("INV-2026-1041", number)
 	const r = structuredClone(READINGS["INV-2026-1041"]!)
-	r.fields!.iban = { value: "DE02120300000000202051", quote: "IBAN: DE02 1203 0000 0000 2020 51" }
+	r.fields!.iban = { value: "DE62370400440532013001", quote: "IBAN: DE62 3704 0044 0532 0130 01" }
 	r.fields!.invoiceNumber = { value: number, quote: `Invoice number: ${number}` }
 	r.fields!.reference = { value: number, quote: `Payment reference: ${number}` }
 	return { text, r }
@@ -212,7 +212,7 @@ test("a callback belongs to one vendor and one account: it clears nothing else",
 	assert.ok(ok.ledger[`HV:${cb.ref}`], "the callback is in the case ledger")
 	const ch = ok.challenges!.find((k) => k.id === "CH:beneficiary:iban")!
 	assert.equal(ch.status, "matched_to_record")
-	assert.deepEqual([ch.challenged.value, ch.observed.value], ["DE02120300000000202051", "DE89370400440532013000"], "the original discrepancy stays in the audit history")
+	assert.deepEqual([ch.challenged.value, ch.observed.value], ["DE62370400440532013001", "DE89370400440532013000"], "the original discrepancy stays in the audit history")
 	assert.equal(desk.snapshot().vendors.find((v) => v.id === "V-001")!.iban, "DE89370400440532013000", "the vendor master is not modified")
 	assert.equal(outcomeOf(desk.peek("INV-ES-55820")), "BLOCKED", "another vendor's payment is not affected")
 	refused(() => desk.act("INV-2026-1058", "verify_beneficiary", { callbackRef: cb.ref }), 409, /no unverified beneficiary change/)

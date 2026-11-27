@@ -14,6 +14,12 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 
 > Sandbox demonstration. All data is synthetic, no money moves, nothing is sent to a bank, and nothing here is financial advice.
 
+**Start here:** [`JUDGE_QUICKSTART.md`](JUDGE_QUICKSTART.md), ten minutes with no API key · [two-minute video](docs/demo/payment-desk-demo.mp4) of the running application (scripted demo, captions, no narration) · [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md), where every piece of data comes from.
+
+```bash
+npm ci && npm run demo     # http://localhost:8799, then press Start demo
+```
+
 ## What to verify in three minutes
 
 | Claim | In the app | In the code | Test or document |
@@ -38,11 +44,25 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 
 Walkthrough: [`DEMO_GUIDE.md`](DEMO_GUIDE.md). Likely questions: [`JUDGE_QA.md`](JUDGE_QA.md).
 
-![Interactive showcase, scenario three: the Auditor found a second amount on its own, code recorded the cross-check, the Investigator was called and the payment is held for a person](docs/showcase.jpg)
+![The first screen: what the product is, who it is for and one way into the demo. The indicator at the top says where the agents' answers come from](docs/evidence/01-overview-empty.jpg)
 
-![Overview: what is pending, approved and blocked, the payments that need a person, and what the agents are doing](docs/overview.jpg)
+*The first screen. The indicator at the top right always says where the agents' answers come from; here, the scripted demo.*
 
-![Payment Firewall: the exception, and the trusted vendor record beside the incoming document with only the differing groups marked](docs/firewall.jpg)
+![A changed bank account: the account on the invoice beside the one on file, each with a reference to its source; the payment is blocked by a control in code](docs/evidence/02-changed-account.jpg)
+
+*A changed bank account. The account on the invoice stands beside the one on file, each opening its source. Blocked by a control in code; no agent and no person can approve it.*
+
+![The cross-check the independent Auditor raised: 1,980.00 on page 1 against 1,890.00 on page 2, waiting for a person](docs/evidence/04-agent-challenge.jpg)
+
+*An agent challenge. The Auditor read the document without seeing the first reading and reported a second payable amount; code recorded both sides with their evidence.*
+
+![The fault-injection test: an injected error that every code control passed, approved by one agent and stopped by five](docs/evidence/07-fault-injection.jpg)
+
+*The controlled fault-injection test. Five injected agent errors are stopped by code with one agent or with five; one, a line item quoted correctly as the total, is stopped only by the independent second reading.*
+
+![Execution details of one payment: every agent loop with its trigger, start and finish, as the runtime recorded them](docs/evidence/08-execution-proof.jpg)
+
+*Execution proof. Every loop the Mozaik runtime ran for a payment, with its trigger and its recorded start and finish. All eleven current screenshots are in [`docs/evidence/`](docs/evidence); earlier ones are kept in [`docs/history/`](docs/history).*
 
 ## Try it in two minutes, without an API key
 
@@ -193,7 +213,7 @@ Four things are kept apart: a value appearing in the document, a citation of the
 
 Every loop leaves a record on its case: execution id, agent, model, attempt, real start and finish timestamps, status, retries, tokens as reported by the provider, and the event that triggered it. **Agent activity** draws those records on one clock, so concurrency is overlap you can measure, and draws the dependencies of one payment (Extractor to Validator and Auditor, then the Investigator if called, then Policy). The same records are in every Stress Lab audit report. Model reasoning is not recorded or shown: only tool calls, structured findings and results.
 
-![Agent activity: sixty-seven loops from one live run on a shared clock](docs/activity.jpg)
+![Execution details of one payment, from recorded state](docs/evidence/08-execution-proof.jpg)
 
 ### Shared case state
 
@@ -226,13 +246,11 @@ A citation is not correct because it exists. `server/integrity.ts` re-verifies t
 
 Findings are classified as missing evidence, broken reference, unsupported claim, incorrect normalisation or untraceable calculation. Values that cannot be checked mechanically (a date written in words) are reported as such and never counted as correct. A critical finding adds a failing `evidence_integrity` control, which blocks the payment whatever the agents recommended.
 
-![Verification of one payment: the failing controls and the investigation, with the evidence inspector open on a cited line of the document](docs/investigation.jpg)
-
 ## Financial Stress Lab
 
 A workspace for proving reliability instead of asserting it. Twelve synthetic scenarios, each defined in `server/lab/scenarios.ts` with its problem, source documents, trusted records, policy, expected outcome per document, the controls that must fire, the evidence that must exist and verify, and the invariants that must hold. The expectations are never given to an agent; a test asserts that no agent context contains them.
 
-![Financial Stress Lab: scenarios, what each declared before running, and the path it ran on](docs/stress-lab.jpg)
+![Stress lab after a run: twelve of twelve scenarios judged, with the checks and evidence counts](docs/evidence/06-stress-lab.jpg)
 
 | | Scenario | Declared outcome |
 |---|---|---|
@@ -266,8 +284,6 @@ A workspace for proving reliability instead of asserting it. Twelve synthetic sc
 **Guard rails.** One run at a time; at most four workers on the deterministic path and three on the live path; a timeout per scenario after which the worker is stopped; a run is capped at 24 executions; a live run must be confirmed explicitly, in the UI and in the API; a provider failure makes a scenario "not judged", not passed or failed.
 
 **Audit report.** Every execution exports as JSON: scenario, source documents with content hashes, trusted record references, policy version (name plus a hash of the policy), agent execution records, structured findings, the evidence ledger and its integrity report, expected outcome, actual outcome, the deterministic enforcement result, test status, timestamps and known limitations. Synthetic data and sandbox output are labelled at the top.
-
-![One stress scenario: declared outcome per document against what the agent recommended, what the controls allow and what is in force](docs/stress-result.jpg)
 
 ```bash
 npm run lab                      # all twelve, deterministic path
@@ -359,9 +375,7 @@ The original file is kept by its SHA-256 (in memory, and beside the state file w
 
 The sample PDFs are in [`server/data/documents/pdf/`](server/data/documents/pdf), written by `npm run fixtures:pdf` from the descriptions in [`server/test/pdf-specs.ts`](server/test/pdf-specs.ts). A test regenerates them and compares byte for byte.
 
-![A figure opened on page two of the original PDF, with the cited line marked](docs/pdf-evidence.jpg)
-
-![Add documents: three synthetic PDFs parsed and waiting, one previewed as the original](docs/pdf-intake.jpg)
+![A figure opened on its page of the original PDF, with the cited line marked](docs/evidence/03-pdf-evidence.jpg)
 
 ## The demo dataset
 
@@ -540,9 +554,7 @@ The sidebar is grouped by what a person comes to do: **Workspace** (Overview, Pa
 
 The interface is a web interpretation of a glass material system: an ambient background, a floating navigation layer, content glass for summaries and near-opaque reading surfaces for financial detail. It is designed in dark and light, for a phone as well as a desktop, and it honours reduced motion, reduced transparency and increased contrast. `DESIGN.md` has the system.
 
-![A payment that needs approval: the decision, the actions the server allows, the payment facts and how the decision was reached](docs/payment.jpg)
-
-![The same overview in the light appearance](docs/overview-light.jpg)
+![A blocked payment in the workspace: the reason in one sentence with its source line, the next step, and the actions the server allows](docs/evidence/09-payment-blocked.jpg)
 
 ## Three-minute demonstration
 

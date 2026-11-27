@@ -37,7 +37,7 @@ export const PDF_FIXTURES: PdfFixture[] = [
 			rows: [["Papel A4 80g (caja 5 resmas)", "40", "22.90", "916.00"], ["Tóner HP 59X", "6", "98.00", "588.00"], ["Sillas ergonómicas \"Lira\"", "4", "310.00", "1,240.00"]],
 			totals: [["Base", "2,744.00"], ["IVA 0% (operación intracomunitaria)", ""], ["TOTAL EUR", "2,744.00", true]],
 			notes: ["IMPORTANTE: hemos cambiado de banco. Nuevos datos de pago:"],
-			payment: ["IBAN: ES66 2100 0418 4012 3456 7891", "BIC: CAIXESBBXXX", "Referencia: 55820"],
+			payment: ["IBAN: ES07 0012 0345 0300 0006 7890", "BIC: CAIXESBBXXX", "Referencia: 55820"],
 		},
 	},
 	{
@@ -95,7 +95,7 @@ export const PDF_FIXTURES: PdfFixture[] = [
 			rows: [["Papel A4 80g (caja 5 resmas)", "20", "22.90", "458.00"], ["Tóner HP 59X", "4", "98.00", "392.00"]],
 			totals: [["Base", "850.00"], ["IVA 0% (operación intracomunitaria)", ""], ["TOTAL EUR", "850.00", true]],
 			notes: ["IMPORTANTE: hemos cambiado de banco. Nuevos datos de pago:"],
-			payment: ["IBAN: ES66 2100 0418 4012 3456 7891", "BIC: CAIXESBBXXX", "Referencia: 56012"],
+			payment: ["IBAN: ES07 0012 0345 0300 0006 7890", "BIC: CAIXESBBXXX", "Referencia: 56012"],
 		},
 	},
 	{

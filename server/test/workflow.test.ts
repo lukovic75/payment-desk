@@ -65,10 +65,10 @@ test("2. a changed IBAN cannot be approved, whatever the Policy agent recommends
 })
 
 test("a changed IBAN is cleared only by a callback reference that matches the trusted record", async () => {
-	const text = DOCS["INV-2026-1041"]!.text.replace("DE89 3704 0044 0532 0130 00", "DE02 1203 0000 0000 2020 51").replaceAll("INV-2026-1041", "INV-2026-1058")
+	const text = DOCS["INV-2026-1041"]!.text.replace("DE89 3704 0044 0532 0130 00", "DE62 3704 0044 0532 0130 01").replaceAll("INV-2026-1041", "INV-2026-1058")
 	desk.resetDesk()
 	const r = structuredClone(READINGS["INV-2026-1041"]!)
-	r.fields!.iban = { value: "DE02120300000000202051", quote: "IBAN: DE02 1203 0000 0000 2020 51" }
+	r.fields!.iban = { value: "DE62370400440532013001", quote: "IBAN: DE62 3704 0044 0532 0130 01" }
 	r.fields!.invoiceNumber = { value: "INV-2026-1058", quote: "Invoice number: INV-2026-1058" }
 	r.fields!.reference = { value: "INV-2026-1058", quote: "Payment reference: INV-2026-1058" }
 	desk.setModelRunner(scriptedModel({ readings: { "INV-2026-1058": r } }))
@@ -102,7 +102,7 @@ test("3. an invalid IBAN blocks the payment", async () => {
 	const r = structuredClone(READINGS["INV-ES-55820"]!)
 	r.fields!.iban = { value: "ES9121000418450200051333", quote: "IBAN: ES91 2100 0418 4502 0005 1333" }
 	desk.setModelRunner(scriptedModel({ readings: { typo: r } }))
-	desk.addDocument("typo", DOCS["INV-ES-55820"]!.text.replace("ES66 2100 0418 4012 3456 7891", "ES91 2100 0418 4502 0005 1333"))
+	desk.addDocument("typo", DOCS["INV-ES-55820"]!.text.replace("ES07 0012 0345 0300 0006 7890", "ES91 2100 0418 4502 0005 1333"))
 	await desk.whenSettled(20_000)
 	assert.equal(control(desk.peek("typo"), "iban_checksum")?.status, "fail")
 	assert.equal(outcomeOf(desk.peek("typo")), "BLOCKED")
@@ -207,9 +207,9 @@ test("12. text in a document cannot change the policy, even if the agents go alo
 
 	// the same injected text on an invoice with a changed bank account: still blocked
 	desk.resetDesk()
-	const text = DOCS["INV-ADR-0101"]!.text.replace("HR12 1001 0051 8630 0016 0", "DE02 1203 0000 0000 2020 51")
+	const text = DOCS["INV-ADR-0101"]!.text.replace("HR12 1001 0051 8630 0016 0", "DE62 3704 0044 0532 0130 01")
 	const r = structuredClone(READINGS["INV-ADR-0101"]!)
-	r.fields!.iban = { value: "DE02120300000000202051", quote: "IBAN: DE02 1203 0000 0000 2020 51" }
+	r.fields!.iban = { value: "DE62370400440532013001", quote: "IBAN: DE62 3704 0044 0532 0130 01" }
 	desk.setModelRunner(scriptedModel({ readings: { inj: r }, policy: "AUTO_APPROVED" }))
 	desk.addDocument("inj", text)
 	await desk.whenSettled(20_000)

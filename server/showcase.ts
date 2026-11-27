@@ -3,7 +3,7 @@
  * other document. Nothing here decides anything. A scenario's result is read from its payment case: the outcome the
  * controls enforced, compared with what the scenario file expects.
  */
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 import { DATA_DIR, contentHash, loadDocuments } from "./data.js"
 import type { PaymentCase, Recording, Scenario, ShowcaseKey, ShowcaseStep } from "./domain.js"
@@ -79,11 +79,20 @@ export function loadRecording(scenarios: Scenario[]): Recording | null {
 }
 
 /** The source text of a recorded case: the synthetic fixture, and only if it is byte-for-byte the document that was recorded. */
+/**
+ * Documents exactly as they were when a stored run read them, for the ones whose current file has changed since.
+ * A stored run is never edited, so its replay needs the text it was recorded on (server/data/recordings/documents).
+ */
+function archivedDocuments(): { id: string; text: string }[] {
+	const dir = join(DATA_DIR, "recordings", "documents")
+	try { return readdirSync(dir).filter((f) => f.endsWith(".txt")).map((f) => ({ id: f.replace(/\.txt$/, ""), text: readFileSync(join(dir, f), "utf8") })) } catch { return [] }
+}
+
 export function recordedDocumentText(id: string, scenarios: Scenario[], hash?: string | null, others: { id: string; text: string }[] = []): string | null {
 	// the same document id can be in both stored runs with different text (once as text, once as the text of its PDF): the hash says which
 	const cases = [loadRecording(scenarios), loadCurrentRecording(scenarios)].flatMap((r) => r?.cases ?? []).filter((k) => k.id === id && (!hash || k.hash === hash))
 	for (const c of cases) {
-		const d = [...loadDocuments(), ...others].find((x) => x.id === id && contentHash(x.text) === c.hash)
+		const d = [...loadDocuments(), ...archivedDocuments(), ...others].find((x) => x.id === id && contentHash(x.text) === c.hash)
 		if (d) return d.text
 	}
 	return null

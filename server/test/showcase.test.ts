@@ -126,9 +126,9 @@ test("the scenario result is what the workflow decided, not what a person did af
 test("the demo leaves a person's own documents, decisions and verifications alone", async () => {
 	fresh()
 	// a document of the person's own, with a changed account that they verified against a callback record and then approved
-	const text = DOCS["INV-2026-1041"]!.text.replace("DE89 3704 0044 0532 0130 00", "DE02 1203 0000 0000 2020 51").replaceAll("INV-2026-1041", "INV-2026-1058")
+	const text = DOCS["INV-2026-1041"]!.text.replace("DE89 3704 0044 0532 0130 00", "DE62 3704 0044 0532 0130 01").replaceAll("INV-2026-1041", "INV-2026-1058")
 	const r = structuredClone(READINGS["INV-2026-1041"]!)
-	r.fields!.iban = { value: "DE02120300000000202051", quote: "IBAN: DE02 1203 0000 0000 2020 51" }
+	r.fields!.iban = { value: "DE62370400440532013001", quote: "IBAN: DE62 3704 0044 0532 0130 01" }
 	r.fields!.invoiceNumber = { value: "INV-2026-1058", quote: "Invoice number: INV-2026-1058" }
 	r.fields!.reference = { value: "INV-2026-1058", quote: "Payment reference: INV-2026-1058" }
 	desk.setModelRunner(scripted({ readings: { ...READINGS, "INV-2026-1058": r } }), "scripted")
@@ -186,6 +186,12 @@ test("the recorded execution is served as stored: it is not on the desk and noth
 	// the source text is the fixture, and only because it is the same document that was recorded
 	assert.equal(desk.getRecordedDocumentText("INV-2026-1049"), DOCS["INV-2026-1049"]!.text)
 	assert.equal(desk.getRecordedDocumentText("INV-7733"), null, "a document that is not in the recording is not served from it")
+	// A stored run is never edited. Where a document has changed since (the account number in INV-ES-55820 was replaced by a
+	// documented test number), the replay reads the text the run was recorded on, kept in server/data/recordings/documents.
+	const asRecorded = desk.getRecordedDocumentText("INV-ES-55820")
+	assert.ok(asRecorded, "the changed-account document is still served for the stored runs")
+	assert.notEqual(asRecorded, DOCS["INV-ES-55820"]!.text, "as it was when they read it, not as it is now")
+	assert.match(DOCS["INV-ES-55820"]!.text, /ES07 0012 0345 0300 0006 7890/, "the document the desk processes today carries the documented test number")
 	// reading the recording changes nothing on the desk
 	assert.equal(desk.snapshot().cases.length, 0)
 	refused(() => desk.act("INV-2026-1049", "approve", { reason: "trying to approve a recorded case" }), 404)

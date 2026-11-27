@@ -48,8 +48,8 @@ Freight Hamburg -> Belgrade, 2 pallets          2   410.00     820.00
                                                     TOTAL EUR 820.00
 
 Please note our bank account has changed. Pay only to:
-IBAN: DE02 1203 0000 0000 2020 51
-BIC: BYLADEM1001
+IBAN: DE62 3704 0044 0532 0130 01
+BIC: COBADEFFXXX
 Payment reference: INV-2026-1058`,
 	},
 	{

@@ -11,7 +11,7 @@ const f = (value: string, quote: string) => ({ value, quote })
 
 export const PDF_READINGS: Record<string, ReadingInput> = {
 	"INV-2026-1062": { fields: { creditorName: f("NORDLICHT LOGISTIK GmbH", "NORDLICHT LOGISTIK GmbH"), invoiceNumber: f("INV-2026-1062", "Invoice number: INV-2026-1062"), invoiceDate: f("2026-11-25", "Invoice date: 25 November 2026"), dueDate: f("2026-12-25", "Due date: 25 December 2026"), currency: f("EUR", "TOTAL EUR 1,005.00"), gross: f("1005.00", "TOTAL EUR 1,005.00"), net: f("1005.00", "Net 1,005.00"), iban: f("DE89370400440532013000", "IBAN: DE89 3704 0044 0532 0130 00"), bic: f("COBADEFFXXX", "BIC: COBADEFFXXX"), reference: f("INV-2026-1062", "Payment reference: INV-2026-1062") }, lines: [{ label: "Freight", amount: "820.00", quote: "Freight Hamburg -> Belgrade, 2 pallets 2 410.00 820.00" }, { label: "Customs handling", amount: "185.00", quote: "Customs handling 1 185.00 185.00" }] },
-	"FACTURA-56012": { fields: { creditorName: f("IBERIA OFFICE SUPPLIES S.L.", "IBERIA OFFICE SUPPLIES S.L."), invoiceNumber: f("56012", "FACTURA 56012"), invoiceDate: f("2026-11-25", "Fecha: 25/11/2026"), currency: f("EUR", "TOTAL EUR 850.00"), gross: f("850.00", "TOTAL EUR 850.00"), iban: f("ES6621000418401234567891", "IBAN: ES66 2100 0418 4012 3456 7891") } },
+	"FACTURA-56012": { fields: { creditorName: f("IBERIA OFFICE SUPPLIES S.L.", "IBERIA OFFICE SUPPLIES S.L."), invoiceNumber: f("56012", "FACTURA 56012"), invoiceDate: f("2026-11-25", "Fecha: 25/11/2026"), currency: f("EUR", "TOTAL EUR 850.00"), gross: f("850.00", "TOTAL EUR 850.00"), iban: f("ES0700120345030000067890", "IBAN: ES07 0012 0345 0300 0006 7890") } },
 	"INV-2026-1064": { fields: { creditorName: f("NORDLICHT LOGISTIK GmbH", "NORDLICHT LOGISTIK GmbH"), invoiceNumber: f("INV-2026-1064", "Invoice number: INV-2026-1064"), invoiceDate: f("2026-11-26", "Invoice date: 26 November 2026"), currency: f("EUR", "TOTAL EUR 2,105.00"), gross: f("2105.00", "TOTAL EUR 2,105.00"), net: f("2105.00", "Net 2,105.00"), iban: f("DE89370400440532013000", "IBAN: DE89 3704 0044 0532 0130 00") } },
 }
 
@@ -23,13 +23,13 @@ export const PDF_RESPONSES: Required<Pick<Script, "audits" | "validations" | "in
 	},
 	validations: {
 		"INV-2026-1062": { summary: "Nordlicht Logistik GmbH is vendor V-001. The IBAN passes the checksum and is the one on file. No earlier payment or document carries this invoice number." },
-		"FACTURA-56012": { summary: "Iberia Office Supplies S.L. is vendor V-004. The IBAN on the document passes the checksum but is not the one on file. The lookup returned no callback record for this vendor and this account.", issues: [{ code: "IBAN_MISMATCH", severity: "block", message: "The document asks for ES66 2100 0418 4012 3456 7891. The vendor master has ES91 2100 0418 4502 0005 1332.", refs: ["X:iban", "V:V-004"] }] },
+		"FACTURA-56012": { summary: "Iberia Office Supplies S.L. is vendor V-004. The IBAN on the document passes the checksum but is not the one on file. The lookup returned no callback record for this vendor and this account.", issues: [{ code: "IBAN_MISMATCH", severity: "block", message: "The document asks for ES07 0012 0345 0300 0006 7890. The vendor master has ES91 2100 0418 4502 0005 1332.", refs: ["X:iban", "V:V-004"] }] },
 		"INV-2026-1064": { summary: "Nordlicht Logistik GmbH is vendor V-001. The IBAN passes the checksum and is the one on file. No earlier payment or document carries this invoice number." },
 	},
 	investigations: {
 		"FACTURA-56012": {
 			category: "Beneficiary account differs from the vendor master", assessment: "confirmed_discrepancy",
-			verifiedFacts: [{ text: "The creditor matches vendor V-004, Iberia Office Supplies S.L.", refs: ["X:creditorName", "V:V-004"] }, { text: "The document asks for payment to ES66 2100 0418 4012 3456 7891. The vendor master holds ES91 2100 0418 4502 0005 1332.", refs: ["X:iban", "V:V-004"] }],
+			verifiedFacts: [{ text: "The creditor matches vendor V-004, Iberia Office Supplies S.L.", refs: ["X:creditorName", "V:V-004"] }, { text: "The document asks for payment to ES07 0012 0345 0300 0006 7890. The vendor master holds ES91 2100 0418 4502 0005 1332.", refs: ["X:iban", "V:V-004"] }],
 			conflictingEvidence: [{ text: "The document says the vendor changed bank. The trusted record does not show that change.", refs: ["X:iban", "V:V-004"] }],
 			explanation: "The invoice is otherwise plausible, but it asks for payment to an account that is not the one on file. A valid checksum shows the number is well formed, not who owns the account. No verified account-change evidence is available.",
 			unknowns: ["Whether the vendor really changed bank. No callback record exists for this vendor and this account."],

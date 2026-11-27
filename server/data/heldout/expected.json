@@ -10,7 +10,7 @@
     },
     {
       "id": "BP-2026-0312", "file": "BP-2026-0312.txt", "kind": "B. known vendor, different bank account",
-      "facts": { "vendorId": "V-007", "creditor": "Baltic Print OÜ", "invoiceNumber": "BP-2026-0312", "gross": "1629.00", "currency": "EUR", "iban": "EE891010220034796011" },
+      "facts": { "vendorId": "V-007", "creditor": "Baltic Print OÜ", "invoiceNumber": "BP-2026-0312", "gross": "1629.00", "currency": "EUR", "iban": "EE222200221020145682" },
       "grossQuote": "Total due EUR",
       "discrepancy": "beneficiary",
       "expected": ["BLOCKED"]

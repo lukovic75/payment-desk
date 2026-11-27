@@ -4,7 +4,7 @@
 
 ## 1. Scope
 
-Everything the application reads as financial data is in [`server/data/`](server/data) (40 tracked files) and in the test fixtures under [`server/test/`](server/test). There is no database, no import from another system and no network source: the files are the dataset. The application never contacts a bank, a supplier, a tax registry or an account-checking service.
+Everything the application reads as financial data is in [`server/data/`](server/data) (41 tracked files) and in the test fixtures under [`server/test/`](server/test). There is no database, no import from another system and no network source: the files are the dataset. The application never contacts a bank, a supplier, a tax registry or an account-checking service.
 
 ## 2. Source inventory
 
@@ -24,9 +24,10 @@ Everything the application reads as financial data is in [`server/data/`](server
 | `server/test/fixtures.ts`, `server/test/showcase-responses.ts` | Scripted agent answers | A | Written by hand; the showcase answers were written after what live models returned in the run of 26 November | None |
 | `server/data/recordings/live-2026-11-26.json` | Stored run with hosted models | F | Recorded by the application | Model output only |
 | `server/data/recordings/current.json` | Stored run with a local model | F | Recorded by the application (`scripts/capture-recording.mjs`) | Model output only |
+| `server/data/recordings/documents/INV-ES-55820.txt` | One document as it was when the two runs above read it | A | Kept unchanged when its account number was replaced in the live dataset | None |
 | Decision reports, operational summary, Stress Lab and experiment results | Output | E | Computed at run time from the files above; none is stored in the repository | None |
 
-Classes: **A** fully synthetic, written for Payment Desk. **B** generated deterministically from synthetic definitions. **C** public technical example. **D** public dataset. **E** derived application output. **F** recorded model execution. **G** unknown origin. No file is of class D. The only class C material is the set of account numbers described in section 5, and three of those are class G.
+Classes: **A** fully synthetic, written for Payment Desk. **B** generated deterministically from synthetic definitions. **C** public technical example. **D** public dataset. **E** derived application output. **F** recorded model execution. **G** unknown origin. No file is of class D. The only class C material is the set of account numbers described in section 5.
 
 "Written by hand for this project" is the authors' own account: the files were composed during development, with an AI coding assistant, and first appear in this repository's own commits. No customer record, real invoice, payment history or private document was used as a source.
 
@@ -42,20 +43,29 @@ Company names (Nordlicht Logistik, Atelier Lumière, Tulp Cloud, Iberia Office S
 
 ## 5. Financial identifiers
 
-**IBANs.** Thirteen checksum-valid IBANs appear in data and tests. They were taken from, or patterned on, example numbers that circulate in technical documentation. What was checked on 27 November 2026, without contacting any bank or account-checking service:
+**IBANs.** Thirteen checksum-valid IBANs appear in data and tests. Eight are test account numbers that a payment provider publishes for its sandbox; five are example numbers of the kind printed in technical documentation. What was checked on 27 November 2026, without contacting any bank or account-checking service:
 
 | IBAN | Used as | Finding |
 |---|---|---|
+| `DE89 3704 0044 0532 0130 00` | vendor V-001 | Test number in Stripe's SEPA Direct Debit testing documentation. Class C |
+| `NL91 ABNA 0417 1643 00` | vendor V-003 | Stripe test number. Class C |
+| `ES91 2100 0418 4502 0005 1332` | vendor V-004 | Test number in both Stripe's and Adyen's documentation. Class C |
+| `AT61 1904 3002 3457 3201` | vendor V-005 | Stripe test number. Class C |
+| `EE38 2200 2210 2014 5685` | vendor V-007 | Stripe test number. Class C |
+| `ES07 0012 0345 0300 0006 7890` | the changed account in the fraud scenario | Stripe test number. Class C |
+| `DE62 3704 0044 0532 0130 01` | the "new" account in the callback record and the pasted sample | Stripe test number. Class C |
+| `EE22 2200 2210 2014 5682` | an account in a held-out document | Stripe test number. Class C |
 | `FR76 3000 6000 0112 3456 7890 189` | vendor V-002 | Listed as the example for France on iban.com/structure. Class C |
-| `DE89 3704 0044 0532 0130 00`, `NL91 ABNA 0417 1643 00`, `ES91 2100 0418 4502 0005 1332`, `AT61 1904 3002 3457 3201`, `HR12 1001 0051 8630 0016 0`, `EE38 2200 2210 2014 5685`, `GB29 NWBK 6016 1331 9268 19`, `CH93 0076 2011 6238 5295 7`, `RS35 2600 0560 1001 6113 79` | vendors V-001, V-003 to V-007, one unknown vendor, one test, the paying company | Chosen because they are widely reproduced as per-country examples in documentation. **That was not confirmed against a primary source in this audit**: they are not the examples on the page that was checked. Class C by intent, unconfirmed |
-| `DE02 1203 0000 0000 2020 51` | the "new" account in the callback record | **Origin not established.** Class G |
-| `ES66 2100 0418 4012 3456 7891` | the changed account in the fraud scenario | **Origin not established.** Class G |
-| `EE89 1010 2200 3479 6011` | an account in a held-out document | **Origin not established.** Class G |
+| `HR12 1001 0051 8630 0016 0`, `GB29 NWBK 6016 1331 9268 19`, `CH93 0076 2011 6238 5295 7`, `RS35 2600 0560 1001 6113 79` | vendor V-006, one unknown vendor, one test, the paying company | Chosen because they are widely reproduced as per-country examples. **Not confirmed against a primary source in this audit.** Class C by intent, unconfirmed |
+
+The provider lists were read on 27 November 2026 from https://docs.stripe.com/testing?payment-method=sepa-direct-debit and https://docs.adyen.com/development-resources/test-cards-and-credentials/alternative-payment-method-credentials through a page-reading tool that returned them as extracted text, not as a verbatim copy; each number used here also passes the checksum, which a transcription error would almost certainly break.
+
+**Three numbers were replaced on 27 November 2026.** Until then the changed account in the fraud scenario, the account in the callback record and one account in a held-out document were numbers whose origin could not be established (`ES66 … 7891`, `DE02 … 2051`, `EE89 … 6011`). They were replaced by the provider test numbers above in every document, PDF, fixture and test. The first of them remains in one place: the two stored recordings read `INV-ES-55820` before the change, and a recording is never edited, so the document as it was then is kept in `server/data/recordings/documents/` for their replay only. The desk does not process that file.
 
 What follows from this, stated plainly:
 
 - **A valid checksum says a number is well formed. It says nothing about whether an account exists or whose it is.** Example IBANs use real bank codes, and a published example is not a guarantee that no such account exists. This repository does not claim that any of these accounts is non-existent.
-- No officially non-routable test IBAN exists for these country formats, so the identifiers were not replaced: a randomly generated valid IBAN would be no safer and could not be shown to be unused.
+- A provider's test number is the closest thing to an agreed sandbox account there is, which is why they are used where one exists. It is still a well-formed number with a real bank code; that a provider documents it for testing does not prove that no bank ever issued it.
 - Nothing in the application can reach an account. Approval writes a JSON draft marked as sandbox; there is no bank connection, no payment file format a bank accepts, and no code path that sends anything.
 - Numbers with a deliberately wrong checksum (for example `ES91 … 1333`) are used where a test needs an invalid account.
 
@@ -115,11 +125,11 @@ Neither recording was made with the code as it is now. In particular, the change
 
 ## 11. Public sources
 
-None of the data comes from a public dataset. The only external check made for this document was the list of example IBANs at https://www.iban.com/structure (read on 27 November 2026), used to see which of the account numbers are published examples.
+None of the data comes from a public dataset. The external checks made for this document were the list of example IBANs at https://www.iban.com/structure and the test account numbers in Stripe's and Adyen's testing documentation (all read on 27 November 2026), used to see which of the account numbers are published examples or test numbers.
 
 ## 12. Known uncertainties
 
-1. Nine IBANs are believed to be widely published examples but were not confirmed against a primary source; three have no established origin (section 5).
+1. Four IBANs are believed to be widely published examples but were not confirmed against a primary source; the provider test numbers were read through a tool that returned extracted text (section 5). One number of unknown origin remains inside the document archived for the two stored recordings.
 2. No IBAN here can be shown to belong to no one. The application cannot reach an account, which is the safeguard that matters.
 3. Invented company names and tax-number patterns may coincide with real ones; this was not checked.
 4. "Written by hand for this project" is the authors' statement, supported by the repository history, not by an independent audit.
@@ -133,7 +143,7 @@ Read from https://build.jigjoy.ai/rules and https://build.jigjoy.ai/tracks/finan
 |---|---|---|---|
 | Synthetic or public data only | All data is synthetic and written for the project | Section 2 | Identifier origin, section 5 |
 | No real customer data | None used | Sections 2, 3, 10 | Authors' statement |
-| No real accounts, no money movement | No bank connection; approval writes a sandbox JSON draft | `exportDraft` in `server/desk.ts`; the invariant "a draft for every approval and for nothing else" in the Stress Lab | Example IBANs are not provably unused |
+| No real accounts, no money movement | No bank connection; approval writes a sandbox JSON draft; account numbers are provider test numbers or published examples | `exportDraft` in `server/desk.ts`; the invariant "a draft for every approval and for nothing else" in the Stress Lab | Four example IBANs unconfirmed at source; none is provably unused |
 | Not financial advice | The product checks invoices against records; it recommends nothing to invest in or buy | README | None |
 | Traceable financial figures | Every value carries its source line, record or calculation, re-read by code | `server/integrity.ts`, decision report | Field meaning, section 7 |
 | At least two agents cooperating through Mozaik | Five agents on one Mozaik runtime | `server/desk.ts`, `ARCHITECTURE_PROOF.md` | None |

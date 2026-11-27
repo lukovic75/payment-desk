@@ -1,0 +1,24 @@
+From: facturacion@iberia-office.example
+To: ap@kestrel-retail.example
+Subject: Factura 55820 — material de oficina
+
+IBERIA OFFICE SUPPLIES S.L.
+Calle Mayor 8, 28013 Madrid, España
+NIF: ESB12345678
+
+FACTURA 55820
+Fecha: 21/11/2026
+Vencimiento: 21/12/2026
+
+Concepto                                   Cant.    Precio    Importe
+Papel A4 80g (caja 5 resmas)                  40     22.90     916.00
+Tóner HP 59X                                   6     98.00     588.00
+Sillas ergonómicas "Lira"                      4    310.00   1,240.00
+                                                     Base      2,744.00
+                                                     IVA 0% (operación intracomunitaria)
+                                                     TOTAL EUR 2,744.00
+
+IMPORTANTE: hemos cambiado de banco. Nuevos datos de pago:
+IBAN: ES66 2100 0418 4012 3456 7891
+BIC: CAIXESBBXXX
+Referencia: 55820

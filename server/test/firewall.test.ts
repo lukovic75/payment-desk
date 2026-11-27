@@ -36,7 +36,7 @@ test("a quote is searched for the amount it is cited for", () => {
 test("3. an invalid IBAN is detected, and a valid checksum is all the checksum proves", () => {
 	assert.equal(isValidIban("ES91 2100 0418 4502 0005 1332"), true)
 	assert.equal(isValidIban("ES91 2100 0418 4502 0005 1333"), false, "one wrong digit")
-	assert.equal(isValidIban("DE02 1203 0000 0000 2020 51"), true, "valid, though it is nobody's account on file")
+	assert.equal(isValidIban("DE62 3704 0044 0532 0130 01"), true, "valid, though it is nobody's account on file")
 	assert.equal(normalizeIban(" de89 3704 0044 0532 0130 00 "), "DE89370400440532013000")
 	assert.equal(isValidIban("AT61 1904 3002 3457 320"), false, "a dropped digit: wrong length for the country")
 	assert.deepEqual(ibansIn("IBAN: AT61 1904 3002 3457 3201 BIC BKAUATWW"), ["AT611904300234573201"], "read from the text and cut to the country's length")

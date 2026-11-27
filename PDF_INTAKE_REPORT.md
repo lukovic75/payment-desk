@@ -95,9 +95,9 @@ Remote: **passed.** GitHub Actions run 45915311184 on commit `272ed34`, Node 20 
 
 Looked at in headless Chromium on the scripted server, 1440 × 900 and 375 × 812, dark and light: the intake dialog empty, with a mixed queue (unregistered PDF, broken PDF, executable, text, sample), with a preview, and after processing; the evidence drawer on pages one and two with the marker, zoomed, and on the other page without it; the payment's Evidence tab with the original and with the extracted text; reduced motion. No horizontal overflow at either width; no page error.
 
-![A figure opened on page two of the original PDF](docs/pdf-evidence.jpg)
+![A figure opened on page two of the original PDF](docs/history/pdf-evidence.jpg)
 
-![Add documents with three parsed PDFs and a preview](docs/pdf-intake.jpg)
+![Add documents with three parsed PDFs and a preview](docs/history/pdf-intake.jpg)
 
 Not looked at: Safari and Firefox; a real phone; a keyboard-only pass through the new dialog.
 
