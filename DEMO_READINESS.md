@@ -36,7 +36,7 @@ npm run demo             # builds the UI, serves it on http://localhost:8799
 | `npm test` | 142 of 142, eleven files, about a minute (the PDF tests parse real files); also on Node 20.20.2 and 22.23.5 |
 | `npm run lab` | 12 of 12 scenarios |
 | `npm run build` | pass |
-| `npm run test:browser` | 24 of 24: the agent inspector's model label, the two-amount rule in the workspace, PDF evidence on its page with the line marked, document intake (sample parsed, previewed, processed on request; refusals; an unregistered document; a duplicate), and startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
+| `npm run test:browser` | 28 of 28: the agent inspector's model label, the two-amount rule in the workspace, PDF evidence on its page with the line marked, document intake (sample parsed, previewed, processed on request; refusals; an unregistered document; a duplicate), and startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
 | Looked at in a browser | Opening, each scenario, both drawers, summary, recorded view and failure state; dark and light; 375, 768, 1024, 1280, 1440 and 1920 px wide with no horizontal overflow; reduced motion |
 
 What the scripted demonstration does not show: anything about a language model. The agents' answers are fixed text.

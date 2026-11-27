@@ -12,7 +12,7 @@ Every claim below names the file that implements it and the evidence that it wor
 |---|---|
 | `npm run typecheck` (server and UI) | passes |
 | `npm test` | 142 of 142 pass, about a minute, eleven files, on Node 20.20.2, 22.23.5 and 26.8.2 (see `QA_REPORT.md`, `AGENT_INTELLIGENCE_REPORT.md` and `TEST_MATRIX.md` for what they cover) |
-| `npm run test:browser` | 24 of 24 browser checks of the interactive showcase and PDF intake, headless Chrome against the scripted server |
+| `npm run test:browser` | 24 of 28 browser checks of the interactive showcase and PDF intake, headless Chrome against the scripted server |
 | Clean copy of the repository files | `npm ci` (npm 10.8.2 and 11.19.1), typecheck, tests, build, lab, `npm run demo` and the browser checks all pass with no `.env`, no saved state and no build output |
 | GitHub Actions | `.github/workflows/ci.yml`, Node 20 and 22 on Linux: **passed** on commit `272ed34` (with PDF intake) and on every commit since `4c5b2ba`. The first run failed at `npm ci` and exposed a lockfile that npm 10 rejected; that run is in the history |
 | Scripted showcase (`npm run demo`) | four scenarios, each ending as `scenarios.json` expects; looked at in dark and light, phone to wide desktop |

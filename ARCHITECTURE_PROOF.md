@@ -136,7 +136,7 @@ Run on Node 20.20.2, 22.23.5 and 26.8.2 (macOS, Apple silicon), from a copy that
 | `npm run build` | passes |
 | `npm run lab` | 12 of 12 stress scenarios |
 | `npm run demo` | builds and serves the scripted showcase on http://localhost:8799 |
-| `npm run test:browser` | 24 of 24 (Node 22 or newer and a local Chrome or Chromium) |
+| `npm run test:browser` | 28 of 28 (Node 22 or newer and a local Chrome or Chromium) |
 
 GitHub Actions runs the first five on Node 20 and 22, on Linux ([.github/workflows/ci.yml](.github/workflows/ci.yml)); the run on commit `6ed3345` passed, as did every run since `4c5b2ba`. The run before it failed at `npm ci` and is what exposed a lockfile that npm 10 rejected.
 

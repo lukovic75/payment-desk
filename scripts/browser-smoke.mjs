@@ -118,18 +118,44 @@ async function check(name, fn) {
 // ───────── the scripted showcase, start to finish ─────────
 const base = await startServer()
 
-await check("the application starts and says what it is for", async () => {
+await check("the application starts and says what it is for, to whom, with one headline", async () => {
 	await open(`${base}/#/overview`)
-	await until(`txt(".onboard h2") === "AI investigates. Code decides."`, "the opening statement on the overview")
+	await until(`txt(".page-head h1") === "AI investigates. Code decides." && txt(".page-kicker") === "Accounts payable workspace"`, "the product statement and who it is for")
+	await until(`$$(".view h1, .view h2").filter((h) => h.getBoundingClientRect().height > 0).length === 1`, "one headline on the empty overview, not two")
 	await until(`txt(".nav-env")?.includes("Sandbox")`, "the sandbox indicator")
-	await until(`txt(".banner.warn")?.startsWith("Scripted demo: real orchestration, predefined model responses.")`, "the scripted banner on the workspace")
+})
+await check("an empty desk shows one way into the demo and labelled examples, and counts none of them", async () => {
+	const entries = await page(`$$("a, button").filter((b) => b.getBoundingClientRect().height > 0 && /^(Start demo|Continue demo|Demo summary)$/.test(b.textContent.replace(/\\s+/g, " ").trim())).length`)
+	if (entries !== 1) throw new Error(`${entries} demo entry points are visible on the empty overview`)
+	await until(`$$(".view .btn-primary").length === 1 && txt(".view .btn-primary") === "Start demo" && control("Add document") != null`, "one primary action and one secondary one")
+	await until(`txt(".onboard-preview figcaption")?.includes("Illustrative examples") && $$(".onboard-preview li").length === 3 && txt(".onboard-preview")?.includes("examples, not payments")`, "three outcomes shown as labelled examples")
+	if (await page(`$$(".metric").length`)) throw new Error("financial figures are shown for a desk with nothing on it")
+	const state = await (await fetch(`${base}/api/state`)).json()
+	if (state.cases.length !== 0 || state.dailyAutoApproved !== 0) throw new Error("the examples reached the desk state")
+})
+await check("the execution mode is always on screen, calmly, with its explanation one press away", async () => {
+	if (await page(`$(".banner.warn") != null`)) throw new Error("a warning banner is shown for an ordinary scripted run")
+	await until(`txt(".mode-chip b") === "Scripted demo" && txt(".mode-chip")?.includes("predefined AI responses")`, "the mode in the top bar")
+	await page(`$(".mode-chip").click()`)
+	await until(`txt(".mode-pop")?.includes("not live AI") && $(".mode-chip").getAttribute("aria-expanded") === "true"`, "the full explanation")
+	await page(`document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }))`)
+	await until(`$(".mode-pop") == null`, "the explanation to close on Escape")
+})
+await check("the sidebar is grouped by intent and every place says what it is for", async () => {
+	const labels = await page(`$$(".nav .nav-groups .nav-label, .nav .nav-groups .nav-item").map((e) => e.textContent.replace(/\\s+/g, " ").trim())`)
+	const want = ["Workspace", "Overview", "Payments", "Review queue", "Intelligence", "Agent activity", "Payment risks", "Verification", "Evidence & audit", "Stress lab"]
+	if (JSON.stringify(labels) !== JSON.stringify(want)) throw new Error(`the sidebar reads ${JSON.stringify(labels)}`)
+	if (!(await page(`$$(".nav .nav-groups .nav-item").every((a) => (a.getAttribute("aria-description") ?? "").length > 12 && a.dataset.about === a.getAttribute("aria-description"))`))) throw new Error("a navigation item has no description")
+	// the old addresses still open the same places
+	for (const [hash, title] of [["#/firewall", "Payment risks"], ["#/lab", "Stress lab"], ["#/audit", "Evidence & audit"], ["#/activity", "Agent activity"], ["#/queue", "Review queue"]]) { await open(`${base}/${hash}`); await until(`document.title.startsWith(${JSON.stringify(title)})`, `${hash} to open ${title}`) }
+	await open(`${base}/#/overview`)
 })
 await check("navigation between pages works", async () => {
 	await click("Payments"); await until(`location.hash === "#/inbox" && document.title.startsWith("Payments")`, "the Payments page")
 	await click("Overview"); await until(`location.hash === "#/overview"`, "the Overview page")
 })
 await check("there is one way into the demo, and the mode is labelled as scripted, never as live", async () => {
-	await until(`$$(".bar-actions .btn-primary").length === 1 && txt(".bar-actions .btn-primary") === "Start demo"`, "one Start demo action in the top bar")
+	await until(`$$(".btn-primary").filter((b) => b.getBoundingClientRect().height > 0).length === 1 && txt(".view .btn-primary") === "Start demo"`, "one Start demo action on the empty overview, in the page")
 	await click("Start demo")
 	await until(`txt(".sc-hero h1") === "AI investigates. Code decides."`, "the showcase opening")
 	await until(`txt(".sc-mode.current .tag") === "Scripted demo" && txt(".sc-mode.current b") === "Real orchestration, predefined model responses"`, "the scripted mode stated on the opening")
@@ -178,6 +204,20 @@ await check("the same figures open on their page of the original PDF, each marke
 	await until(`txt(".drawer[data-open=true] .pdf-page") === "Page 1 of 2" && $(".drawer[data-open=true] .pdf-frame")?.dataset.state === "ready" && $(".drawer[data-open=true] .pdf-hl") == null`, "no marker on a page the evidence is not on")
 	await page(`$(".drawer[data-open=true] [aria-label=Close]").click()`)
 	await until(`$(".drawer[data-open=true]") == null`, "the drawer to close")
+})
+await check("leaving the showcase and coming back returns to the scenario that was on screen, and runs nothing", async () => {
+	const before = await (await fetch(`${base}/api/state`)).json()
+	await click("Payments")
+	await until(`location.hash === "#/inbox"`, "another page")
+	await page(`$$(".bar-actions a").find((a) => /Continue demo|Demo summary/.test(a.textContent)).click()`)
+	await until(`location.hash === "#/showcase" && txt(".sc-head h1") === "Two agents find two different amounts" && txt(".verdict .what") === "Held for a person"`, "scenario 3 again, not the next one that has not run")
+	if (await page(`control("Run this scenario") != null`)) throw new Error("the showcase came back on a scenario that has not run")
+	await send("Page.reload")
+	await until(`document.readyState === "complete" && txt(".sc-head h1") === "Two agents find two different amounts"`, "the same scenario after a reload")
+	const after = await (await fetch(`${base}/api/state`)).json()
+	const runs = (s) => s.cases.map((c) => `${c.id}:${c.runs.length}:${c.version}`).sort().join(",")
+	if (runs(before) !== runs(after)) throw new Error("navigating away and back changed a case or started a run")
+	if (JSON.stringify(before.showcase.steps.map((x) => x.result)) !== JSON.stringify(after.showcase.steps.map((x) => x.result))) throw new Error("navigating changed a scenario result")
 })
 await check("the agent challenge is inspectable, with both sides and its status", async () => {
 	await click("Inspect agent challenge")
@@ -247,7 +287,8 @@ await check("two amounts in one document: the workspace offers a vendor confirma
 await check("leaving the demo returns to the workspace, and the way back says where the demo stands", async () => {
 	await open(`${base}/#/showcase`)
 	await click("Exit demo")
-	await until(`location.hash === "#/overview" && txt(".bar-actions .btn-primary") === "Demo summary"`, "the overview with a Demo summary action")
+	await until(`location.hash === "#/overview" && $$(".bar-actions a").some((a) => a.textContent.trim() === "Demo summary")`, "the overview with a Demo summary action")
+	await until(`$$(".view h1").length === 1 && /need(s)? your decision|Nothing is waiting for you/.test(txt(".page-head h1"))`, "one headline that says what there is to do")
 	await until(`$$(".metric").length === 4`, "the workspace figures for the demo payments")
 })
 await check("the appearance switches between dark and light", async () => {

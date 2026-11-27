@@ -18,7 +18,7 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 
 | Claim | In the app | In the code | Test or document |
 |---|---|---|---|
-| Real Mozaik orchestration | Agent Activity → Execution details | [`server/desk.ts`](server/desk.ts) lines 73, 381, 874 to 898 | [`ARCHITECTURE_PROOF.md`](ARCHITECTURE_PROOF.md) |
+| Real Mozaik orchestration | Agent activity → Execution details | [`server/desk.ts`](server/desk.ts) lines 73, 381, 874 to 898 | [`ARCHITECTURE_PROOF.md`](ARCHITECTURE_PROOF.md) |
 | Independent Auditor | Showcase scenario 3, *Raised by* | `runAuditor`, [`server/desk.ts`](server/desk.ts#L680) | `intelligence.test.ts`: the Auditor's input holds nothing from the Extractor |
 | Parallel execution | Any scenario → *How the agents worked* → *Execution record* | two handlers on one event, [`server/desk.ts`](server/desk.ts#L876) | `workflow.test.ts`: recorded intervals overlap |
 | Cross-agent challenges | Scenario 3 → **Inspect agent challenge** | [`server/challenges.ts`](server/challenges.ts) | `intelligence.test.ts`, `resolution.test.ts` |
@@ -28,8 +28,8 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 | Reproducible showcase | `npm ci && npm run demo` | [`server/showcase.ts`](server/showcase.ts) | `showcase.test.ts`, `npm run test:browser` |
 | PDF intake with page evidence | **Add documents** → a sample PDF; showcase scenario 3 runs on a two-page PDF | [`server/pdf.ts`](server/pdf.ts), [`server/pdf-worker.mjs`](server/pdf-worker.mjs) | `pdf.test.ts`, `npm run test:browser` |
 | Real models with no key | `LOCAL_MODEL=gemma2:9b npm run demo:local`; a stored run of this version is in the showcase | [`server/local.ts`](server/local.ts) | `local.test.ts`; *Local inference* and *Live verification* below |
-| Financial Stress Lab | Financial Stress Lab → Run all 12 | [`server/lab/`](server/lab) | `npm run lab`, `lab.test.ts` |
-| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 142 tests, 12 lab scenarios, 24 browser checks (the browser checks run locally, not in CI) |
+| Financial Stress Lab | Stress lab → Run all 12 | [`server/lab/`](server/lab) | `npm run lab`, `lab.test.ts` |
+| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 142 tests, 12 lab scenarios, 28 browser checks (the browser checks run locally, not in CI) |
 | Real models on this version | Showcase opening → *Watch the recorded run of this version* (a local model, 27 Nov); *Watch the recorded execution* for the earlier hosted run | [`server/data/recordings/`](server/data/recordings) | Local model: 2 of 4 scenarios as expected, 2 failed safely. Hosted models: **not verified** (provider credit). See *Live verification* |
 
 Walkthrough: [`DEMO_GUIDE.md`](DEMO_GUIDE.md). Likely questions: [`JUDGE_QA.md`](JUDGE_QA.md).
@@ -54,7 +54,7 @@ This is the **scripted demo: real orchestration, predefined model responses**. T
 ```bash
 npm test                 # 142 automated tests on the real Mozaik runtime with a scripted model, about a minute
 npm run lab              # the 12 stress scenarios from the terminal, scripted model, a few seconds
-npm run test:browser     # 24 browser checks of the showcase and PDF intake (needs Node 22+ and a local Chrome or Chromium)
+npm run test:browser     # 28 browser checks of the showcase and PDF intake (needs Node 22+ and a local Chrome or Chromium)
 ```
 
 With real models and no key, on your own machine (see *Local inference* below):
@@ -404,7 +404,7 @@ cp .env.example .env     # only for live models
 | `LOCAL_MODEL=<model> npm run demo:local` | builds the UI and serves it on http://localhost:8798 with agents on a local model (Ollama or another OpenAI-compatible local server) | no |
 | `npm run heldout -- http://localhost:8798` | uploads the five held-out invoices to a running server with real inference and compares the outcome with `server/data/heldout/expected.json` | no |
 | `npm test` | 142 automated tests, scripted model | no |
-| `npm run test:browser` | 24 browser checks of the showcase and PDF intake, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
+| `npm run test:browser` | 28 browser checks of the showcase and PDF intake, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
 | `npm run lab` | Stress Lab in the terminal, deterministic path | no |
 | `npm run lab:live`, `npm run lab:benchmark` | Stress Lab and the benchmark with live models | a key, or `DESK_INFERENCE=local` with `LOCAL_MODEL` |
 | `npm run cli` | the sixteen demo documents with live models, headless | yes |
@@ -469,17 +469,19 @@ One real defect was found by the Stress Lab while building it: when a document w
 
 ## The app
 
+The sidebar is grouped by what a person comes to do: **Workspace** (Overview, Payments, Review queue), **Intelligence** (Agent activity, Payment risks) and **Verification** (Evidence & audit, Stress lab). Pointing at an item, or focusing it, says in one sentence what is there. An empty desk shows what the product does, one **Start demo** action and three labelled examples of the outcomes instead of four zeros. Where the agents' answers come from (scripted demo, live local AI, live AI) is always in the top bar, with the full explanation one press away.
+
 | View | For |
 |---|---|
-| **Interactive Showcase** | The guided demo. An opening that says what the product is for and which mode this server runs in, then four scenarios one at a time: the agents drawn from the run's own execution state, the outcome the controls enforced beside what the scenario file expects, every figure with its source, the agent challenge, the recorded overlap of the two independent checks, an optional resolution of the held payment with a vendor confirmation, and a summary counted from the payment cases. A recorded live run can be replayed from here. |
+| **Guided demo** (the **Start demo** button, top right of every page) | The interactive showcase. An opening that says what the product is for and which mode this server runs in, then four scenarios one at a time: the agents drawn from the run's own execution state, the outcome the controls enforced beside what the scenario file expects, every figure with its source, the agent challenge, the recorded overlap of the two independent checks, an optional resolution of the held payment with a vendor confirmation, and a summary counted from the payment cases. A recorded live run can be replayed from here. |
 | **Overview** | What the product does in one line, four figures (pending review, approved, blocked exposure per currency and never called "money saved", auto-approval limit used), the three most serious payments each with its issue in one sentence, the five agents at a glance, and an optional first-visit guide. |
-| **Payments / Review Queue** | A list beside the selected payment. Search, a status filter, sort, keyboard navigation. The queue holds what is blocked or needs approval, the most serious first. |
+| **Payments / Review queue** | A list beside the selected payment. Search, a status filter, sort, keyboard navigation. The queue holds what is blocked or needs approval, the most serious first. |
 | **Payment workspace** | Four tabs. *Overview*: the decision in one sentence, each reason with the values it rests on and their sources, the actions the server allows, and the payment facts; how it was decided is folded beneath. A payment with a discrepancy (conflicting amounts, readings that disagree, a possible split) is not approved by a click: the server refuses the approval until a verified vendor confirmation is attached or the reviewer states in writing how it was resolved, and the primary action is to request verification. A payment that is only above a limit is approved directly. *Verification*: every control with its evidence, the investigation, both agents' readings side by side. *Evidence*: the whole ledger beside the source document. *Activity*: this payment's agent timeline, review history and log. Any reference opens an evidence inspector with the cited lines. |
 | **Add documents** | Drag and drop or choose several files, or try a synthetic sample PDF. A queue shows what each file is and what was read from it; a PDF is previewed as the original. Refusals say why. Processing starts only when asked. |
-| **Payment Firewall** | Every payment a control stopped or flagged: the exception in one sentence, the trusted record beside the incoming document, what each agent found, and the decision. |
-| **Agent Activity** | *Workspace*: five glass agents and two code gates in one composition, drawn from recorded state. An agent leans toward its input while its loop runs, a capsule travels a connection at the moment the receiving loop starts, and the conditional route to the Investigator lights only on a real exception. It follows a live run, and it replays any finished payment from the stored start and finish times (pause, seek, 8 s, 16 s or real time) without calling an agent. *Execution details*: every loop on one clock, concurrency figures, and a table with model, retries, tokens and trigger. |
-| **Evidence & Audit** | Evidence integrity across the desk, every agent step, firewall decision and human action (by time or by payment, with filter, search and export), and the scenario check: expected against actual for all sixteen documents. |
-| **Financial Stress Lab** | The twelve scenarios on either path, each with what it declared, what happened, the agent execution, the evidence integrity report and its inputs; the benchmark; JSON audit reports. |
+| **Payment risks** (the Payment Firewall) | Every payment a control stopped or flagged: the exception in one sentence, the trusted record beside the incoming document, what each agent found, and the decision. |
+| **Agent activity** | *Workspace*: five glass agents and two code gates in one composition, drawn from recorded state. An agent leans toward its input while its loop runs, a capsule travels a connection at the moment the receiving loop starts, and the conditional route to the Investigator lights only on a real exception. It follows a live run, and it replays any finished payment from the stored start and finish times (pause, seek, 8 s, 16 s or real time) without calling an agent. *Execution details*: every loop on one clock, concurrency figures, and a table with model, retries, tokens and trigger. |
+| **Evidence & audit** | Evidence integrity across the desk, every agent step, firewall decision and human action (by time or by payment, with filter, search and export), and the scenario check: expected against actual for all sixteen documents. |
+| **Stress lab** (the Financial Stress Lab) | The twelve scenarios on either path, each with what it declared, what happened, the agent execution, the evidence integrity report and its inputs; the benchmark; JSON audit reports. |
 | **Settings** | Appearance, ambient motion, demo reset, connection status, and the policy, vendor master and payment history as the server has them. |
 
 The interface is a web interpretation of a glass material system: an ambient background, a floating navigation layer, content glass for summaries and near-opaque reading surfaces for financial detail. It is designed in dark and light, for a phone as well as a desktop, and it honours reduced motion, reduced transparency and increased contrast. `DESIGN.md` has the system.
@@ -494,14 +496,14 @@ The interface is a web interpretation of a glass material system: an ambient bac
 
 With a key and credit (live agents):
 
-1. **Overview → load all sixteen synthetic documents.** Open **Agent Activity** while it runs: the Extractor reads everything at once, Validator and Auditor overlap on each document, the Investigator is called only for exceptions.
-2. **Evidence & Audit → Scenario check**: expected against actual for all sixteen.
-3. **Payment Firewall → Iberia Office Supplies.** Blocked. The trusted IBAN sits beside the incoming one with the differing groups marked. Select the `line 22` reference: the evidence inspector opens with the cited lines. There is no approve button.
+1. **Overview → load all sixteen synthetic documents.** Open **Agent activity** while it runs: the Extractor reads everything at once, Validator and Auditor overlap on each document, the Investigator is called only for exceptions.
+2. **Evidence & audit → Scenario check**: expected against actual for all sixteen.
+3. **Payment risks → Iberia Office Supplies.** Blocked. The trusted IBAN sits beside the incoming one with the differing groups marked. Select the `line 22` reference: the evidence inspector opens with the cited lines. There is no approve button.
 4. **Open the payment → Verification → Investigation**: verified facts with references, what is unknown, who to call. "Suspected, not proven."
 5. **Add document → Changed bank details.** Blocked. Enter `CB-2026-1125-01` under *Verify beneficiary change*: it moves to "needs approval", with the callback in the ledger. Approve it: a sandbox draft appears and the review history records who, when and why.
-6. **Financial Stress Lab → Run all 12 scenarios** on the deterministic path: seconds, in isolated processes. Open S08 to see three concurrent decisions held under the daily budget, and S10 to see a labelled fault injection caught by the comparison of the two readings.
+6. **Stress lab → Run all 12 scenarios** on the deterministic path: seconds, in isolated processes. Open S08 to see three concurrent decisions held under the daily budget, and S10 to see a labelled fault injection caught by the comparison of the two readings.
 
-Without a key: `npm test`, `npm run lab`, then `npm run demo`, load the sixteen documents on http://localhost:8799 and follow steps 2, 3, 4 and 6 (the banner says the demo is scripted). **Add documents** there processes the three sample PDFs; any other document is parsed and shown, and says it needs live AI.
+Without a key: `npm test`, `npm run lab`, then `npm run demo`, load the sixteen documents on http://localhost:8799 and follow steps 2, 3, 4 and 6 (the mode indicator in the top bar says the demo is scripted). **Add documents** there processes the three sample PDFs; any other document is parsed and shown, and says it needs live AI.
 
 ## Project layout
 

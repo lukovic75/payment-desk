@@ -110,10 +110,10 @@ export function Drawer({ open, onClose, title, kicker, label, children, wide }: 
 	)
 }
 
-export function PageHead({ title, sub, children }: { title: string; sub?: ReactNode; children?: ReactNode }) {
+export function PageHead({ title, sub, kicker, children }: { title: string; sub?: ReactNode; kicker?: string; children?: ReactNode }) {
 	return (
 		<header className="page-head">
-			<div className="grow"><h1>{title}</h1>{sub && <p>{sub}</p>}</div>
+			<div className="grow">{kicker && <span className="page-kicker">{kicker}</span>}<h1>{title}</h1>{sub && <p>{sub}</p>}</div>
 			{children && <div className="page-actions">{children}</div>}
 		</header>
 	)

@@ -108,7 +108,6 @@ export function Chip({ id, c, active, onPick }: { id: string; c: PaymentCase; ac
 export function Inspector({ e, c, chip }: { e: EvidenceEntry; c: PaymentCase; chip: ChipFn }) {
 	return (
 		<div className="inspector swap" key={e.id}>
-			<p className="fine">Added by {e.by} · <span className="mono">{e.id}</span></p>
 			{e.doc && (
 				<>
 					{e.doc.excerpt ? <blockquote className="quote">{e.doc.excerpt}</blockquote> : <p className="muted">The agent gave no quote for this value.</p>}
@@ -138,6 +137,7 @@ export function Inspector({ e, c, chip }: { e: EvidenceEntry; c: PaymentCase; ch
 					</dl>
 				</>
 			)}
+			<p className="fine inspector-meta">Recorded by {e.by} · reference <span className="mono">{e.id}</span></p>
 		</div>
 	)
 }
@@ -650,14 +650,20 @@ export function Verdict({ c, snapshot, onDecided, chip }: VerdictProps) {
 		return shell("run", <Hourglass size={20} weight="fill" />, "The agents are working on this", step)
 	}
 	if (c.stage === "blocked") {
+		// what a person can do about it, from the control that blocks it; only steps the server offers are named
+		const failing = (id: string) => c.controls.some((k) => k.id === id && k.status === "fail")
+		const next = failing("beneficiary") ? "Next step: verify the new account against a callback record, or reject it."
+			: failing("duplicate") ? "Next step: reject it. This obligation is already in the payment records."
+			: failing("amount_confirmation") ? "Next step: reject it and ask the vendor for a corrected invoice. The confirmation on record states another amount."
+			: "Next step: reject it and ask the vendor for a corrected document."
 		return shell("bad", <ShieldWarning size={20} weight="fill" />, "Blocked",
-			"It cannot be approved or exported as it stands.",
+			<>It cannot be approved as it stands. <span className="next-step">{next}</span></>,
 			<>{reasons}<div className="verdict-act"><Actions c={c} snapshot={snapshot} onDecided={onDecided} /></div></>)
 	}
 	if (c.stage === "awaiting_approval") {
 		const open = openDiscrepancies(c).length > 0
 		const settled = c.controls.find((k) => k.settledBy)?.settledBy
-		return shell("warn", <Hourglass size={20} weight="fill" />, open ? "This payment needs verification" : "Needs your approval", open ? "Something on it does not agree. Resolve it before it is paid." : settled ? <>The document states two amounts. A vendor confirmation on record {chip?.(settled)} states which one is payable, and it is the amount this payment would pay. A person still approves.</> : "Nothing is wrong with it. The policy asks for a person at this amount.",
+		return shell("warn", <Hourglass size={20} weight="fill" />, open ? "This payment needs verification" : "Needs your approval", open ? <>Something on it does not agree. <span className="next-step">{openDiscrepancies(c).some((k) => k.id === "stated_amounts") ? "Next step: attach a vendor confirmation for the amount, or reject it." : "Next step: check the reasons below, then state how it was resolved, or reject it."}</span></> : settled ? <>The document states two amounts. A vendor confirmation on record {chip?.(settled)} states which one is payable, and it is the amount this payment would pay. A person still approves.</> : <>Nothing is wrong with it. The policy asks for a person at this amount. <span className="next-step">Next step: approve or reject.</span></>,
 			<>{reasons}<div className="verdict-act"><Actions c={c} snapshot={snapshot} onDecided={onDecided} /></div></>)
 	}
 	if (c.stage === "approved") {

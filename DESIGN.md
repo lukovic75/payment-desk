@@ -90,6 +90,16 @@ The guided demo is a view of the same application, not a presentation layered on
 - **Intake is a queue.** Each file is a row that states what it is and what happened to it, in the same status vocabulary as payments. Refusals are sentences in the row, not toasts.
 - **On a phone** the queue row stacks (status under the name), the page fits the width and zoom scrolls inside its frame.
 
+## First visit
+
+- **One headline per screen.** The overview's headline is the product statement on an empty desk and the thing to do on a working one ("2 payments need your decision"). An eyebrow says who it is for.
+- **An empty desk teaches.** No figures at zero: a sentence, one primary action, one secondary, and three outcomes as examples that are labelled as examples and counted nowhere.
+- **One way into the demo.** The action at the top right of every page. On an empty overview it is in the page instead, once.
+- **The mode is a state, not an alarm.** A quiet chip in the top bar with a dot, the name of the mode and one line; the full explanation opens on press and closes on Escape. Red banners are kept for things that went wrong.
+- **Navigation by intent.** Workspace, Intelligence, Verification. Each item carries one sentence, shown on hover and focus and read by assistive technology, so the sidebar stays compact.
+- **The showcase remembers.** Leaving it and coming back, or reloading, returns to the scenario that was on screen.
+- **A decision names the next step.** Blocked and held payments say what a person can do, from the control that stopped them.
+
 ## Motion
 
 | What | How | Why |

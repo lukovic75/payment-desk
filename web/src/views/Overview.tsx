@@ -37,13 +37,19 @@ export function Overview({ snapshot, canAct, starting, onRun, onAdd }: Props) {
 	const started = cases.length > 0
 	const n = (k: number, one: string, many = `${one}s`) => `${k} ${k === 1 ? one : many}`
 
-	const sub = !started
-		? "Five specialised agents read each invoice, check it against trusted records and flag what is risky. Controls in code decide what may be paid."
-		: running
-			? `The agents are working: ${cases.filter((c) => !isRunning(c)).length} of ${cases.length} documents are settled.`
-			: attention.length
-				? `${n(attention.length, "payment")} ${attention.length === 1 ? "needs" : "need"} a decision from you.${failed.length ? ` ${n(failed.length, "document")} could not be processed.` : ""}`
-				: failed.length ? `${n(failed.length, "document")} could not be processed. Nothing else is waiting for you.` : "Every payment is verified and settled. Nothing is waiting for you."
+	// One headline, taken from the state of the desk: what the product is on an empty desk, and otherwise what there is to do.
+	const settledCount = cases.filter((c) => !isRunning(c)).length
+	const head: { title: string; sub: string } = !started
+		? { title: "AI investigates. Code decides.", sub: "Review supplier invoices, check what they claim against your records, and resolve payment risks before anything is approved." }
+		: snapshot.provider
+			? { title: "Processing is paused", sub: `The model provider is refusing calls (${snapshot.provider.kind.replace(/_/g, " ")}). ${snapshot.provider.advice} Everything already decided is kept.` }
+			: running
+				? { title: "The agents are working", sub: `${settledCount} of ${n(cases.length, "document")} settled. Decisions appear below as each one is made.` }
+				: attention.length
+					? { title: `${n(attention.length, "payment")} ${attention.length === 1 ? "needs" : "need"} your decision`, sub: `${blocked.length ? `${blocked.length} blocked` : ""}${blocked.length && waiting.length ? ", " : ""}${waiting.length ? `${waiting.length} waiting for approval` : ""}.${failed.length ? ` ${n(failed.length, "document")} could not be processed.` : ""}` }
+					: failed.length
+						? { title: "Nothing is waiting for you", sub: `${n(failed.length, "document")} could not be processed and can be run again from Payments.` }
+						: { title: "Nothing is waiting for you", sub: "Every payment has been checked and settled." }
 
 	const pending = sumOf(waiting, policy.currency)
 	const ok = sumOf(approved, policy.currency)
@@ -51,25 +57,33 @@ export function Overview({ snapshot, canAct, starting, onRun, onAdd }: Props) {
 
 	return (
 		<main className="view">
-			<PageHead title="Your payments. Verified before approval." sub={sub}>
+			<PageHead kicker="Accounts payable workspace" title={head.title} sub={head.sub}>
 				{started && attention.length > 0 && <a className="btn btn-primary" href={href("queue")}>Review payments <ArrowRight size={13} className="nudge" /></a>}
-				{started && <a className="btn" href={href("activity")}>See how the agents work</a>}
 			</PageHead>
 
 			{!started ? (
-				<section className="onboard glass">
+				<section className="onboard glass" aria-label="Getting started">
 					<div className="onboard-copy">
-						<h2>AI investigates. Code decides.</h2>
-						<p>Payment Desk does not trust what one AI reads from an invoice. A second agent reads the document on its own, code compares the two, exceptions are investigated, and controls in code decide what may be paid. See it on four synthetic scenarios.</p>
+						<p className="onboard-lead">Five AI agents read each invoice and check it against your vendor records. Rules in code decide what may be paid, and every figure opens its source.</p>
 						<div className="actions">
-							<a className="btn btn-primary" href={href("showcase")}><Play size={12} weight="fill" /> Start demo</a>
-							<button className="btn" disabled={!canAct} onClick={onAdd}><Plus size={14} weight="bold" /> Add a document</button>
+							<a className="btn btn-primary btn-lg" href={href("showcase")}><Play size={12} weight="fill" /> Start demo</a>
+							<button className="btn btn-lg" disabled={!canAct} onClick={onAdd}><Plus size={14} weight="bold" /> Add document</button>
 						</div>
-						<p className="fine">Or <button type="button" className="linkish" disabled={!canAct || starting} onClick={onRun}>{starting && <Spinner />}load all sixteen synthetic documents at once</button>. Sandbox: synthetic data, nothing reaches a bank.</p>
+						<p className="fine">The demo runs four synthetic invoices, about a minute each to read. Or <button type="button" className="linkish" disabled={!canAct || starting} onClick={onRun}>{starting && <Spinner />}load all sixteen</button>.</p>
 					</div>
-					<ul className="onboard-agents">
-						{snapshot.agents.map((a) => <li key={a.id} className={`agent-${a.name}`}><span className="swatch" /><b>{a.name}</b><span>{a.role}.</span></li>)}
-					</ul>
+					<figure className="onboard-preview" aria-label="Illustrative examples of the three outcomes. Not real payments.">
+						<figcaption><span>What you will see</span><span className="tag line">Illustrative examples</span></figcaption>
+						<ul>
+							{EXAMPLES.map((x) => (
+								<li key={x.name}>
+									<span className={`attn-mark ${x.tone === "good" ? "tone-good" : x.tone === "bad" ? "tone-bad" : "tone-warn"}`} aria-hidden />
+									<span className="eg-main"><b>{x.name}</b><span>{x.why}</span></span>
+									<span className={`status ${x.tone}`}><i aria-hidden />{x.status}</span>
+								</li>
+							))}
+						</ul>
+						<p className="fine">These three rows are examples, not payments. Nothing here is counted anywhere.</p>
+					</figure>
 				</section>
 			) : (
 				<>
@@ -116,7 +130,7 @@ export function Overview({ snapshot, canAct, starting, onRun, onAdd }: Props) {
 							<div className="panel module">
 								<MiniAgents scene={scene} />
 								<p className="law-story">{scene.story}</p>
-								<p className="fine">{investigated > 0 ? `${n(investigated, "exception")} went to the Investigator. ` : ""}An agent can explain and can ask for something stricter. It cannot approve what the controls stop.</p>
+								{investigated > 0 && <p className="fine">{n(investigated, "exception")} went to the Investigator.</p>}
 							</div>
 						</section>
 					</div>
@@ -127,6 +141,13 @@ export function Overview({ snapshot, canAct, starting, onRun, onAdd }: Props) {
 		</main>
 	)
 }
+
+/** What an empty desk shows instead of four zeros: the three kinds of outcome, as labelled examples. They are text, not cases, and are counted nowhere. */
+const EXAMPLES: { name: string; why: string; status: string; tone: "good" | "bad" | "warn" }[] = [
+	{ name: "Supplier invoice", why: "Matches the vendor record and is under the limit.", status: "Verified", tone: "good" },
+	{ name: "Changed bank account", why: "The account is not the one on file.", status: "Blocked", tone: "bad" },
+	{ name: "Two amounts in one document", why: "Held until a vendor confirmation settles it.", status: "Needs review", tone: "warn" },
+]
 
 /** One exception a person has to look at: who, how much, the single reason that matters most, and where to act. */
 function AttentionRow({ c }: { c: PaymentCase }) {
@@ -164,7 +185,7 @@ function Guide({ snapshot }: Pick<Props, "snapshot">) {
 		<details className="guide" open={open} onToggle={(e) => { const o = (e.currentTarget as HTMLDetailsElement).open; setOpen(o); try { localStorage.setItem("pd-guide", o ? "open" : "closed") } catch { /* private mode */ } }}>
 			<summary><CaretRight size={12} weight="bold" className="caret" /><FileText size={15} /> New here? A three-minute path through the product</summary>
 			<ol className="guide-steps">
-				<li><b>Start the guided demo</b><span>Four synthetic scenarios, one at a time, through the real workflow.</span>{cases.length ? <span className="status good"><i aria-hidden />{cases.length} {cases.length === 1 ? "document" : "documents"} on the desk</span> : <a className="linkish" href={href("showcase")}>Interactive Showcase <ArrowRight size={12} /></a>}</li>
+				<li><b>Start the guided demo</b><span>Four synthetic scenarios, one at a time, through the real workflow.</span>{cases.length ? <span className="status good"><i aria-hidden />{cases.length} {cases.length === 1 ? "document" : "documents"} on the desk</span> : <span className="muted">the button above</span>}</li>
 				<li><b>Inspect a blocked payment</b><span>No approve button exists for it, and the reason is a control in code.</span>{blocked ? <a className="linkish" href={href("firewall", blocked.id)}>{titleOf(blocked)} <ArrowRight size={12} /></a> : <span className="muted">{wait}</span>}</li>
 				<li><b>Verify a figure at its source</b><span>In a payment, select any reference{line ? <> such as <span className="mono">line {line}</span></> : ""}: the line lights up in the document.</span>{sourced ? <a className="linkish" href={href("inbox", sourced.id)}>Open {titleOf(sourced)} <ArrowRight size={12} /></a> : <span className="muted">{wait}</span>}</li>
 				<li><b>Watch the agents collaborate</b><span>One lane per agent; overlap is real concurrency from recorded timestamps.</span><a className="linkish" href={href("activity")}>Agent Activity <ArrowRight size={12} /></a></li>

@@ -8,14 +8,26 @@ export type Route = { view: View; id: string | null; sub: string | null }
 
 export const TITLES: Record<View, string> = {
 	overview: "Overview",
-	showcase: "Interactive Showcase",
+	showcase: "Guided demo",
 	inbox: "Payments",
-	queue: "Review Queue",
-	firewall: "Payment Firewall",
-	activity: "Agent Activity",
-	audit: "Evidence & Audit",
-	lab: "Financial Stress Lab",
+	queue: "Review queue",
+	firewall: "Payment risks",
+	activity: "Agent activity",
+	audit: "Evidence & audit",
+	lab: "Stress lab",
 	settings: "Settings",
+}
+/** One plain sentence per place: what a person finds there. Shown when a navigation item is pointed at or focused, and read to assistive technology. */
+export const ABOUT: Record<View, string> = {
+	overview: "What needs your attention today.",
+	showcase: "Four guided scenarios, one at a time.",
+	inbox: "Every invoice and what was decided about it.",
+	queue: "Payments that need your decision.",
+	firewall: "Blocked payments and the evidence behind them.",
+	activity: "Watch how the AI agents verify a document.",
+	audit: "Sources, decisions and the review history.",
+	lab: "Test the controls against synthetic risks.",
+	settings: "Appearance, policy and trusted records.",
 }
 
 export const href = (view: View, id?: string | null, sub?: string | null) => `#/${view}${id ? `/${encodeURIComponent(id)}${sub ? `/${sub}` : ""}` : ""}`

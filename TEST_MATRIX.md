@@ -139,7 +139,7 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | U-16 | Server stops and returns under an open page | Says so, pauses actions, reconnects, shows the server's real state | PASS | Browser |
 | U-17 | Horizontal overflow, ten routes, nine widths | None | PASS | Browser |
 | U-18 | Text contrast, seven pages, both appearances | WCAG AA | PASS | Browser, measured from pixels |
-| U-19 | Automated browser suite in the repository | A smoke suite of the showcase and PDF intake | PASS, 24 of 24 | `npm run test:browser` |
+| U-19 | Automated browser suite in the repository | A smoke suite of the showcase and PDF intake | PASS, 28 of 28 | `npm run test:browser` |
 
 ## Interactive showcase
 

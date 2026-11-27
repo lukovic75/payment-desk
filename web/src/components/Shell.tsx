@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react"
-import { DotsThree, Flask, GearSix, Graph, ListChecks, Moon, Play, Plus, Presentation, Receipt, SealCheck, ShieldCheck, SidebarSimple, SquaresFour, Stamp, Sun } from "@phosphor-icons/react"
+import { DotsThree, Flask, GearSix, Graph, Info, ListChecks, Moon, Play, Plus, Receipt, SealCheck, ShieldCheck, SidebarSimple, SquaresFour, Stamp, Sun } from "@phosphor-icons/react"
 import type { DeskSnapshot, Link } from "../lib/api"
-import { href, TITLES, type View } from "../lib/router"
+import { ABOUT, href, TITLES, type View } from "../lib/router"
 import { useIndicator } from "./ui"
 
 export type ShellProps = {
@@ -19,18 +19,19 @@ export type ShellProps = {
 }
 
 type Item = { view: View; icon: ReactNode; short: string; tab?: boolean }
+// Grouped by what a person comes to do: work the desk, see why something was decided, check that it can be trusted.
+// The guided demo is not a place in this list: it has one entry, the action at the top right of every page.
 const GROUPS: { label: string; items: Item[] }[] = [
 	{ label: "Workspace", items: [
 		{ view: "overview", icon: <SquaresFour size={18} />, short: "Overview", tab: true },
 		{ view: "inbox", icon: <Receipt size={18} />, short: "Payments", tab: true },
 		{ view: "queue", icon: <ListChecks size={18} />, short: "Review", tab: true },
-		{ view: "showcase", icon: <Presentation size={18} />, short: "Showcase" },
 	] },
 	{ label: "Intelligence", items: [
-		{ view: "firewall", icon: <ShieldCheck size={18} />, short: "Firewall" },
 		{ view: "activity", icon: <Graph size={18} />, short: "Agents", tab: true },
+		{ view: "firewall", icon: <ShieldCheck size={18} />, short: "Risks" },
 	] },
-	{ label: "Assurance", items: [
+	{ label: "Verification", items: [
 		{ view: "audit", icon: <Stamp size={18} />, short: "Audit" },
 		{ view: "lab", icon: <Flask size={18} />, short: "Lab" },
 	] },
@@ -53,7 +54,7 @@ export function Shell(p: ShellProps) {
 	}, [more])
 
 	const link_ = (it: Item, inSheet = false) => (
-		<a key={it.view} className="nav-item" href={href(it.view)} aria-current={p.view === it.view ? "page" : undefined} data-tab={it.tab && !inSheet ? "" : undefined} data-tip={TITLES[it.view]} data-tip-side="right">
+		<a key={it.view} className="nav-item" href={href(it.view)} aria-current={p.view === it.view ? "page" : undefined} data-tab={it.tab && !inSheet ? "" : undefined} data-tip={`${TITLES[it.view]}: ${ABOUT[it.view]}`} data-about={ABOUT[it.view]} data-tip-side="right" aria-description={ABOUT[it.view]}>
 			{it.icon}
 			<span data-short={it.short}>{TITLES[it.view]}</span>
 			{it.view === "queue" && counts.queue > 0 && <i className="nav-count attn" aria-label={`${counts.queue} blocked or waiting for approval`}>{counts.queue}</i>}
@@ -69,6 +70,9 @@ export function Shell(p: ShellProps) {
 	// One way into the guided demo, from every page. Its label says where the demo stands; it never starts anything by itself.
 	const steps = snapshot?.showcase?.steps.filter((s) => !s.optional) ?? []
 	const demo = !snapshot?.showcase ? "Start demo" : steps.every((s) => s.result !== "not_run" && s.result !== "running") ? "Demo summary" : "Continue demo"
+	// On the overview the page owns the first action: an empty desk shows it once, in the page; a desk with payments leads with the review.
+	const demoHere = p.view !== "showcase" && !(p.view === "overview" && total === 0)
+	const demoPrimary = p.view !== "overview"
 
 	return (
 		<div className="shell" data-nav={p.collapsed ? "collapsed" : "open"}>
@@ -97,6 +101,7 @@ export function Shell(p: ShellProps) {
 					{pinned ? <h1 className="bar-title" data-pinned>{TITLES[p.view]}</h1> : <span className="bar-title" aria-hidden>{TITLES[p.view]}</span>}
 
 					<div className="bar-actions">
+						{snapshot && <ModeChip snapshot={snapshot} />}
 						<span className="conn" data-state={state} role="status" title={stateTitle}>
 							<i aria-hidden /><span>{stateText}</span>
 							{counts.running && <span className="conn-meter" aria-hidden><span style={{ transform: `scaleX(${total ? counts.settled / total : 0})` }} /></span>}
@@ -106,11 +111,41 @@ export function Shell(p: ShellProps) {
 							{p.theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
 						</button>
 						<button className="btn" disabled={!p.canAct} onClick={p.onAdd}><Plus size={14} weight="bold" /><span className="wide">Document</span></button>
-						{p.view !== "showcase" && <a className="btn btn-primary" href={href("showcase")}><Play size={12} weight="fill" /><span>{demo}</span></a>}
+						{demoHere && <a className={`btn${demoPrimary ? " btn-primary" : ""}`} href={href("showcase")}><Play size={12} weight="fill" /><span>{demo}</span></a>}
 					</div>
 				</header>
 				{p.children}
 			</div>
 		</div>
+	)
+}
+
+/**
+ * Where the agents' answers come from, always on screen and never alarming by itself: a scripted demo is a way of running,
+ * not a fault. The full explanation is one press away, and is also there for a pointer and for assistive technology.
+ * A provider failure is a different thing and keeps its own red banner.
+ */
+function ModeChip({ snapshot }: { snapshot: DeskSnapshot }) {
+	const [open, setOpen] = useState(false)
+	useEffect(() => {
+		if (!open) return
+		const off = (e: PointerEvent) => { if (!(e.target as HTMLElement).closest(".mode")) setOpen(false) }
+		const key = (e: KeyboardEvent) => { if (e.key === "Escape") setOpen(false) }
+		document.addEventListener("pointerdown", off); document.addEventListener("keydown", key)
+		return () => { document.removeEventListener("pointerdown", off); document.removeEventListener("keydown", key) }
+	}, [open])
+	const models = [...new Set([snapshot.models.fast, snapshot.models.careful])].join(" and ")
+	const m = snapshot.modelMode === "scripted"
+		? { kind: "scripted", tag: "Scripted demo", line: "Real workflow, predefined AI responses", more: "The Mozaik runtime, the five agent loops, the evidence checks and the controls all run for real. What the agents answer is predefined text, not live AI. This shows how the workflow and the controls behave; it says nothing about how well a language model reads an invoice." }
+		: snapshot.inference?.kind === "local"
+			? { kind: "live", tag: "Live local AI", line: `${models} on this machine`, more: `Real model answers, from ${models} running on this computer through ${snapshot.inference.provider}. No cloud provider is called. A local model is slower and less capable than a large hosted one.` }
+			: { kind: "live", tag: "Live AI", line: models, more: `Real model answers through Mozaik, from ${models}. Each document makes five or six model calls on the provider account.` }
+	return (
+		<span className="mode" data-kind={m.kind}>
+			<button type="button" className="mode-chip" aria-expanded={open} aria-controls="mode-about" title={m.more} onClick={() => setOpen(!open)}>
+				<i aria-hidden /><b>{m.tag}</b><span className="mode-line">{m.line}</span><Info size={13} aria-hidden />
+			</button>
+			{open && <span className="mode-pop" id="mode-about" role="note"><b>{m.tag}: {m.line.charAt(0).toLowerCase() + m.line.slice(1)}.</b> {m.more}</span>}
+		</span>
 	)
 }

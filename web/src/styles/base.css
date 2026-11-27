@@ -366,3 +366,24 @@ dialog.sheet[open]::backdrop { background: var(--scrim); }
 	.skel { background: var(--raised); }
 	[data-glow]::after { display: none; }
 }
+
+/* ───────── first-visit clarity: one eyebrow above the headline, a calm mode indicator, navigation that explains itself ───────── */
+.page-kicker { display: block; margin-bottom: 6px; font-size: var(--fs-12); font-weight: 600; letter-spacing: var(--track-small); color: var(--accent-text); }
+.btn-lg { height: var(--control-h-lg); padding: 0 var(--sp-4); font-size: var(--fs-14); }
+
+/* Where the answers come from. A way of running, not a fault: a quiet outline with a dot, the explanation one press away. */
+.mode { position: relative; display: inline-flex; }
+.mode-chip { display: inline-flex; align-items: center; gap: 8px; height: var(--control-h); padding: 0 10px; border: 0; border-radius: var(--r-pill); background: transparent; box-shadow: inset 0 0 0 1px var(--line-2); color: var(--ink-2); font: 500 var(--fs-12) / 1 var(--font-sans); white-space: nowrap; cursor: pointer; transition: background-color var(--d-hover) ease; }
+.mode-chip b { font-weight: 600; color: var(--ink); }
+.mode-chip i { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--warn); }
+.mode[data-kind="live"] .mode-chip i { background: var(--accent); }
+.mode-chip svg { flex: none; color: var(--ink-3); }
+@media (hover: hover) and (pointer: fine) { .mode-chip:hover { background: var(--raised); } }
+.mode-chip:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.mode-pop { position: absolute; z-index: var(--z-tip); top: calc(100% + 8px); right: 0; width: min(380px, calc(100vw - 32px)); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); border: 1px solid var(--glass-edge); background: var(--solid); box-shadow: var(--shadow-float); color: var(--ink-2); font-size: var(--fs-13); line-height: 1.5; white-space: normal; text-align: left; animation: rise var(--d-pop) var(--ease-out) both; }
+.mode-pop b { color: var(--ink); font-weight: 600; }
+@media (max-width: 1279.98px) { .mode-line { display: none; } }
+@media (max-width: 599.98px) { .mode-chip { padding: 0 8px; gap: 6px; } .mode-chip svg { display: none; } .mode-pop { position: fixed; top: 64px; left: 16px; right: 16px; width: auto; } }
+
+/* An expanded sidebar explains a place when it is pointed at or focused; a collapsed one names it as well. */
+.shell:not([data-nav="collapsed"]) .nav .nav-item[data-about]::after { content: attr(data-about); }

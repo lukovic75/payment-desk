@@ -55,11 +55,11 @@ export function Showcase({ snapshot, health, canAct, id, loadingAll, onLoadAll }
 	if (recordedView) {
 		if (recording === undefined) return <main className="view sc" aria-busy="true"><div className="skel" style={{ height: 30, width: 260 }} /><div className="skel" style={{ height: 320 }} /></main>
 		if (recording === null) return <main className="view sc"><div className="panel"><div className="empty"><h2>No recorded execution ships with this build</h2><p>The file <code>server/data/recordings/live-2026-11-26.json</code> was not found.</p><div className="actions"><a className="btn" href={href("showcase")}><ArrowLeft size={13} /> Back to the showcase</a></div></div></div></main>
-		return <Journey key={id} mode="recorded" steps={recording.steps} cases={recording.cases} snapshot={snapshot} canAct={false} recording={recording} />
+		return <Journey key={id} viewKey={`${id}:${recording.recordedAt}`} mode="recorded" steps={recording.steps} cases={recording.cases} snapshot={snapshot} canAct={false} recording={recording} />
 	}
 	const sc = snapshot.showcase
 	if (!sc) return <Intro snapshot={snapshot} health={health} canAct={canAct} recording={stored?.recording ?? null} current={stored?.current ?? null} />
-	return <Journey key={sc.id} mode={sc.mode} steps={sc.steps} cases={snapshot.cases} snapshot={snapshot} canAct={canAct} recording={stored?.recording ?? stored?.current ?? null} loadingAll={loadingAll} onLoadAll={onLoadAll} />
+	return <Journey key={sc.id} viewKey={sc.id} mode={sc.mode} steps={sc.steps} cases={snapshot.cases} snapshot={snapshot} canAct={canAct} recording={stored?.recording ?? stored?.current ?? null} loadingAll={loadingAll} onLoadAll={onLoadAll} />
 }
 
 // ───────── the opening ─────────
@@ -154,13 +154,24 @@ function Intro({ snapshot, health, canAct, recording, current }: { snapshot: Des
 
 // ───────── the journey: scenarios, then the summary ─────────
 
-type JourneyProps = { mode: Mode; steps: ShowcaseStep[]; cases: PaymentCase[]; snapshot: DeskSnapshot; canAct: boolean; recording: Recording | null; loadingAll?: boolean; onLoadAll?: () => void }
+type JourneyProps = { viewKey: string; mode: Mode; steps: ShowcaseStep[]; cases: PaymentCase[]; snapshot: DeskSnapshot; canAct: boolean; recording: Recording | null; loadingAll?: boolean; onLoadAll?: () => void }
 type Sel = ShowcaseKey | "summary"
 const settled = (s: ShowcaseStep) => s.result !== "not_run" && s.result !== "running"
 
-function Journey({ mode, steps, cases, snapshot, canAct, recording, loadingAll, onLoadAll }: JourneyProps) {
+function Journey({ viewKey, mode, steps, cases, snapshot, canAct, recording, loadingAll, onLoadAll }: JourneyProps) {
 	const main = steps.filter((s) => !s.optional)
-	const [sel, setSel] = useState<Sel>(() => (main.every(settled) ? "summary" : (steps.find((s) => s.result === "running") ?? main.find((s) => s.result === "not_run") ?? main[0]!).key))
+	// What was on screen is remembered for this demo run, so leaving the showcase and coming back (or reloading) returns to
+	// the scenario being looked at, not to the next one that has not run. A scenario that is running still wins: that is where the work is.
+	const memory = `pd-showcase-view:${viewKey}`
+	const [sel, setSelRaw] = useState<Sel>(() => {
+		const live = steps.find((s) => s.result === "running")
+		if (live) return live.key
+		let seen: string | null = null
+		try { seen = sessionStorage.getItem(memory) } catch { /* storage is not available: fall through to the default */ }
+		if (seen === "summary" || steps.some((s) => s.key === seen)) return seen as Sel
+		return main.every(settled) ? "summary" : (main.find((s) => s.result === "not_run") ?? main[0]!).key
+	})
+	const setSel = (next: Sel) => { setSelRaw(next); try { sessionStorage.setItem(memory, next) } catch { /* not remembered, nothing else changes */ } }
 	const [busy, setBusy] = useState<ShowcaseKey | null>(null)
 	const [err, setErr] = useState<string | null>(null)
 	const [confirm, setConfirm] = useState(false)

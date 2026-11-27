@@ -56,12 +56,8 @@ export function App() {
 				canAct={canAct} onAdd={() => setAdding(true)}
 			>
 				<div className="page">
-					{((snapshot?.modelMode === "scripted" && route.view !== "showcase") || snapshot?.provider || link.state === "reconnecting" || noKey || runErr) && (
+					{(snapshot?.provider || link.state === "reconnecting" || noKey || runErr) && (
 						<div className="banners">
-							{/* The showcase states its mode in its own header, on every screen of it, so the banner is not repeated there. */}
-							{snapshot?.modelMode === "scripted" && route.view !== "showcase" && (
-								<div className="banner warn" role="status"><WarningCircle size={16} weight="bold" /><div><b>Scripted demo: real orchestration, predefined model responses.</b> The Mozaik runtime, the agent loops, the controls and the timings are real. The agents' answers are fixed text, not live AI.</div></div>
-							)}
 							{snapshot?.provider && (
 								<div className="banner bad" role="alert">
 									<WarningCircle size={16} weight="bold" />
