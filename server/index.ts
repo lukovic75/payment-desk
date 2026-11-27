@@ -8,7 +8,7 @@ import * as lab from "./lab/manager.js"
 import { experimentView, startExperiment } from "./lab/experiment-host.js"
 import { decisionReport, operationalSummary } from "./report.js"
 import { randomUUID } from "node:crypto"
-import { DeskError, LOCAL, MODELS, currentRecordingView, inferenceNow, act, addDocument, exportDraft, findSame, flush, getDocumentFile, getDocumentSource, getDocumentText, getRecordedDocumentText, pdfFixtureBytes, pdfFixtures, peek, prepare, recordingView, resetDemo, runDemo, runShowcaseStep, setModelRunner, snapshot, startShowcase, subscribe, type Action } from "./desk.js"
+import { DeskError, LOCAL, MODELS, currentRecordingView, previousRecordingView, inferenceNow, act, addDocument, exportDraft, findSame, flush, getDocumentFile, getDocumentSource, getDocumentText, getRecordedDocumentText, pdfFixtureBytes, pdfFixtures, peek, prepare, recordingView, resetDemo, runDemo, runShowcaseStep, setModelRunner, snapshot, startShowcase, subscribe, type Action } from "./desk.js"
 import { contentHash, loadDocuments } from "./data.js"
 import type { DocumentSource } from "./domain.js"
 import { DocumentError, LIMITS, parsePdf, sniff } from "./pdf.js"
@@ -194,7 +194,7 @@ const server = createServer(async (req, res) => {
 			return json(res, 200, runShowcaseStep(typeof body.key === "string" ? body.key : ""))
 		}
 		// A stored execution of an earlier live run. GET only: there is nothing to start, approve or change.
-		if (m === "GET" && path === "/api/recording") return json(res, 200, { recording: recordingView(), current: currentRecordingView() })
+		if (m === "GET" && path === "/api/recording") return json(res, 200, { recording: recordingView(), previous: previousRecordingView(), current: currentRecordingView() })
 		const recDoc = path.match(/^\/api\/recording\/documents\/([^/]+)$/)
 		if (m === "GET" && recDoc) {
 			const text = getRecordedDocumentText(param(recDoc[1]!), url.searchParams.get("hash"))

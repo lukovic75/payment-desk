@@ -1,72 +1,84 @@
 1
-00:00:00,000 --> 00:00:03,800
+00:00:00,000 --> 00:00:03,802
 Payment Desk checks supplier invoices before they are paid. AI investigates. Code decides.
 
 2
-00:00:03,800 --> 00:00:11,391
+00:00:03,802 --> 00:00:11,388
 This is the scripted demo. The Mozaik runtime, five agents, shared state, tools and controls run for real; the model's answers are predefined.
 
 3
-00:00:11,391 --> 00:00:15,435
+00:00:11,388 --> 00:00:15,453
 Four synthetic invoices, one at a time, through the real workflow.
 
 4
-00:00:15,435 --> 00:00:20,720
+00:00:15,453 --> 00:00:20,736
 Scenario 1: a valid invoice. The Extractor reads it; then the Validator and the Auditor start from the same event and run in parallel.
 
 5
-00:00:20,720 --> 00:00:25,861
+00:00:20,736 --> 00:00:25,858
 Every control passes and the amount is under the limit: approved, with a sandbox draft. No money moves.
 
 6
-00:00:25,861 --> 00:00:31,368
+00:00:25,858 --> 00:00:31,364
 Scenario 2: the invoice asks for payment to a new bank account. It is not the account on file for this vendor.
 
 7
-00:00:31,368 --> 00:00:38,581
+00:00:31,364 --> 00:00:38,623
 Blocked by a control in code. The Policy agent cannot loosen it, and there is no approve button.
 
 8
-00:00:38,581 --> 00:00:44,485
+00:00:38,623 --> 00:00:44,527
 Scenario 3: a two-page PDF. The cover text asks for 1,980.00; the invoice total says 1,890.00.
 
 9
-00:00:44,485 --> 00:00:56,385
+00:00:44,527 --> 00:00:56,440
 Each amount opens the original PDF page, with the cited line marked where the parser found it.
 
 10
-00:00:56,385 --> 00:01:04,043
+00:00:56,440 --> 00:01:04,100
 The Auditor read the document without seeing the first reading and reported both amounts. Code recorded the disagreement as a challenge.
 
 11
-00:01:04,043 --> 00:01:10,290
+00:01:04,100 --> 00:01:10,342
 Which amount is owed? The invoice cannot say. A confirmation on record as unverified is refused.
 
 12
-00:01:10,290 --> 00:01:21,094
+00:01:10,342 --> 00:01:21,161
 A verified vendor confirmation for this invoice and this amount settles it. Only then may a person approve.
 
 13
-00:01:21,094 --> 00:01:29,435
+00:01:21,161 --> 00:01:29,441
 Stress lab: twelve scenarios, each declaring its outcome before it runs. Every execution gets its own process and its own Mozaik runtime.
 
 14
-00:01:29,435 --> 00:01:38,648
-A controlled fault-injection test, not a model benchmark: six deliberate agent errors, each run with one agent and with five.
+00:01:29,441 --> 00:01:38,690
+A controlled fault-injection test, not a model benchmark: nine deliberate agent errors, each run with one agent and with five.
 
 15
-00:01:38,648 --> 00:01:46,291
-Code stops five of them either way. One, a line item quoted correctly as the total, is approved by a single agent and stopped only by the independent second reading.
+00:01:38,690 --> 00:01:47,395
+Code stops seven of them either way. One, a line item quoted correctly as the total where code does not know the label, is approved by a single agent and stopped only by the independent second reading.
 
 16
-00:01:46,291 --> 00:01:53,373
-Every agent loop is recorded by the runtime: when it started, what triggered it, when it finished. The Validator and the Auditor overlap.
+00:01:47,395 --> 00:01:52,686
+And one gets through: both readers make the same mistake. The test reports it as not caught, a limit declared in advance.
 
 17
-00:01:53,373 --> 00:01:59,716
-Every payment has one decision record, assembled by code from the case: sources, agent findings, controls, enforcement, review history.
+00:01:52,686 --> 00:02:00,236
+A recording, not live: a real model on a laptop (qwen2.5:7b, 27 November) ran the four scenarios on this code. All four ended as expected.
 
 18
-00:01:59,716 --> 00:02:06,091
+00:02:00,236 --> 00:02:05,923
+Here the Auditor found both amounts on its own. Every loop names the model that ran it. Earlier runs that went worse are kept beside it.
+
+19
+00:02:05,923 --> 00:02:13,013
+Every agent loop is recorded by the runtime: when it started, what triggered it, when it finished. The Validator and the Auditor overlap.
+
+20
+00:02:13,013 --> 00:02:19,364
+Every payment has one decision record, assembled by code from the case: sources, agent findings, controls, enforcement, review history.
+
+21
+00:02:19,364 --> 00:02:25,800
 AI investigates. Code decides.   github.com/lukovic75/payment-desk   ·   npm ci && npm run demo
 

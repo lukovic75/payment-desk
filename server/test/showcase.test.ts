@@ -243,6 +243,12 @@ test("HTTP: a scripted server says it is scripted, runs the scenarios, and guard
 	// the recording: readable, with its own documents, and no way to write to it
 	const rec = (await get("/api/recording")).body.recording
 	assert.equal(rec.cases.length, 5)
+	// the first run with a local model is kept as it happened, beside any later one: two of its four scenarios did not reach a decision
+	const earlier = (await get("/api/recording")).body.previous
+	assert.equal(earlier.id, "previous")
+	assert.deepEqual(earlier.steps.filter((k: any) => k.startedAt).map((k: any) => [k.key, k.result]), [["legitimate", "confirmed"], ["beneficiary", "confirmed"], ["challenge", "failed"], ["duplicate", "failed"]])
+	assert.ok(earlier.cases.every((c: any) => c.runs.every((r: any) => /gemma2:9b/.test(r.model))), "every loop of that run names the model it ran on")
+	assert.match(earlier.version, /earlier state of the code/, "and it is not presented as a run of the current code")
 	assert.equal((await fetch(`${BASE}/api/recording/documents/INV-7701-rappel`)).status, 200)
 	assert.equal((await fetch(`${BASE}/api/recording/documents/INV-7733`)).status, 404)
 	assert.equal((await post("/api/recording")).status, 404)

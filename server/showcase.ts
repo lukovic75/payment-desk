@@ -45,17 +45,20 @@ export function refreshSteps(steps: ShowcaseStep[], find: (docId: string) => Pay
 const RECORDING_FILE = join(DATA_DIR, "recordings", "live-2026-11-26.json")
 /** A stored run of the current version of the code, when one has been captured (see scripts/capture-recording.mjs). */
 const CURRENT_RECORDING_FILE = join(DATA_DIR, "recordings", "current.json")
+/** The first run with a local model (27 November, gemma2:9b): two of four scenarios reached a decision. Kept as it happened, beside any later run. */
+const PREVIOUS_RECORDING_FILE = join(DATA_DIR, "recordings", "local-gemma-2026-11-27.json")
 let recording: Recording | null | undefined
 let current: Recording | null | undefined
+let previous: Recording | null | undefined
 
-function readRecording(file: string, id: "earlier" | "current", scenarios: Scenario[]): Recording | null {
+function readRecording(file: string, id: "earlier" | "previous" | "current", scenarios: Scenario[]): Recording | null {
 	if (!existsSync(file)) return null
 	const raw = JSON.parse(readFileSync(file, "utf8")) as { recordedAt: string; note: string; version?: string; models: Recording["models"]; cases: PaymentCase[] }
 	const steps = blankSteps(scenarios).map((s) => {
 		const c = raw.cases.find((k) => k.id === s.docId)
 		return { ...s, startedAt: c?.runs[0]?.startedAt ?? null, fileName: c?.fileName }
 	})
-	return { id, recordedAt: raw.recordedAt, note: raw.note, version: raw.version ?? (id === "earlier" ? "earlier version of the code" : "this version of the code"), models: raw.models, cases: raw.cases, steps: refreshSteps(steps, (k) => raw.cases.find((c) => c.id === k)) }
+	return { id, recordedAt: raw.recordedAt, note: raw.note, version: id === "previous" ? "an earlier state of the code (27 November, on top of commit 9b79777), gemma2:9b through Ollama on the same laptop" : raw.version ?? (id === "earlier" ? "earlier version of the code" : "this version of the code"), models: raw.models, cases: raw.cases, steps: refreshSteps(steps, (k) => raw.cases.find((c) => c.id === k)) }
 }
 /** The stored run of the current version, or null when none ships. Loaded once and never written; like the earlier one, it cannot be acted on. */
 export function loadCurrentRecording(scenarios: Scenario[]): Recording | null {
@@ -79,6 +82,14 @@ export function loadRecording(scenarios: Scenario[]): Recording | null {
 }
 
 /** The source text of a recorded case: the synthetic fixture, and only if it is byte-for-byte the document that was recorded. */
+/** The earlier stored run with a local model, or null when the file is not there. Loaded once and never written. */
+export function loadPreviousRecording(scenarios: Scenario[]): Recording | null {
+	if (previous !== undefined) return previous
+	previous = null
+	try { previous = readRecording(PREVIOUS_RECORDING_FILE, "previous", scenarios) } catch (err) { console.error("could not load the earlier local recording:", err) }
+	return previous
+}
+
 /**
  * Documents exactly as they were when a stored run read them, for the ones whose current file has changed since.
  * A stored run is never edited, so its replay needs the text it was recorded on (server/data/recordings/documents).
@@ -90,7 +101,7 @@ function archivedDocuments(): { id: string; text: string }[] {
 
 export function recordedDocumentText(id: string, scenarios: Scenario[], hash?: string | null, others: { id: string; text: string }[] = []): string | null {
 	// the same document id can be in both stored runs with different text (once as text, once as the text of its PDF): the hash says which
-	const cases = [loadRecording(scenarios), loadCurrentRecording(scenarios)].flatMap((r) => r?.cases ?? []).filter((k) => k.id === id && (!hash || k.hash === hash))
+	const cases = [loadRecording(scenarios), loadPreviousRecording(scenarios), loadCurrentRecording(scenarios)].flatMap((r) => r?.cases ?? []).filter((k) => k.id === id && (!hash || k.hash === hash))
 	for (const c of cases) {
 		const d = [...loadDocuments(), ...archivedDocuments(), ...others].find((x) => x.id === id && contentHash(x.text) === c.hash)
 		if (d) return d.text

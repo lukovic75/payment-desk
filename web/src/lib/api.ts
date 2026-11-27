@@ -103,7 +103,7 @@ export const runDemo = async (): Promise<DeskSnapshot> => expectOk(await post("/
 export const resetDemo = async (): Promise<DeskSnapshot> => expectOk(await post("/api/reset"))
 export const startShowcase = async (): Promise<DeskSnapshot> => expectOk(await post("/api/showcase/start"))
 export const runShowcase = async (key: ShowcaseKey): Promise<DeskSnapshot> => expectOk(await post("/api/showcase/run", { key }))
-export const fetchRecordings = async (): Promise<{ recording: Recording | null; current: Recording | null }> => { const r = await expectOk<{ recording: Recording | null; current?: Recording | null }>(await fetch("/api/recording")); return { recording: r.recording, current: r.current ?? null } }
+export const fetchRecordings = async (): Promise<{ recording: Recording | null; previous?: Recording | null; current: Recording | null }> => { const r = await expectOk<{ recording: Recording | null; previous?: Recording | null; current?: Recording | null }>(await fetch("/api/recording")); return { recording: r.recording, previous: r.previous ?? null, current: r.current ?? null } }
 export const act = async (id: string, action: Action, input: { reason?: string; callbackRef?: string; confirmationRef?: string; resolutions?: { challengeId: string; chosenRef: string }[] } = {}): Promise<PaymentCase> =>
 	expectOk(await post(`/api/cases/${encodeURIComponent(id)}/actions`, { action, ...input }))
 export const addDocument = async (name: string, text: string): Promise<PaymentCase> => expectOk(await post("/api/documents", { name, text }))

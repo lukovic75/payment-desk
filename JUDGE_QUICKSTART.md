@@ -2,7 +2,7 @@
 
 Ten minutes, no API key, no account. Every label below is what the current interface shows.
 
-Prefer to watch first? [`docs/demo/payment-desk-demo.mp4`](docs/demo/payment-desk-demo.mp4): two minutes of the running application, with captions and no narration. It shows the scripted demo and says so.
+Prefer to watch first? [`docs/demo/payment-desk-demo.mp4`](docs/demo/payment-desk-demo.mp4): two and a half minutes of the running application, with captions and no narration. It shows the scripted demo and one stored run with a real model, and says which is which.
 
 ## 1. Start it
 
@@ -25,25 +25,25 @@ Node 20.19+ or 22.12+. Open http://localhost:8799. The indicator at the top righ
 | What to check | Where |
 |---|---|
 | Real Mozaik execution: every loop with its trigger, start and finish | In a scenario, **View execution proof**; or **Agent activity** → a payment → *Execution details* |
-| What the second agent adds that code does not | **Stress lab** → **Fault injection** → **Run the test**. Six injected agent errors, each run with one agent and with five. Read row F2 |
+| What the second agent adds that code does not | **Stress lab** → **Fault injection** → **Run the test**. Nine injected agent errors, each run with one agent and with five. Read rows F2, F7 and F9: caught by code, caught only by the second reading, and not caught |
 | Reliability | **Stress lab** → **Run all 12**. Each scenario declared its outcome before it ran; each runs in its own process |
 | One record of a decision | **Review queue** → any payment → *Decision report* → **Open** |
 | What the desk did, in numbers | **Evidence & audit** → *What the desk has done* |
-| Runs with real models, as they happened | Guided demo opening → *Watch the recorded run of this version* (a local model: two of four scenarios reached a decision) and *Watch the recorded execution* (hosted models, an earlier version) |
+| Runs with real models, as they happened | Guided demo opening → *Watch the recorded run of this version* (local `qwen2.5:7b`: four of four scenarios as expected), *Watch the earlier local run* (`gemma2:9b`: two of four) and *Watch the recorded execution* (hosted models, an earlier version) |
 
 ## 4. The checks
 
 ```bash
-npm test               # 158 tests on the real Mozaik runtime with a scripted model, about a minute
+npm test               # 165 tests on the real Mozaik runtime with a scripted model, about a minute
 npm run lab            # the twelve stress scenarios
 npm run experiment     # the fault-injection test, as a table
-npm run test:browser   # 31 browser checks (needs Node 22+ and a local Chrome or Chromium)
+npm run test:browser   # 32 browser checks (needs Node 22+ and a local Chrome or Chromium)
 ```
 
 CI runs install, types, tests, build and the stress scenarios on Node 20 and 22.
 
 ## 5. What it is not
 
-- Not a measurement of how well a language model reads invoices. The no-key demo uses predefined answers. One run of this version on a small local model is stored in the app: two of four scenarios reached a decision, two failed safely.
+- Not a measurement of how well a language model reads invoices. The no-key demo uses predefined answers. Three runs on small local models were made on 27 November: two, three and four of four scenarios as expected, in that order; the first and the last replay in the app, and the README describes all three.
 - Not connected to anything. Synthetic data, no bank, no supplier, no money. See [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md).
 - The live single-agent against multi-agent benchmark has not been run. The fault-injection test is a different thing and says so.

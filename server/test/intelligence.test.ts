@@ -325,3 +325,70 @@ test("cases stay apart: one document's challenge, output checks and late results
 	assert.equal(all[CLEAN]!.challenges!.length, 0)
 	assert.ok(all[DISPUTED]!.challenges!.length > 0)
 })
+
+test("a contradiction whose two sides state the same value is not recorded as one: no challenge between a value and itself", async () => {
+	// What a real local model returned on 27 November: gross 1,120.00 against 1,120.00, reported as a conflict.
+	desk.resetDesk()
+	desk.setModelRunner(scriptedModel({ readings: READINGS, audits: { [CLEAN]: { ...READINGS[CLEAN]!, conflicts: [{ field: "gross", values: ["1415.00", "1,415.00"], quotes: ["TOTAL EUR 1,415.00", "Net      1,415.00"] }] } } }))
+	desk.addDocument(CLEAN, DOCS[CLEAN]!.text, "demo")
+	await desk.whenSettled(30_000)
+	const c = desk.peek(CLEAN)
+	assert.deepEqual(c.audit.result!.conflicts, [], "the same amount written two ways is one amount")
+	assert.equal((c.challenges ?? []).filter((k) => k.category === "document_contradiction").length, 0)
+	assert.ok((c.outputChecks ?? []).some((k) => k.kind === "not_a_conflict" && k.agent === "Auditor"), "and the removal is on record")
+	assert.equal(outcomeOf(c), "AUTO_APPROVED", "a valid invoice is not held because a model called one value a contradiction")
+})
+
+test("the total against one of its own line items is not a contradiction: a part of a total is not a second total", async () => {
+	// What a real local model returned on 27 November for a valid invoice: gross 1,415.00 "against" the freight line, 1,230.00.
+	desk.resetDesk()
+	desk.setModelRunner(scriptedModel({ readings: READINGS, audits: { [CLEAN]: { ...READINGS[CLEAN]!, conflicts: [{ field: "gross", values: ["1415.00", "1230.00"], quotes: ["TOTAL EUR 1,415.00", "Freight Hamburg -> Belgrade, 3 pallets 3 410.00 1,230.00"] }] } } }))
+	desk.addDocument(CLEAN, DOCS[CLEAN]!.text, "demo")
+	await desk.whenSettled(30_000)
+	const c = desk.peek(CLEAN)
+	assert.deepEqual(c.audit.result!.conflicts, [], "the reader's own line items add up to its total, and the other side is one of them")
+	assert.ok((c.outputChecks ?? []).some((k) => k.kind === "not_a_conflict" && /line item/.test(k.detail)), "the removal is on record, with the reason")
+	assert.equal(outcomeOf(c), "AUTO_APPROVED", "a valid invoice is not held for a false alarm")
+})
+
+test("a real second amount to pay is still a contradiction: the filter does not touch a line that states what to pay", async () => {
+	desk.resetDesk()
+	desk.setModelRunner(scriptedModel({ readings: READINGS, audits: { [DISPUTED]: { ...READINGS[DISPUTED]!, conflicts: [{ field: "gross", values: ["1980.00", "1890.00"], quotes: ["please pay EUR 1,980.00 for the express shipment by the end of the week.", "TOTAL EUR 1,890.00"] }] } } }))
+	desk.addDocument(DISPUTED, DOCS[DISPUTED]!.text, "demo")
+	await desk.whenSettled(30_000)
+	const c = desk.peek(DISPUTED)
+	assert.equal(c.audit.result!.conflicts.length, 1)
+	assert.equal((c.outputChecks ?? []).filter((k) => k.kind === "not_a_conflict").length, 0)
+	assert.equal(outcomeOf(c), "NEEDS_APPROVAL")
+})
+
+test("a value against a line that merely contains it is not a contradiction either", async () => {
+	// What a real local model returned on 27 November: the currency "EUR" against "TOTAL EUR 2,744.00".
+	desk.resetDesk()
+	desk.setModelRunner(scriptedModel({ readings: READINGS, audits: { [CLEAN]: { ...READINGS[CLEAN]!, conflicts: [{ field: "currency", values: ["EUR", "TOTAL EUR 1,415.00"], quotes: ["TOTAL EUR 1,415.00", "TOTAL EUR 1,415.00"] }] } } }))
+	desk.addDocument(CLEAN, DOCS[CLEAN]!.text, "demo")
+	await desk.whenSettled(30_000)
+	const c = desk.peek(CLEAN)
+	assert.deepEqual(c.audit.result!.conflicts, [])
+	assert.ok((c.outputChecks ?? []).some((k) => k.kind === "not_a_conflict"))
+	assert.equal(outcomeOf(c), "AUTO_APPROVED")
+})
+
+
+test("a second reader that files the only amount as net, with no tax stated, has found the amount", async () => {
+	// What a real local model did on an unseen invoice with no VAT: amount under "net", "gross" left empty, everything else right.
+	const filedAsNet = (net: string) => { const r = structuredClone(READINGS[CLEAN]!); r.fields!.net = { value: net, quote: "Net 1,415.00" }; delete r.fields!.gross; return r }
+	desk.resetDesk()
+	desk.setModelRunner(scriptedModel({ readings: READINGS, audits: { [CLEAN]: filedAsNet("1415.00") } }))
+	desk.addDocument(CLEAN, DOCS[CLEAN]!.text, "demo")
+	await desk.whenSettled(30_000)
+	assert.equal(outcomeOf(desk.peek(CLEAN)), "AUTO_APPROVED", "the same amount under another heading is not a missing amount")
+	// a different net amount is still a reader that did not find the amount to pay
+	desk.resetDesk()
+	desk.setModelRunner(scriptedModel({ readings: READINGS, audits: { [CLEAN]: filedAsNet("1230.00") } }))
+	desk.addDocument(CLEAN, DOCS[CLEAN]!.text, "demo")
+	await desk.whenSettled(30_000)
+	const c = desk.peek(CLEAN)
+	assert.notEqual(outcomeOf(c), "AUTO_APPROVED", "a net amount that is not the amount to pay does not stand in for it")
+	assert.match(c.controls.find((k) => k.id === "agent_agreement")!.detail, /could not find gross amount|differ/)
+})

@@ -434,7 +434,7 @@ function Experiment() {
 					<ul>
 						<li>Not a language-model benchmark. The answers are scripted and the errors are put there on purpose; no model is called and no API key is needed.</li>
 						<li>The one-agent baseline repeats the wrong first reading by construction. The test shows what an independent second reading adds when the first is wrong.</li>
-						<li>Seven synthetic cases are observations, not rates.</li>
+						<li>{data.cases.length} synthetic cases are observations, not rates. One is declared in advance as a limit of the design and is expected to get through.</li>
 					</ul>
 				</div>
 			</section>
@@ -466,8 +466,8 @@ function Experiment() {
 								<div className="tr" key={row.id} data-case={row.id}>
 									<span><span className="lab-id">{row.id}</span> {row.title}<br /><span className="soft">{row.agent === "none" ? "no agent" : row.agent}: {row.injected}</span></span>
 									<span data-k="One agent"><DispositionTag value={row.single.outcome} />{row.single.wrongAmountApproved && <><br /><span className="tag bad">wrong amount</span><br /><span className="soft">{row.single.amount}</span></>}</span>
-									<span data-k="Five agents"><DispositionTag value={row.multi.outcome} />{row.multi.investigator && <><br /><span className="soft">Investigator called</span></>}</span>
-									<span className="wide"><span className={`tag ${CAUGHT_TONE[row.caughtBy] ?? ""}`}>{row.caughtBy}</span>{!row.pass && <span className="tag bad">not as declared</span>}<br /><span className="soft">{row.detail}</span>
+									<span data-k="Five agents"><DispositionTag value={row.multi.outcome} />{row.multi.wrongAmountApproved && <><br /><span className="tag bad">wrong amount</span><br /><span className="soft">{row.multi.amount}</span></>}{row.multi.investigator && <><br /><span className="soft">Investigator called</span></>}</span>
+									<span className="wide"><span className={`tag ${CAUGHT_TONE[row.caughtBy] ?? ""}`}>{row.caughtBy}</span>{row.knownLimit && <span className="tag warn">declared limit</span>}{!row.pass && <span className="tag bad">not as declared</span>}<br /><span className="soft">{row.detail}</span>
 										{row.multi.challenges.length > 0 && <><br /><span className="soft">Challenges on record: {row.multi.challenges.map((c) => `${c.id} (${c.raisedBy}: ${c.challenged.by} ${c.challenged.value} against ${c.observed.by} ${c.observed.value})`).join("; ")}</span></>}
 									</span>
 								</div>

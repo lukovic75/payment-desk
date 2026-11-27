@@ -153,6 +153,16 @@ export function instructionLines(text: string): { line: number; text: string }[]
 }
 
 const PAY_PHRASE = /please pay|amount due|amount payable|to be paid|zu zahlen|bitte überweisen|net à payer|à payer|a pagar|za platiti|za uplatu/i
+/**
+ * A line that labels the document's own total. A value can be quoted correctly and still be the wrong field: a line item
+ * reported as the amount to pay passes the quote check. Where the document labels a total, the amount to pay has to be
+ * the amount on that line, or the payment waits for a person. This is a list of labels, so it is conservative by nature:
+ * a total labelled in words that are not here is not seen by code, and then only the independent second reading helps.
+ */
+const TOTAL_LABEL = /\b(total|gesamtbetrag|rechnungsbetrag|gesamtsumme|endbetrag|importe total|montant total|ukupno|sveukupno|totaal|te betalen|kokku)\b/i
+/** Labels that carry the word "total" but are not the amount to pay: a subtotal, a net amount, a tax line, a table header. */
+const NOT_THE_TOTAL = /\b(sub-?total|zwischensumme|total ht|hors taxe|net|netto|vat|tva|mwst|ust|iva|pdv|btw|qty|unit|tax)\b/i
+export const statesAnAmountToPay = (line: string) => PAY_PHRASE.test(line) || (TOTAL_LABEL.test(line) && !NOT_THE_TOTAL.test(line))
 
 // ───────── the controls ─────────
 
@@ -350,7 +360,7 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 			add("instruction_content", "Instruction-like content", "R12", "review", "review", `The document contains text addressed to whoever processes it (line${lines.length > 1 ? "s" : ""} ${lines.map((l) => l.line).join(", ")}). It is treated as document content and has no effect on the controls.`, refs)
 		} else add("instruction_content", "Instruction-like content", "R12", "pass", "review", "No text in the document reads like an instruction to the processor.")
 		if (x.gross != null) {
-			const odd = doc.text.split("\n").map((t, i) => ({ line: i + 1, text: t.trim(), amounts: PAY_PHRASE.test(t) ? strictAmountsIn(t).filter((a) => a !== x.gross) : [] })).filter((l) => l.amounts.length)
+			const odd = doc.text.split("\n").map((t, i) => ({ line: i + 1, text: t.trim(), amounts: statesAnAmountToPay(t) ? strictAmountsIn(t).filter((a) => a !== x.gross) : [] })).filter((l) => l.amounts.length)
 			if (odd.length) {
 				const refs = odd.slice(0, 3).map((l) => { entries.push({ id: `D:stated:${l.line}`, category: "source_document", label: "Another payable amount stated in the document", by: "Desk", doc: { docId: doc.id, field: "gross", lineStart: l.line, lineEnd: l.line, excerpt: l.text, original: formatMinor(l.amounts[0]!), normalized: formatMinor(l.amounts[0]!), located: true, supportsValue: true } }); return `D:stated:${l.line}` })
 				amountOnly.push("stated_amounts")
@@ -371,7 +381,11 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 		const show = (f: ReadingField, v: unknown) => (typeof v === "number" ? formatMinor(v) : f === "iban" ? formatIban(String(v)) : String(v))
 		const compared: ReadingField[] = ["gross", "currency", "iban", "net", "tax", "creditorName", "invoiceNumber"]
 		const differ = compared.filter((f) => x[f] != null && a.reading[f] != null && !same(f))
-		const unseen = CRITICAL_FIELDS.filter((f) => x[f] != null && a.reading[f] == null)
+		// An invoice with no tax has one amount, and a reader may file it as "net" and leave "gross" empty. That reader did find
+		// the amount: with no tax stated, its net amount is the amount to pay. (Seen from a real model on an unseen French
+		// PDF, 27 November: every field right, and the payment held because the Auditor's amount was under "net".)
+		const amountReadAsNet = x.gross != null && a.reading.gross == null && a.reading.net === x.gross && (a.reading.tax == null || a.reading.tax === 0)
+		const unseen = CRITICAL_FIELDS.filter((f) => x[f] != null && a.reading[f] == null && !(f === "gross" && amountReadAsNet))
 		const refs = differ.map((f) => calc(`C:compare:${f}`, `${FIELD_LABEL[f]}: Extractor against Auditor`, "the two agents read the document independently; the desk compares the values", [{ label: "Extractor", value: show(f, x[f]), ref: ref(f) }, { label: "Auditor", value: show(f, a.reading[f]), ref: a.reading.refs[f] ?? null }], "different", f === "gross" || f === "net" || f === "tax" ? x.currency : null))
 		const critical = differ.filter((f) => f === "gross" || f === "currency" || f === "iban")
 		if (critical.length) add("agent_agreement", "Extractor and Auditor agree", "R13", "fail", "block", `The two agents read a different ${critical.map((f) => FIELD_LABEL[f].toLowerCase()).join(" and ")} from the same document. Neither value is trusted until the document is reprocessed or corrected.`, refs)

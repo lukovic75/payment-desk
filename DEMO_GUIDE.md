@@ -68,9 +68,9 @@ In scripted mode a run takes about a quarter of a second, so it is played back o
 ## Other checks
 
 ```bash
-npm test                 # 158 tests on the real Mozaik runtime with a scripted model
+npm test                 # 165 tests on the real Mozaik runtime with a scripted model
 npm run lab              # 12 stress scenarios, deterministic path
-npm run test:browser     # 31 browser checks of the showcase and PDF intake (after npm run build; needs Node 22+ and a Chrome or Chromium)
+npm run test:browser     # 32 browser checks of the showcase and PDF intake (after npm run build; needs Node 22+ and a Chrome or Chromium)
 ```
 
 ## Limits to know
@@ -82,4 +82,4 @@ npm run test:browser     # 31 browser checks of the showcase and PDF intake (aft
 - **One sandbox workspace.** The scenario payments are ordinary demo documents on the desk. Starting the demo replaces the demo documents; documents you add yourself are kept.
 - **Trusted records are fixtures.** The desk matches a callback reference to a record in `server/data/callbacks.json` and a vendor confirmation to one in `server/data/confirmations.json`. It does not call or write to anyone.
 - **Local only.** The server answers on this machine only and has no sign-in. It is not meant to be hosted.
-- **Hosted models are not verified on the current version.** The provider account had no credit when this version was finished. A small local model ran the four showcase scenarios once: two as expected, two failed safely (stored, replayable). The scripted demo and all automated checks pass; the live Stress Lab and the single-agent benchmark have never completed. See `DEMO_READINESS.md` and `FINAL_RELEASE_REPORT.md`. Architecture, claim by claim: `ARCHITECTURE_PROOF.md`. Likely questions: `JUDGE_QA.md`.
+- **Hosted models are not verified on the current version.** The provider account had no credit when this version was finished. Small local models ran the four showcase scenarios three times: two, three and, on the final code, four of four as expected (first and last stored, replayable). The scripted demo and all automated checks pass; the live Stress Lab and the single-agent benchmark have never completed. See `DEMO_READINESS.md` and `FINAL_RELEASE_REPORT.md`. Architecture, claim by claim: `ARCHITECTURE_PROOF.md`. Likely questions: `JUDGE_QA.md`.

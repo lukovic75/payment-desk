@@ -245,7 +245,7 @@ export type Challenge = {
 export type Resolution = { challengeId: string; basis: "source_cited" | "assertion"; chosenRef: string | null; chosenValue: string | null }
 
 /** Something in a model's well-formed output that code found to be wrong and removed or refused. Kept for the audit trail. */
-export type OutputCheck = { at: string; agent: AgentName; kind: "unknown_evidence_ref" | "unknown_policy_rule" | "unknown_control" | "invalid_result"; detail: string }
+export type OutputCheck = { at: string; agent: AgentName; kind: "unknown_evidence_ref" | "unknown_policy_rule" | "unknown_control" | "invalid_result" | "not_a_conflict"; detail: string }
 
 /** Why the model provider is refusing calls, when the refusal concerns the whole account and retrying cannot help. */
 export type ProviderFailureKind = "insufficient_credit" | "invalid_credentials" | "permission" | "unsupported_model" | "rate_limited" | "unavailable" | "network" | "unknown"
@@ -364,7 +364,7 @@ export type ShowcaseResult = "not_run" | "running" | "confirmed" | "unexpected" 
 export type ShowcaseStep = { key: ShowcaseKey; docId: string; optional: boolean; expected: string[]; startedAt: string | null; result: ShowcaseResult; actual: string | null; /** The file this step runs on, as it is named on the desk. Absent in recordings made before it was recorded. */ fileName?: string }
 export type Showcase = { id: string; startedAt: string; mode: "live" | "scripted"; steps: ShowcaseStep[] }
 /** A stored execution of an earlier run with live models. Read-only: replaying it calls no model and decides nothing. */
-export type Recording = { recordedAt: string; note: string; models: { fast: string; careful: string }; steps: ShowcaseStep[]; cases: PaymentCase[]; /** Which stored run this is: "earlier" (26 November, hosted models, older code) or "current" (this version of the code). */ id?: "earlier" | "current"; /** One line on what ran it and on which code, shown beside the date. */ version?: string }
+export type Recording = { recordedAt: string; note: string; models: { fast: string; careful: string }; steps: ShowcaseStep[]; cases: PaymentCase[]; /** Which stored run this is: "earlier" (26 November, hosted models, older code) or "current" (this version of the code). */ id?: "earlier" | "previous" | "current"; /** One line on what ran it and on which code, shown beside the date. */ version?: string }
 
 export type DeskSnapshot = {
 	startedAt: string | null

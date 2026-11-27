@@ -1,10 +1,10 @@
 {
- "recordedAt": "2026-11-27T12:46:19.262Z",
- "version": "this version of the code, gemma2:9b-8k through Ollama, local",
- "note": "Stored execution records of a run on 2026-11-27 with real model inference through Mozaik: gemma2:9b-8k, served by Ollama on the machine that ran it (local inference, no cloud provider). Code: the working tree on top of commit 9b79777. Scenarios run: 4 of the showcase's 5. Agent outputs, tool calls, timings, evidence and decisions are stored as the server held them, before any person acted on a case. Model reasoning is not recorded.",
+ "recordedAt": "2026-11-27T16:37:16.351Z",
+ "version": "this version of the code, qwen2.5:7b-instruct-12k through Ollama, local",
+ "note": "Stored execution records of a run on 2026-11-27 with real model inference through Mozaik: qwen2.5:7b-instruct-12k, served by Ollama on the machine that ran it (local inference, no cloud provider). Code: the working tree on top of commit 0b725c8. Scenarios run: 4 of the showcase's 5. Agent outputs, tool calls, timings, evidence and decisions are stored as the server held them, before any person acted on a case. Model reasoning is not recorded.",
  "models": {
-  "fast": "gemma2:9b-8k",
-  "careful": "gemma2:9b-8k"
+  "fast": "qwen2.5:7b-instruct-12k",
+  "careful": "qwen2.5:7b-instruct-12k"
  },
  "cases": [
   {
@@ -18,8 +18,8 @@
    "stage": "approved",
    "extraction": {
     "status": "done",
-    "startedAt": "2026-11-27T12:46:19.262Z",
-    "finishedAt": "2026-11-27T12:47:30.568Z",
+    "startedAt": "2026-11-27T16:37:16.351Z",
+    "finishedAt": "2026-11-27T16:38:30.019Z",
     "result": {
      "isPaymentRequest": true,
      "documentKind": "Invoice",
@@ -27,15 +27,15 @@
      "vendorTaxId": "DE811234567",
      "beneficiaryName": null,
      "invoiceNumber": "INV-2026-1041",
-     "invoiceDate": "18 November 2026",
-     "dueDate": "18 December 2026",
+     "invoiceDate": "2026-11-18",
+     "dueDate": "2026-12-18",
      "currency": "EUR",
-     "net": 141500,
+     "net": null,
      "tax": null,
      "gross": 141500,
      "iban": "DE89370400440532013000",
      "bic": "COBADEFFXXX",
-     "reference": "INV-2026-1041",
+     "reference": null,
      "poReference": null,
      "lines": [
       {
@@ -56,11 +56,9 @@
       "invoiceDate": "X:invoiceDate",
       "dueDate": "X:dueDate",
       "currency": "X:currency",
-      "net": "X:net",
       "gross": "X:gross",
       "iban": "X:iban",
-      "bic": "X:bic",
-      "reference": "X:reference"
+      "bic": "X:bic"
      },
      "note": ""
     },
@@ -68,8 +66,8 @@
    },
    "validation": {
     "status": "done",
-    "startedAt": "2026-11-27T12:47:30.568Z",
-    "finishedAt": "2026-11-27T12:49:01.291Z",
+    "startedAt": "2026-11-27T16:38:30.019Z",
+    "finishedAt": "2026-11-27T16:40:22.381Z",
     "result": {
      "vendorId": "V-001",
      "ibanValid": true,
@@ -77,7 +75,7 @@
      "duplicateOf": null,
      "issues": [
       {
-       "code": "R7",
+       "code": "R7.DuplicatePaymentRequest",
        "severity": "block",
        "message": "No other request for this invoice in the inbox or in the payment history.",
        "refs": [
@@ -86,36 +84,36 @@
        ]
       },
       {
-       "code": "per_payment_limit",
+       "code": "R9.PerPaymentLimitExceeded",
        "severity": "review",
-       "message": "1,415.00 EUR is within the auto-approve limit of 2,500.00 EUR.",
+       "message": "The amount is within the auto-approve limit, but a manual review is recommended due to the high value.",
        "refs": [
         "C:limit",
         "P:R9"
        ]
       },
       {
-       "code": "daily_limit",
+       "code": "R10.DailyAutoApproveBudgetExceeded",
        "severity": "review",
-       "message": "Today's automatic total would be 1,415.00 EUR of 10,000.00 EUR.",
+       "message": "Today's automatic total would be close to the daily budget. A manual review is recommended.",
        "refs": [
         "C:daily",
         "P:R10"
        ]
       }
      ],
-     "summary": "Vendor Nordlicht Logistik GmbH requested payment for invoice INV-2026-1041 for 1,415.00 EUR.",
+     "summary": "Invoice for Nordlicht Logistik GmbH with valid IBAN and no duplicates, but high value requires review.",
      "disagreements": []
     },
     "error": null
    },
    "audit": {
     "status": "done",
-    "startedAt": "2026-11-27T12:47:30.568Z",
-    "finishedAt": "2026-11-27T12:48:26.051Z",
+    "startedAt": "2026-11-27T16:38:30.019Z",
+    "finishedAt": "2026-11-27T16:39:47.019Z",
     "result": {
      "reading": {
-      "isPaymentRequest": true,
+      "isPaymentRequest": false,
       "documentKind": "Invoice",
       "creditorName": "NORDLICHT LOGISTIK GmbH",
       "vendorTaxId": "DE811234567",
@@ -129,7 +127,7 @@
       "gross": 141500,
       "iban": "DE89370400440532013000",
       "bic": "COBADEFFXXX",
-      "reference": "INV-2026-1041",
+      "reference": null,
       "poReference": null,
       "lines": [
        {
@@ -153,8 +151,7 @@
        "net": "A:net",
        "gross": "A:gross",
        "iban": "A:iban",
-       "bic": "A:bic",
-       "reference": "A:reference"
+       "bic": "A:bic"
       },
       "note": ""
      },
@@ -172,12 +169,21 @@
    },
    "decision": {
     "status": "done",
-    "startedAt": "2026-11-27T12:49:01.295Z",
-    "finishedAt": "2026-11-27T12:49:29.277Z",
+    "startedAt": "2026-11-27T16:40:22.382Z",
+    "finishedAt": "2026-11-27T16:40:59.880Z",
     "result": {
      "recommended": {
       "disposition": "AUTO_APPROVED",
-      "rulesApplied": [],
+      "rulesApplied": [
+       "R1",
+       "R2",
+       "R3",
+       "R4",
+       "R5",
+       "R6",
+       "R7",
+       "R9"
+      ],
       "passed": [
        "mandatory_fields",
        "evidence",
@@ -185,19 +191,15 @@
        "iban_checksum",
        "beneficiary",
        "currency",
-       "payable_amount",
        "duplicate",
-       "stages",
-       "evidence_integrity",
        "per_payment_limit",
        "daily_limit",
        "instruction_content",
-       "agent_agreement",
-       "line_items"
+       "agent_agreement"
       ],
       "failed": [],
       "humanRequired": false,
-      "explanation": "All controls passed.",
+      "explanation": "All mandatory rules passed and no blocking conditions were met.",
       "refs": []
      },
      "floor": "AUTO_APPROVED",
@@ -414,9 +416,9 @@
      "doc": {
       "docId": "INV-2026-1041",
       "field": "creditorName",
-      "lineStart": 5,
-      "lineEnd": 5,
-      "excerpt": "NORDLICHT LOGISTIK GmbH",
+      "lineStart": 3,
+      "lineEnd": 6,
+      "excerpt": "NORDLICHT LOGISTIK GmbH\nHafenstraße 12, 20457 Hamburg, Germany",
       "original": "NORDLICHT LOGISTIK GmbH",
       "normalized": "NORDLICHT LOGISTIK GmbH",
       "located": true,
@@ -471,8 +473,8 @@
       "lineStart": 11,
       "lineEnd": 11,
       "excerpt": "Invoice date: 18 November 2026",
-      "original": "18 November 2026",
-      "normalized": "18 November 2026",
+      "original": "2026-11-18",
+      "normalized": "2026-11-18",
       "located": true,
       "retypedFrom": null,
       "supportsValue": null
@@ -489,8 +491,8 @@
       "lineStart": 12,
       "lineEnd": 12,
       "excerpt": "Due date: 18 December 2026",
-      "original": "18 December 2026",
-      "normalized": "18 December 2026",
+      "original": "2026-12-18",
+      "normalized": "2026-12-18",
       "located": true,
       "retypedFrom": null,
       "supportsValue": null
@@ -514,24 +516,6 @@
       "supportsValue": true
      }
     },
-    "X:net": {
-     "id": "X:net",
-     "category": "source_document",
-     "label": "Net amount as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-2026-1041",
-      "field": "net",
-      "lineStart": 18,
-      "lineEnd": 18,
-      "excerpt": "Net      1,415.00",
-      "original": "1,415.00",
-      "normalized": "1,415.00",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
     "X:gross": {
      "id": "X:gross",
      "category": "source_document",
@@ -543,7 +527,7 @@
       "lineStart": 20,
       "lineEnd": 20,
       "excerpt": "TOTAL EUR 1,415.00",
-      "original": "1,415.00",
+      "original": "1415.00",
       "normalized": "1,415.00",
       "located": true,
       "retypedFrom": null,
@@ -558,9 +542,9 @@
      "doc": {
       "docId": "INV-2026-1041",
       "field": "iban",
-      "lineStart": 23,
+      "lineStart": 20,
       "lineEnd": 23,
-      "excerpt": "IBAN: DE89 3704 0044 0532 0130 00",
+      "excerpt": "Please pay to:\nIBAN: DE89 3704 0044 0532 0130 00",
       "original": "DE89 3704 0044 0532 0130 00",
       "normalized": "DE89 3704 0044 0532 0130 00",
       "located": true,
@@ -586,24 +570,6 @@
       "supportsValue": true
      }
     },
-    "X:reference": {
-     "id": "X:reference",
-     "category": "source_document",
-     "label": "Payment reference as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-2026-1041",
-      "field": "reference",
-      "lineStart": 25,
-      "lineEnd": 25,
-      "excerpt": "Payment reference: INV-2026-1041",
-      "original": "INV-2026-1041",
-      "normalized": "INV-2026-1041",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
     "X:line:1": {
      "id": "X:line:1",
      "category": "source_document",
@@ -615,7 +581,7 @@
       "lineStart": 16,
       "lineEnd": 16,
       "excerpt": "Freight Hamburg -> Belgrade, 3 pallets          3   410.00   1,230.00",
-      "original": "1,230.00",
+      "original": "1230.00",
       "normalized": "1,230.00",
       "located": true,
       "retypedFrom": null,
@@ -648,9 +614,9 @@
      "doc": {
       "docId": "INV-2026-1041",
       "field": "creditorName",
-      "lineStart": 5,
-      "lineEnd": 5,
-      "excerpt": "NORDLICHT LOGISTIK GmbH",
+      "lineStart": 3,
+      "lineEnd": 6,
+      "excerpt": "NORDLICHT LOGISTIK GmbH\nHafenstraße 12, 20457 Hamburg, Germany",
       "original": "NORDLICHT LOGISTIK GmbH",
       "normalized": "NORDLICHT LOGISTIK GmbH",
       "located": true,
@@ -759,7 +725,7 @@
       "lineStart": 18,
       "lineEnd": 18,
       "excerpt": "Net      1,415.00",
-      "original": "1,415.00",
+      "original": "1415.00",
       "normalized": "1,415.00",
       "located": true,
       "retypedFrom": null,
@@ -777,7 +743,7 @@
       "lineStart": 20,
       "lineEnd": 20,
       "excerpt": "TOTAL EUR 1,415.00",
-      "original": "1,415.00",
+      "original": "1415.00",
       "normalized": "1,415.00",
       "located": true,
       "retypedFrom": null,
@@ -792,9 +758,9 @@
      "doc": {
       "docId": "INV-2026-1041",
       "field": "iban",
-      "lineStart": 23,
+      "lineStart": 20,
       "lineEnd": 23,
-      "excerpt": "IBAN: DE89 3704 0044 0532 0130 00",
+      "excerpt": "Please pay to:\nIBAN: DE89 3704 0044 0532 0130 00",
       "original": "DE89 3704 0044 0532 0130 00",
       "normalized": "DE89 3704 0044 0532 0130 00",
       "located": true,
@@ -820,24 +786,6 @@
       "supportsValue": true
      }
     },
-    "A:reference": {
-     "id": "A:reference",
-     "category": "source_document",
-     "label": "Payment reference as read by the Auditor",
-     "by": "Auditor",
-     "doc": {
-      "docId": "INV-2026-1041",
-      "field": "reference",
-      "lineStart": 25,
-      "lineEnd": 25,
-      "excerpt": "Payment reference: INV-2026-1041",
-      "original": "INV-2026-1041",
-      "normalized": "INV-2026-1041",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
     "A:line:1": {
      "id": "A:line:1",
      "category": "source_document",
@@ -846,14 +794,14 @@
      "doc": {
       "docId": "INV-2026-1041",
       "field": "line",
-      "lineStart": null,
-      "lineEnd": null,
-      "excerpt": "",
-      "original": "1,230.00",
+      "lineStart": 16,
+      "lineEnd": 16,
+      "excerpt": "Freight Hamburg -> Belgrade, 3 pallets          3   410.00   1,230.00",
+      "original": "1230.00",
       "normalized": "1,230.00",
-      "located": false,
+      "located": true,
       "retypedFrom": null,
-      "supportsValue": false
+      "supportsValue": true
      }
     },
     "A:line:2": {
@@ -864,14 +812,14 @@
      "doc": {
       "docId": "INV-2026-1041",
       "field": "line",
-      "lineStart": null,
-      "lineEnd": null,
-      "excerpt": "",
+      "lineStart": 17,
+      "lineEnd": 17,
+      "excerpt": "Customs handling                                1   185.00     185.00",
       "original": "185.00",
       "normalized": "185.00",
-      "located": false,
+      "located": true,
       "retypedFrom": null,
-      "supportsValue": false
+      "supportsValue": true
      }
     },
     "P:R1": {
@@ -1133,7 +1081,7 @@
      "label": "Sum of line items",
      "by": "Desk",
      "calc": {
-      "method": "sum of the 2 line totals, compared with the net amount",
+      "method": "sum of the 2 line totals, compared with the gross amount",
       "inputs": [
        {
         "label": "Freight Hamburg -> Belgrade, 3 pallets",
@@ -1146,9 +1094,9 @@
         "ref": "X:line:2"
        },
        {
-        "label": "Net on the document",
+        "label": "Gross on the document",
         "value": "1,415.00",
-        "ref": "X:net"
+        "ref": "X:gross"
        }
       ],
       "result": "1,415.00 computed; difference 0.00",
@@ -1218,7 +1166,7 @@
    "verificationRequested": false,
    "review": [],
    "draft": {
-    "draftId": "PD-20261127124929-INV-2026-1041",
+    "draftId": "PD-20261127164059-INV-2026-1041",
     "sandbox": true,
     "note": "Sandbox payment draft from synthetic data. Not an ISO 20022 message, not validated against a bank schema, never submitted anywhere.",
     "caseId": "INV-2026-1041",
@@ -1239,76 +1187,76 @@
      "formatted": "1,415.00 EUR"
     },
     "reference": "INV-2026-1041",
-    "requestedExecutionDate": "18 December 2026",
-    "createdAt": "2026-11-27T12:49:29.278Z",
+    "requestedExecutionDate": "2026-12-18",
+    "createdAt": "2026-11-27T16:40:59.880Z",
     "evidence": {
      "amount": "X:gross",
      "creditor": "X:creditorName",
      "iban": "X:iban",
-     "reference": "X:reference"
+     "reference": "X:invoiceNumber"
     }
    },
    "runs": [
     {
-     "id": "run_789701c3-d",
+     "id": "run_a4915927-3",
      "agent": "Extractor",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:46:19.262Z",
-     "finishedAt": "2026-11-27T12:47:30.556Z",
+     "startedAt": "2026-11-27T16:37:16.351Z",
+     "finishedAt": "2026-11-27T16:38:30.016Z",
      "status": "done",
      "tokens": {
-      "input": 1645,
-      "output": 547
+      "input": 1611,
+      "output": 531
      },
      "trigger": "document.received",
      "error": null
     },
     {
-     "id": "run_4273e408-2",
+     "id": "run_0dd8581d-0",
      "agent": "Auditor",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:47:30.580Z",
-     "finishedAt": "2026-11-27T12:48:26.046Z",
+     "startedAt": "2026-11-27T16:38:30.025Z",
+     "finishedAt": "2026-11-27T16:39:47.016Z",
      "status": "done",
      "tokens": {
-      "input": 1635,
-      "output": 512
+      "input": 1687,
+      "output": 641
      },
      "trigger": "extraction.completed",
      "error": null
     },
     {
-     "id": "run_9e4f8782-7",
+     "id": "run_8167f16f-3",
      "agent": "Validator",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:47:30.589Z",
-     "finishedAt": "2026-11-27T12:49:01.286Z",
+     "startedAt": "2026-11-27T16:38:30.027Z",
+     "finishedAt": "2026-11-27T16:40:22.379Z",
      "status": "done",
      "tokens": {
-      "input": 2248,
-      "output": 243
+      "input": 2185,
+      "output": 219
      },
      "trigger": "extraction.completed",
      "error": null
     },
     {
-     "id": "run_b8675090-4",
+     "id": "run_888e6ea4-9",
      "agent": "Policy",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:49:01.296Z",
-     "finishedAt": "2026-11-27T12:49:29.254Z",
+     "startedAt": "2026-11-27T16:40:22.383Z",
+     "finishedAt": "2026-11-27T16:40:59.878Z",
      "status": "done",
      "tokens": {
-      "input": 2056,
-      "output": 119
+      "input": 1919,
+      "output": 166
      },
      "trigger": "policy.requested",
      "error": null
@@ -1316,121 +1264,133 @@
    ],
    "timeline": [
     {
-     "at": "2026-11-27T12:46:19.262Z",
+     "at": "2026-11-27T16:37:16.351Z",
      "agent": "Extractor",
      "kind": "loop.started",
-     "detail": "Extractor started (gemma2:9b-8k · Ollama, this machine), triggered by document.received, execution run_789701c3-d"
+     "detail": "Extractor started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by document.received, execution run_a4915927-3"
     },
     {
-     "at": "2026-11-27T12:46:19.264Z",
+     "at": "2026-11-27T16:37:16.354Z",
      "agent": "Extractor",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:47:30.521Z",
+     "at": "2026-11-27T16:38:30.010Z",
      "agent": "Extractor",
      "kind": "tool",
      "detail": "calls submit_reading"
     },
     {
-     "at": "2026-11-27T12:47:30.556Z",
+     "at": "2026-11-27T16:38:30.016Z",
      "agent": "Extractor",
      "kind": "answer",
      "detail": "Extractor finished"
     },
     {
-     "at": "2026-11-27T12:47:30.580Z",
+     "at": "2026-11-27T16:38:30.025Z",
      "agent": "Auditor",
      "kind": "loop.started",
-     "detail": "Auditor started (gemma2:9b-8k · Ollama, this machine), triggered by extraction.completed, execution run_4273e408-2"
+     "detail": "Auditor started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by extraction.completed, execution run_0dd8581d-0"
     },
     {
-     "at": "2026-11-27T12:47:30.589Z",
+     "at": "2026-11-27T16:38:30.027Z",
      "agent": "Validator",
      "kind": "loop.started",
-     "detail": "Validator started (gemma2:9b-8k · Ollama, this machine), triggered by extraction.completed, execution run_9e4f8782-7"
+     "detail": "Validator started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by extraction.completed, execution run_8167f16f-3"
     },
     {
-     "at": "2026-11-27T12:47:30.592Z",
+     "at": "2026-11-27T16:38:30.028Z",
      "agent": "Auditor",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:47:30.592Z",
+     "at": "2026-11-27T16:38:30.028Z",
      "agent": "Validator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:48:26.032Z",
+     "at": "2026-11-27T16:39:47.013Z",
      "agent": "Auditor",
      "kind": "tool",
      "detail": "calls submit_independent_reading"
     },
     {
-     "at": "2026-11-27T12:48:26.046Z",
+     "at": "2026-11-27T16:39:47.016Z",
      "agent": "Auditor",
      "kind": "answer",
      "detail": "Auditor finished"
     },
     {
-     "at": "2026-11-27T12:48:38.736Z",
+     "at": "2026-11-27T16:39:47.019Z",
+     "agent": "Firewall",
+     "kind": "info",
+     "detail": "output check on the Auditor: the Auditor reported a contradiction about gross between the total and a line item of the same invoice (1415.00 and 1230.00); its own line items add up to its total, so it was not recorded as one"
+    },
+    {
+     "at": "2026-11-27T16:39:58.188Z",
      "agent": "Validator",
      "kind": "tool",
      "detail": "calls lookup_trusted_records"
     },
     {
-     "at": "2026-11-27T12:48:38.755Z",
+     "at": "2026-11-27T16:39:58.190Z",
      "agent": "Validator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:49:01.279Z",
+     "at": "2026-11-27T16:40:22.377Z",
      "agent": "Validator",
      "kind": "tool",
      "detail": "calls submit_validation"
     },
     {
-     "at": "2026-11-27T12:49:01.286Z",
+     "at": "2026-11-27T16:40:22.379Z",
      "agent": "Validator",
      "kind": "answer",
      "detail": "Validator finished"
     },
     {
-     "at": "2026-11-27T12:49:01.297Z",
+     "at": "2026-11-27T16:40:22.383Z",
      "agent": "Policy",
      "kind": "loop.started",
-     "detail": "Policy started (gemma2:9b-8k · Ollama, this machine), triggered by policy.requested, execution run_b8675090-4"
+     "detail": "Policy started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by policy.requested, execution run_888e6ea4-9"
     },
     {
-     "at": "2026-11-27T12:49:01.314Z",
+     "at": "2026-11-27T16:40:22.385Z",
      "agent": "Policy",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:49:29.238Z",
+     "at": "2026-11-27T16:40:59.876Z",
      "agent": "Policy",
      "kind": "tool",
      "detail": "calls submit_recommendation"
     },
     {
-     "at": "2026-11-27T12:49:29.254Z",
+     "at": "2026-11-27T16:40:59.878Z",
      "agent": "Policy",
      "kind": "answer",
      "detail": "Policy finished"
     },
     {
-     "at": "2026-11-27T12:49:29.280Z",
-     "agent": "Desk",
+     "at": "2026-11-27T16:40:59.878Z",
+     "agent": "Firewall",
      "kind": "info",
-     "detail": "payment draft PD-20261127124929-INV-2026-1041 created (sandbox; nothing is sent)"
+     "detail": "output check on the Policy: cited evidence that does not exist (R1, R2, R3, R4, …); the citation was removed"
     },
     {
-     "at": "2026-11-27T12:49:29.280Z",
+     "at": "2026-11-27T16:40:59.880Z",
+     "agent": "Desk",
+     "kind": "info",
+     "detail": "payment draft PD-20261127164059-INV-2026-1041 created (sandbox; nothing is sent)"
+    },
+    {
+     "at": "2026-11-27T16:40:59.880Z",
      "agent": "Firewall",
      "kind": "info",
      "detail": "auto-approved: every control passed"
@@ -1482,13 +1442,6 @@
       "correct": true
      },
      {
-      "subject": "Extractor: net amount",
-      "ref": "X:net",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
       "subject": "Extractor: gross amount",
       "ref": "X:gross",
       "critical": true,
@@ -1505,13 +1458,6 @@
      {
       "subject": "Extractor: bic",
       "ref": "X:bic",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Extractor: payment reference",
-      "ref": "X:reference",
       "critical": false,
       "present": true,
       "correct": true
@@ -1601,25 +1547,18 @@
       "correct": true
      },
      {
-      "subject": "Auditor: payment reference",
-      "ref": "A:reference",
+      "subject": "Auditor: line item 1",
+      "ref": "A:line:1",
       "critical": false,
       "present": true,
       "correct": true
      },
      {
-      "subject": "Auditor: line item 1",
-      "ref": "A:line:1",
-      "critical": false,
-      "present": false,
-      "correct": false
-     },
-     {
       "subject": "Auditor: line item 2",
       "ref": "A:line:2",
       "critical": false,
-      "present": false,
-      "correct": false
+      "present": true,
+      "correct": true
      },
      {
       "subject": "Policy rule R1",
@@ -1783,45 +1722,44 @@
       "correct": true
      },
      {
-      "subject": "Validator: issue 1 (R7)",
+      "subject": "Validator: issue 1 (R7.DuplicatePaymentRequest)",
       "ref": "X:invoiceNumber",
       "critical": false,
       "present": true,
       "correct": null
      },
      {
-      "subject": "Validator: issue 2 (per_payment_limit)",
+      "subject": "Validator: issue 2 (R9.PerPaymentLimitExceeded)",
       "ref": "C:limit",
       "critical": false,
       "present": true,
       "correct": null
      },
      {
-      "subject": "Validator: issue 3 (daily_limit)",
+      "subject": "Validator: issue 3 (R10.DailyAutoApproveBudgetExceeded)",
       "ref": "C:daily",
       "critical": false,
       "present": true,
       "correct": null
      }
     ],
-    "findings": [
-     {
-      "kind": "broken_reference",
-      "subject": "Auditor: line item 1",
-      "ref": "A:line:1",
-      "detail": "The quoted text was not found in the document.",
-      "critical": false
-     },
-     {
-      "kind": "broken_reference",
-      "subject": "Auditor: line item 2",
-      "ref": "A:line:2",
-      "detail": "The quoted text was not found in the document.",
-      "critical": false
-     }
-    ],
+    "findings": [],
     "ok": true
-   }
+   },
+   "outputChecks": [
+    {
+     "at": "2026-11-27T16:39:47.019Z",
+     "agent": "Auditor",
+     "kind": "not_a_conflict",
+     "detail": "the Auditor reported a contradiction about gross between the total and a line item of the same invoice (1415.00 and 1230.00); its own line items add up to its total, so it was not recorded as one"
+    },
+    {
+     "at": "2026-11-27T16:40:59.878Z",
+     "agent": "Policy",
+     "kind": "unknown_evidence_ref",
+     "detail": "cited evidence that does not exist (R1, R2, R3, R4, …); the citation was removed"
+    }
+   ]
   },
   {
    "id": "INV-2026-1049",
@@ -1829,9 +1767,9 @@
    "fileName": "INV-2026-1049.pdf",
    "hash": "84bcda4ef5864cbcdc84e391672cba9b217c543420015aa5f7ee1bdae2e70e95",
    "receivedAt": "2026-11-26T08:01:37.000Z",
-   "version": 13,
+   "version": 17,
    "attempt": 1,
-   "stage": "error",
+   "stage": "awaiting_approval",
    "pdf": {
     "pages": 2,
     "size": 3950,
@@ -1839,8 +1777,8 @@
    },
    "extraction": {
     "status": "done",
-    "startedAt": "2026-11-27T12:56:30.841Z",
-    "finishedAt": "2026-11-27T12:58:03.797Z",
+    "startedAt": "2026-11-27T16:45:17.287Z",
+    "finishedAt": "2026-11-27T16:46:07.280Z",
     "result": {
      "isPaymentRequest": true,
      "documentKind": "invoice",
@@ -1848,15 +1786,15 @@
      "vendorTaxId": "DE811234567",
      "beneficiaryName": null,
      "invoiceNumber": "INV-2026-1049",
-     "invoiceDate": "21 November 2026",
-     "dueDate": "21 December 2026",
+     "invoiceDate": "2026-11-21",
+     "dueDate": "2026-12-21",
      "currency": "EUR",
-     "net": 189000,
-     "tax": 0,
+     "net": null,
+     "tax": null,
      "gross": 189000,
      "iban": "DE89370400440532013000",
      "bic": "COBADEFFXXX",
-     "reference": "INV-2026-1049",
+     "reference": null,
      "poReference": null,
      "lines": [
       {
@@ -1877,21 +1815,18 @@
       "invoiceDate": "X:invoiceDate",
       "dueDate": "X:dueDate",
       "currency": "X:currency",
-      "net": "X:net",
-      "tax": "X:tax",
       "gross": "X:gross",
       "iban": "X:iban",
-      "bic": "X:bic",
-      "reference": "X:reference"
+      "bic": "X:bic"
      },
-     "note": ""
+     "note": "The document states a total of EUR 1,980.00 but the invoice table shows a gross amount of EUR 1,890.00."
     },
     "error": null
    },
    "validation": {
     "status": "done",
-    "startedAt": "2026-11-27T12:58:03.797Z",
-    "finishedAt": "2026-11-27T13:00:11.566Z",
+    "startedAt": "2026-11-27T16:46:07.280Z",
+    "finishedAt": "2026-11-27T16:47:42.614Z",
     "result": {
      "vendorId": "V-001",
      "ibanValid": true,
@@ -1899,42 +1834,41 @@
      "duplicateOf": null,
      "issues": [
       {
-       "code": "R7",
-       "severity": "block",
-       "message": "No other request for this invoice in the inbox or in the payment history.",
+       "code": "D:stated:5",
+       "severity": "info",
+       "message": "Another payable amount stated in the document.",
        "refs": [
-        "X:invoiceNumber",
-        "P:R7"
+        "C:daily"
        ]
       },
       {
-       "code": "per_payment_limit",
+       "code": "C:limit",
        "severity": "review",
-       "message": "1,890.00 EUR is within the auto-approve limit of 2,500.00 EUR.",
+       "message": "Amount against the auto-approve limit is within bounds.",
        "refs": [
-        "C:limit",
+        "C:lines",
         "P:R9"
        ]
       },
       {
-       "code": "daily_limit",
+       "code": "C:daily",
        "severity": "review",
-       "message": "Today's automatic total would be 3,305.00 EUR of 10,000.00 EUR.",
+       "message": "Daily auto-approved total is within budget.",
        "refs": [
         "C:daily",
         "P:R10"
        ]
       }
      ],
-     "summary": "Vendor Nordlicht Logistik GmbH requested payment for invoice INV-2026-1049 for 1,890.00 EUR.",
+     "summary": "Validation passed with some review items.",
      "disagreements": []
     },
     "error": null
    },
    "audit": {
     "status": "done",
-    "startedAt": "2026-11-27T12:58:03.797Z",
-    "finishedAt": "2026-11-27T12:59:23.049Z",
+    "startedAt": "2026-11-27T16:46:07.280Z",
+    "finishedAt": "2026-11-27T16:47:20.690Z",
     "result": {
      "reading": {
       "isPaymentRequest": true,
@@ -1947,7 +1881,7 @@
       "dueDate": "21 December 2026",
       "currency": "EUR",
       "net": 189000,
-      "tax": 0,
+      "tax": null,
       "gross": 189000,
       "iban": "DE89370400440532013000",
       "bic": "COBADEFFXXX",
@@ -1973,31 +1907,120 @@
        "dueDate": "A:dueDate",
        "currency": "A:currency",
        "net": "A:net",
-       "tax": "A:tax",
        "gross": "A:gross",
        "iban": "A:iban",
        "bic": "A:bic",
        "reference": "A:reference"
       },
-      "note": ""
+      "note": "Synthetic document for the Payment Desk sandbox. Not a real invoice."
      },
-     "conflicts": [],
-     "summary": ""
+     "conflicts": [
+      {
+       "field": "gross",
+       "values": [
+        "1890.00",
+        "1980.00"
+       ],
+       "refs": [
+        "A:conflict:1:1",
+        "A:conflict:1:2"
+       ]
+      }
+     ],
+     "summary": "Invoice details and payment instructions provided; discrepancy in gross amount stated."
     },
     "error": null
    },
    "investigation": {
-    "status": "error",
-    "startedAt": "2026-11-27T13:00:11.567Z",
-    "finishedAt": "2026-11-27T13:04:49.213Z",
-    "result": null,
-    "error": "The Investigator submitted an invalid result twice: verifiedFacts: Too big: expected array to have <=10 items"
+    "status": "done",
+    "startedAt": "2026-11-27T16:47:42.615Z",
+    "finishedAt": "2026-11-27T16:49:15.202Z",
+    "result": {
+     "category": "invoice_discrepancy",
+     "assessment": "suspected",
+     "verifiedFacts": [
+      {
+       "text": "The document states EUR 1,980.00 but the invoice table shows a gross amount of EUR 1,890.00.",
+       "refs": [
+        "A:conflict:1:1",
+        "A:conflict:1:2"
+       ]
+      },
+      {
+       "text": "The vendor record and trusted records match the document's IBAN and BIC.",
+       "refs": [
+        "V:V-001",
+        "X:iban",
+        "X:bic"
+       ]
+      }
+     ],
+     "conflictingEvidence": [
+      {
+       "text": "The auditor found a discrepancy in the gross amount stated on the document.",
+       "refs": [
+        "A:conflict:1:1",
+        "A:conflict:1:2"
+       ]
+      },
+      {
+       "text": "The document states EUR 1,980.00 but the invoice table shows a gross amount of EUR 1,890.00.",
+       "refs": [
+        "X:gross",
+        "A:conflict:1:1",
+        "A:conflict:1:2"
+       ]
+      }
+     ],
+     "explanation": "The document states two different amounts for the payable sum, which requires verification before payment can be processed.",
+     "unknowns": [
+      "Which amount is correct and should be paid?"
+     ],
+     "recommendedSteps": [
+      "Verify with Nordlicht Logistik GmbH to confirm the correct payable amount.",
+      "Check if there was a previous communication regarding this invoice number that might explain the discrepancy.",
+      "Review the vendor's payment history for any similar discrepancies."
+     ],
+     "recommendedDisposition": "NEEDS_APPROVAL"
+    },
+    "error": null
    },
    "decision": {
-    "status": "pending",
-    "startedAt": null,
-    "finishedAt": null,
-    "result": null,
+    "status": "done",
+    "startedAt": "2026-11-27T16:49:15.202Z",
+    "finishedAt": "2026-11-27T16:49:52.450Z",
+    "result": {
+     "recommended": {
+      "disposition": "NEEDS_APPROVAL",
+      "rulesApplied": [
+       "R14"
+      ],
+      "passed": [
+       "mandatory_fields",
+       "evidence",
+       "vendor_known",
+       "iban_checksum",
+       "beneficiary",
+       "currency",
+       "payable_amount",
+       "duplicate",
+       "line_items",
+       "per_payment_limit",
+       "daily_limit",
+       "instruction_content",
+       "evidence_integrity"
+      ],
+      "failed": [],
+      "humanRequired": true,
+      "explanation": "The document states two different amounts for the payable sum, which requires verification before approving. The policy rule R14 mandates a person's review in such cases.",
+      "refs": [
+       "P:R14"
+      ]
+     },
+     "floor": "NEEDS_APPROVAL",
+     "final": "NEEDS_APPROVAL",
+     "overridden": false
+    },
     "error": null
    },
    "controls": [
@@ -2020,9 +2043,9 @@
      "id": "evidence",
      "label": "Source evidence",
      "rule": "R2",
-     "status": "fail",
+     "status": "pass",
      "severity": "block",
-     "detail": "the quote does not contain the value for: currency. An unsupported value cannot be paid.",
+     "detail": "Every critical value is quoted from the document and the quote contains it.",
      "refs": [
       "X:creditorName",
       "X:gross",
@@ -2108,13 +2131,12 @@
     {
      "id": "arithmetic",
      "label": "Arithmetic",
-     "rule": "R8",
-     "status": "pass",
-     "severity": "block",
-     "detail": "Net 1,890.00 + tax 0.00 = gross 1,890.00.",
+     "rule": null,
+     "status": "na",
+     "severity": "info",
+     "detail": "Not applicable: the document states one total and no separate net and tax, so there is nothing to add up.",
      "refs": [
-      "C:arithmetic",
-      "P:R8"
+      "X:gross"
      ]
     },
     {
@@ -2180,37 +2202,34 @@
     {
      "id": "agent_agreement",
      "label": "Extractor and Auditor agree",
-     "rule": "R13",
-     "status": "pass",
-     "severity": "block",
-     "detail": "The Auditor read the document on its own and arrived at the same amount, currency, IBAN, creditor and invoice number.",
+     "rule": "R14",
+     "status": "review",
+     "severity": "review",
+     "detail": "the Auditor found the document contradicting itself on gross.",
      "refs": [
-      "X:gross",
-      "A:gross",
-      "X:iban",
-      "A:iban",
-      "P:R13"
+      "A:conflict:1:1",
+      "A:conflict:1:2",
+      "P:R14"
      ]
     },
     {
      "id": "stages",
      "label": "Agent stages",
      "rule": null,
-     "status": "fail",
+     "status": "pass",
      "severity": "block",
-     "detail": "Failed: investigation. A payment is never approved on an incomplete run.",
+     "detail": "Extraction, validation and the independent audit all completed.",
      "refs": []
     },
     {
      "id": "evidence_integrity",
      "label": "Evidence integrity",
      "rule": "R2",
-     "status": "fail",
+     "status": "pass",
      "severity": "block",
-     "detail": "Re-verification against the source failed for: Extractor: currency. The quoted line does not contain the value EUR.",
+     "detail": "Re-verified 9 critical values against the document text, the trusted records and the arithmetic: every reference resolves and supports its value.",
      "refs": [
-      "P:R2",
-      "X:currency"
+      "P:R2"
      ]
     }
    ],
@@ -2223,16 +2242,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "creditorName",
-      "lineStart": 9,
-      "lineEnd": 9,
-      "excerpt": "NORDLICHT LOGISTIK GmbH",
+      "lineStart": 7,
+      "lineEnd": 10,
+      "excerpt": "NORDLICHT LOGISTIK GmbH INVOICE\nHafenstraße 12, 20457 Hamburg, Germany",
       "original": "NORDLICHT LOGISTIK GmbH",
       "normalized": "NORDLICHT LOGISTIK GmbH",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true,
-      "page": 2,
-      "pageLine": 1
+      "page": 1,
+      "pageLine": 7
      }
     },
     "X:vendorTaxId": {
@@ -2286,8 +2305,8 @@
       "lineStart": 13,
       "lineEnd": 13,
       "excerpt": "Invoice date: 21 November 2026",
-      "original": "21 November 2026",
-      "normalized": "21 November 2026",
+      "original": "2026-11-21",
+      "normalized": "2026-11-21",
       "located": true,
       "retypedFrom": null,
       "supportsValue": null,
@@ -2306,8 +2325,8 @@
       "lineStart": 14,
       "lineEnd": 14,
       "excerpt": "Due date: 21 December 2026",
-      "original": "21 December 2026",
-      "normalized": "21 December 2026",
+      "original": "2026-12-21",
+      "normalized": "2026-12-21",
       "located": true,
       "retypedFrom": null,
       "supportsValue": null,
@@ -2323,56 +2342,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "currency",
-      "lineStart": 21,
-      "lineEnd": 21,
-      "excerpt": "Please pay to:",
+      "lineStart": 5,
+      "lineEnd": 5,
+      "excerpt": "please pay EUR 1,980.00 for the express shipment by the end of the week.",
       "original": "EUR",
       "normalized": "EUR",
       "located": true,
       "retypedFrom": null,
-      "supportsValue": false,
-      "page": 2,
-      "pageLine": 13
-     }
-    },
-    "X:net": {
-     "id": "X:net",
-     "category": "source_document",
-     "label": "Net amount as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-2026-1049",
-      "field": "net",
-      "lineStart": 18,
-      "lineEnd": 18,
-      "excerpt": "Net 1,890.00",
-      "original": "1,890.00",
-      "normalized": "1,890.00",
-      "located": true,
-      "retypedFrom": null,
       "supportsValue": true,
-      "page": 2,
-      "pageLine": 10
-     }
-    },
-    "X:tax": {
-     "id": "X:tax",
-     "category": "source_document",
-     "label": "Tax amount as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-2026-1049",
-      "field": "tax",
-      "lineStart": 19,
-      "lineEnd": 19,
-      "excerpt": "VAT 0% (reverse charge)",
-      "original": "0%",
-      "normalized": "0.00",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true,
-      "page": 2,
-      "pageLine": 11
+      "page": 1,
+      "pageLine": 5
      }
     },
     "X:gross": {
@@ -2383,16 +2362,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "gross",
-      "lineStart": 20,
-      "lineEnd": 20,
-      "excerpt": "TOTAL EUR 1,890.00",
-      "original": "1,890.00",
+      "lineStart": 18,
+      "lineEnd": 18,
+      "excerpt": "Net 1,890.00",
+      "original": "1890.00",
       "normalized": "1,890.00",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true,
       "page": 2,
-      "pageLine": 12
+      "pageLine": 10
      }
     },
     "X:iban": {
@@ -2403,16 +2382,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "iban",
-      "lineStart": 22,
+      "lineStart": 19,
       "lineEnd": 22,
-      "excerpt": "IBAN: DE89 3704 0044 0532 0130 00",
+      "excerpt": "Please pay to:\nIBAN: DE89 3704 0044 0532 0130 00",
       "original": "DE89 3704 0044 0532 0130 00",
       "normalized": "DE89 3704 0044 0532 0130 00",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true,
       "page": 2,
-      "pageLine": 14
+      "pageLine": 11
      }
     },
     "X:bic": {
@@ -2435,26 +2414,6 @@
       "pageLine": 15
      }
     },
-    "X:reference": {
-     "id": "X:reference",
-     "category": "source_document",
-     "label": "Payment reference as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-2026-1049",
-      "field": "reference",
-      "lineStart": 24,
-      "lineEnd": 24,
-      "excerpt": "Payment reference: INV-2026-1049",
-      "original": "INV-2026-1049",
-      "normalized": "INV-2026-1049",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true,
-      "page": 2,
-      "pageLine": 16
-     }
-    },
     "X:line:1": {
      "id": "X:line:1",
      "category": "source_document",
@@ -2466,7 +2425,7 @@
       "lineStart": 16,
       "lineEnd": 16,
       "excerpt": "Express freight Hamburg -> Belgrade, 4 pallets 4 410.00 1,640.00",
-      "original": "1,640.00",
+      "original": "1640.00",
       "normalized": "1,640.00",
       "located": true,
       "retypedFrom": null,
@@ -2503,16 +2462,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "creditorName",
-      "lineStart": 9,
-      "lineEnd": 9,
-      "excerpt": "NORDLICHT LOGISTIK GmbH",
+      "lineStart": 7,
+      "lineEnd": 10,
+      "excerpt": "NORDLICHT LOGISTIK GmbH INVOICE\nHafenstraße 12, 20457 Hamburg, Germany",
       "original": "NORDLICHT LOGISTIK GmbH",
       "normalized": "NORDLICHT LOGISTIK GmbH",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true,
-      "page": 2,
-      "pageLine": 1
+      "page": 1,
+      "pageLine": 7
      }
     },
     "A:vendorTaxId": {
@@ -2603,16 +2562,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "currency",
-      "lineStart": 5,
-      "lineEnd": 5,
-      "excerpt": "please pay EUR 1,980.00 for the express shipment by the end of the week.",
+      "lineStart": 21,
+      "lineEnd": 24,
+      "excerpt": "Please pay to:\nIBAN: DE89 3704 0044 0532 0130 00\nBIC: COBADEFFXXX\nPayment reference: INV-2026-1049",
       "original": "EUR",
       "normalized": "EUR",
       "located": true,
       "retypedFrom": null,
-      "supportsValue": true,
-      "page": 1,
-      "pageLine": 5
+      "supportsValue": false,
+      "page": 2,
+      "pageLine": 13
      }
     },
     "A:net": {
@@ -2626,33 +2585,13 @@
       "lineStart": 18,
       "lineEnd": 18,
       "excerpt": "Net 1,890.00",
-      "original": "1,890.00",
+      "original": "1890.00",
       "normalized": "1,890.00",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true,
       "page": 2,
       "pageLine": 10
-     }
-    },
-    "A:tax": {
-     "id": "A:tax",
-     "category": "source_document",
-     "label": "Tax amount as read by the Auditor",
-     "by": "Auditor",
-     "doc": {
-      "docId": "INV-2026-1049",
-      "field": "tax",
-      "lineStart": 19,
-      "lineEnd": 19,
-      "excerpt": "VAT 0% (reverse charge)",
-      "original": "0%",
-      "normalized": "0.00",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true,
-      "page": 2,
-      "pageLine": 11
      }
     },
     "A:gross": {
@@ -2666,7 +2605,7 @@
       "lineStart": 20,
       "lineEnd": 20,
       "excerpt": "TOTAL EUR 1,890.00",
-      "original": "1,890.00",
+      "original": "1890.00",
       "normalized": "1,890.00",
       "located": true,
       "retypedFrom": null,
@@ -2683,16 +2622,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "iban",
-      "lineStart": 22,
-      "lineEnd": 22,
-      "excerpt": "IBAN: DE89 3704 0044 0532 0130 00",
-      "original": "DE89 3704 0044 0532 0130 00",
+      "lineStart": 21,
+      "lineEnd": 24,
+      "excerpt": "Please pay to:\nIBAN: DE89 3704 0044 0532 0130 00\nBIC: COBADEFFXXX\nPayment reference: INV-2026-1049",
+      "original": "DE89370400440532013000",
       "normalized": "DE89 3704 0044 0532 0130 00",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true,
       "page": 2,
-      "pageLine": 14
+      "pageLine": 13
      }
     },
     "A:bic": {
@@ -2703,16 +2642,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "bic",
-      "lineStart": 23,
-      "lineEnd": 23,
-      "excerpt": "BIC: COBADEFFXXX",
+      "lineStart": 21,
+      "lineEnd": 24,
+      "excerpt": "Please pay to:\nIBAN: DE89 3704 0044 0532 0130 00\nBIC: COBADEFFXXX\nPayment reference: INV-2026-1049",
       "original": "COBADEFFXXX",
       "normalized": "COBADEFFXXX",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true,
       "page": 2,
-      "pageLine": 15
+      "pageLine": 13
      }
     },
     "A:reference": {
@@ -2723,16 +2662,16 @@
      "doc": {
       "docId": "INV-2026-1049",
       "field": "reference",
-      "lineStart": 24,
+      "lineStart": 21,
       "lineEnd": 24,
-      "excerpt": "Payment reference: INV-2026-1049",
+      "excerpt": "Please pay to:\nIBAN: DE89 3704 0044 0532 0130 00\nBIC: COBADEFFXXX\nPayment reference: INV-2026-1049",
       "original": "INV-2026-1049",
       "normalized": "INV-2026-1049",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true,
       "page": 2,
-      "pageLine": 16
+      "pageLine": 13
      }
     },
     "A:line:1": {
@@ -2746,7 +2685,7 @@
       "lineStart": 16,
       "lineEnd": 16,
       "excerpt": "Express freight Hamburg -> Belgrade, 4 pallets 4 410.00 1,640.00",
-      "original": "1,640.00",
+      "original": "1640.00",
       "normalized": "1,640.00",
       "located": true,
       "retypedFrom": null,
@@ -2773,6 +2712,44 @@
       "supportsValue": true,
       "page": 2,
       "pageLine": 9
+     }
+    },
+    "A:conflict:1:1": {
+     "id": "A:conflict:1:1",
+     "category": "source_document",
+     "label": "Conflicting statement about gross",
+     "by": "Auditor",
+     "doc": {
+      "docId": "INV-2026-1049",
+      "field": "gross",
+      "lineStart": 18,
+      "lineEnd": 18,
+      "excerpt": "Net 1,890.00",
+      "original": "1890.00",
+      "normalized": "1890.00",
+      "located": true,
+      "supportsValue": null,
+      "page": 2,
+      "pageLine": 10
+     }
+    },
+    "A:conflict:1:2": {
+     "id": "A:conflict:1:2",
+     "category": "source_document",
+     "label": "Conflicting statement about gross",
+     "by": "Auditor",
+     "doc": {
+      "docId": "INV-2026-1049",
+      "field": "gross",
+      "lineStart": 5,
+      "lineEnd": 5,
+      "excerpt": "please pay EUR 1,980.00 for the express shipment by the end of the week.",
+      "original": "1980.00",
+      "normalized": "1980.00",
+      "located": true,
+      "supportsValue": null,
+      "page": 1,
+      "pageLine": 5
      }
     },
     "P:R1": {
@@ -3028,42 +3005,13 @@
       }
      }
     },
-    "C:arithmetic": {
-     "id": "C:arithmetic",
-     "category": "calculation",
-     "label": "Net plus tax against gross",
-     "by": "Desk",
-     "calc": {
-      "method": "net + tax, compared with the gross amount on the document",
-      "inputs": [
-       {
-        "label": "Net",
-        "value": "1,890.00",
-        "ref": "X:net"
-       },
-       {
-        "label": "Tax",
-        "value": "0.00",
-        "ref": "X:tax"
-       },
-       {
-        "label": "Gross on the document",
-        "value": "1,890.00",
-        "ref": "X:gross"
-       }
-      ],
-      "result": "1,890.00 computed; difference 0.00",
-      "currency": "EUR",
-      "rounding": "exact, in minor units; no rounding or tolerance"
-     }
-    },
     "C:lines": {
      "id": "C:lines",
      "category": "calculation",
      "label": "Sum of line items",
      "by": "Desk",
      "calc": {
-      "method": "sum of the 2 line totals, compared with the net amount",
+      "method": "sum of the 2 line totals, compared with the gross amount",
       "inputs": [
        {
         "label": "Express freight Hamburg -> Belgrade, 4 pallets",
@@ -3076,9 +3024,9 @@
         "ref": "X:line:2"
        },
        {
-        "label": "Net on the document",
+        "label": "Gross on the document",
         "value": "1,890.00",
-        "ref": "X:net"
+        "ref": "X:gross"
        }
       ],
       "result": "1,890.00 computed; difference 0.00",
@@ -3169,232 +3117,254 @@
    "draft": null,
    "runs": [
     {
-     "id": "run_bab3ce3b-7",
+     "id": "run_8a785a34-6",
      "agent": "Extractor",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:56:30.841Z",
-     "finishedAt": "2026-11-27T12:58:03.794Z",
+     "startedAt": "2026-11-27T16:45:17.287Z",
+     "finishedAt": "2026-11-27T16:46:07.279Z",
      "status": "done",
      "tokens": {
-      "input": 1694,
-      "output": 558
+      "input": 1657,
+      "output": 574
      },
      "trigger": "document.received",
      "error": null
     },
     {
-     "id": "run_4ec2094a-d",
+     "id": "run_fe5cc90e-c",
      "agent": "Auditor",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:58:03.821Z",
-     "finishedAt": "2026-11-27T12:59:23.045Z",
+     "startedAt": "2026-11-27T16:46:07.284Z",
+     "finishedAt": "2026-11-27T16:47:20.688Z",
      "status": "done",
      "tokens": {
-      "input": 1684,
-      "output": 588
+      "input": 1733,
+      "output": 846
      },
      "trigger": "extraction.completed",
      "error": null
     },
     {
-     "id": "run_3142adfd-0",
+     "id": "run_0c53448e-c",
      "agent": "Validator",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:58:03.834Z",
-     "finishedAt": "2026-11-27T13:00:11.558Z",
+     "startedAt": "2026-11-27T16:46:07.287Z",
+     "finishedAt": "2026-11-27T16:47:42.612Z",
      "status": "done",
      "tokens": {
-      "input": 2302,
-      "output": 243
+      "input": 2204,
+      "output": 159
      },
      "trigger": "extraction.completed",
      "error": null
     },
     {
-     "id": "run_026b8dc4-e",
+     "id": "run_b31c489e-e",
      "agent": "Investigator",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T13:00:11.570Z",
-     "finishedAt": "2026-11-27T13:04:49.208Z",
-     "status": "error",
+     "startedAt": "2026-11-27T16:47:42.615Z",
+     "finishedAt": "2026-11-27T16:49:15.201Z",
+     "status": "done",
      "tokens": {
-      "input": 12806,
-      "output": 1311
+      "input": 5626,
+      "output": 353
      },
-     "trigger": "exception: evidence, stated_amounts, evidence_integrity",
-     "error": "The Investigator submitted an invalid result twice: verifiedFacts: Too big: expected array to have <=10 items"
+     "trigger": "exception: stated_amounts, agent_agreement",
+     "error": null
+    },
+    {
+     "id": "run_0f294238-6",
+     "agent": "Policy",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
+     "attempt": 1,
+     "retry": 0,
+     "startedAt": "2026-11-27T16:49:15.202Z",
+     "finishedAt": "2026-11-27T16:49:52.445Z",
+     "status": "done",
+     "tokens": {
+      "input": 2324,
+      "output": 158
+     },
+     "trigger": "investigation.completed",
+     "error": null
     }
    ],
    "timeline": [
     {
-     "at": "2026-11-27T12:56:30.841Z",
+     "at": "2026-11-27T16:45:17.287Z",
      "agent": "Extractor",
      "kind": "loop.started",
-     "detail": "Extractor started (gemma2:9b-8k · Ollama, this machine), triggered by document.received, execution run_bab3ce3b-7"
+     "detail": "Extractor started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by document.received, execution run_8a785a34-6"
     },
     {
-     "at": "2026-11-27T12:56:30.852Z",
+     "at": "2026-11-27T16:45:17.289Z",
      "agent": "Extractor",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:58:03.788Z",
+     "at": "2026-11-27T16:46:07.277Z",
      "agent": "Extractor",
      "kind": "tool",
      "detail": "calls submit_reading"
     },
     {
-     "at": "2026-11-27T12:58:03.794Z",
+     "at": "2026-11-27T16:46:07.279Z",
      "agent": "Extractor",
      "kind": "answer",
      "detail": "Extractor finished"
     },
     {
-     "at": "2026-11-27T12:58:03.821Z",
+     "at": "2026-11-27T16:46:07.284Z",
      "agent": "Auditor",
      "kind": "loop.started",
-     "detail": "Auditor started (gemma2:9b-8k · Ollama, this machine), triggered by extraction.completed, execution run_4ec2094a-d"
+     "detail": "Auditor started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by extraction.completed, execution run_fe5cc90e-c"
     },
     {
-     "at": "2026-11-27T12:58:03.834Z",
+     "at": "2026-11-27T16:46:07.287Z",
      "agent": "Validator",
      "kind": "loop.started",
-     "detail": "Validator started (gemma2:9b-8k · Ollama, this machine), triggered by extraction.completed, execution run_3142adfd-0"
+     "detail": "Validator started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by extraction.completed, execution run_0c53448e-c"
     },
     {
-     "at": "2026-11-27T12:58:03.837Z",
+     "at": "2026-11-27T16:46:07.288Z",
      "agent": "Auditor",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:58:03.837Z",
+     "at": "2026-11-27T16:46:07.288Z",
      "agent": "Validator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:59:23.039Z",
+     "at": "2026-11-27T16:47:20.687Z",
      "agent": "Auditor",
      "kind": "tool",
      "detail": "calls submit_independent_reading"
     },
     {
-     "at": "2026-11-27T12:59:23.045Z",
+     "at": "2026-11-27T16:47:20.688Z",
      "agent": "Auditor",
      "kind": "answer",
      "detail": "Auditor finished"
     },
     {
-     "at": "2026-11-27T12:59:39.477Z",
+     "at": "2026-11-27T16:47:25.010Z",
      "agent": "Validator",
      "kind": "tool",
      "detail": "calls lookup_trusted_records"
     },
     {
-     "at": "2026-11-27T12:59:39.488Z",
+     "at": "2026-11-27T16:47:25.012Z",
      "agent": "Validator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:00:11.556Z",
+     "at": "2026-11-27T16:47:42.611Z",
      "agent": "Validator",
      "kind": "tool",
      "detail": "calls submit_validation"
     },
     {
-     "at": "2026-11-27T13:00:11.558Z",
+     "at": "2026-11-27T16:47:42.612Z",
      "agent": "Validator",
      "kind": "answer",
      "detail": "Validator finished"
     },
     {
-     "at": "2026-11-27T13:00:11.567Z",
+     "at": "2026-11-27T16:47:42.615Z",
      "agent": "Firewall",
      "kind": "info",
-     "detail": "exception found (evidence, stated_amounts, evidence_integrity); sending to the Investigator"
+     "detail": "exception found (stated_amounts, agent_agreement); sending to the Investigator"
     },
     {
-     "at": "2026-11-27T13:00:11.570Z",
+     "at": "2026-11-27T16:47:42.615Z",
      "agent": "Investigator",
      "kind": "loop.started",
-     "detail": "Investigator started (gemma2:9b-8k · Ollama, this machine), triggered by exception: evidence, stated_amounts, evidence_integrity, execution run_026b8dc4-e"
+     "detail": "Investigator started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by exception: stated_amounts, agent_agreement, execution run_b31c489e-e"
     },
     {
-     "at": "2026-11-27T13:00:11.579Z",
+     "at": "2026-11-27T16:47:42.618Z",
      "agent": "Investigator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:03:17.734Z",
+     "at": "2026-11-27T16:49:15.200Z",
      "agent": "Investigator",
      "kind": "tool",
      "detail": "calls submit_investigation"
     },
     {
-     "at": "2026-11-27T13:03:17.784Z",
-     "agent": "Firewall",
-     "kind": "info",
-     "detail": "output check on the Investigator: submit_investigation did not match the schema (verifiedFacts: Too big: expected array to have <=10 items); one correction was requested"
+     "at": "2026-11-27T16:49:15.201Z",
+     "agent": "Investigator",
+     "kind": "answer",
+     "detail": "Investigator finished"
     },
     {
-     "at": "2026-11-27T13:03:17.785Z",
-     "agent": "Investigator",
+     "at": "2026-11-27T16:49:15.202Z",
+     "agent": "Policy",
+     "kind": "loop.started",
+     "detail": "Policy started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by investigation.completed, execution run_0f294238-6"
+    },
+    {
+     "at": "2026-11-27T16:49:15.204Z",
+     "agent": "Policy",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:04:49.205Z",
-     "agent": "Investigator",
+     "at": "2026-11-27T16:49:52.444Z",
+     "agent": "Policy",
      "kind": "tool",
-     "detail": "calls submit_investigation"
+     "detail": "calls submit_recommendation"
     },
     {
-     "at": "2026-11-27T13:04:49.208Z",
+     "at": "2026-11-27T16:49:52.445Z",
+     "agent": "Policy",
+     "kind": "answer",
+     "detail": "Policy finished"
+    },
+    {
+     "at": "2026-11-27T16:49:52.445Z",
      "agent": "Firewall",
      "kind": "info",
-     "detail": "output check on the Investigator: submit_investigation did not match the schema (verifiedFacts: Too big: expected array to have <=10 items); second failure, the run was closed"
+     "detail": "output check on the Policy: cited evidence that does not exist (CH:contradiction:gross:1); the citation was removed"
     },
     {
-     "at": "2026-11-27T13:04:49.208Z",
-     "agent": "Investigator",
-     "kind": "error",
-     "detail": "The Investigator submitted an invalid result twice: verifiedFacts: Too big: expected array to have <=10 items"
-    },
-    {
-     "at": "2026-11-27T13:04:49.227Z",
+     "at": "2026-11-27T16:49:52.450Z",
      "agent": "Firewall",
      "kind": "info",
-     "detail": "processing error: investigation failed; nothing is approved"
+     "detail": "held for a person: amounts stated in the document, extractor and auditor agree"
     }
    ],
    "challenges": [
     {
-     "id": "CH:stated:gross",
+     "id": "CH:contradiction:gross:1",
      "caseId": "INV-2026-1049",
-     "raisedBy": "Firewall",
+     "raisedBy": "Auditor",
      "category": "document_contradiction",
      "field": "gross",
      "challenged": {
-      "by": "Extractor",
-      "value": "1,890.00",
-      "ref": "X:gross"
+      "by": "Document",
+      "value": "1890.00",
+      "ref": "A:conflict:1:1"
      },
      "observed": {
       "by": "Document",
-      "value": "1,980.00",
-      "ref": "D:stated:5"
+      "value": "1980.00",
+      "ref": "A:conflict:1:2"
      },
      "required": "Verify which amount is payable before approving.",
      "sourceSelectable": true,
@@ -3443,20 +3413,6 @@
       "ref": "X:currency",
       "critical": true,
       "present": true,
-      "correct": false
-     },
-     {
-      "subject": "Extractor: net amount",
-      "ref": "X:net",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Extractor: tax amount",
-      "ref": "X:tax",
-      "critical": false,
-      "present": true,
       "correct": true
      },
      {
@@ -3476,13 +3432,6 @@
      {
       "subject": "Extractor: bic",
       "ref": "X:bic",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Extractor: payment reference",
-      "ref": "X:reference",
       "critical": false,
       "present": true,
       "correct": true
@@ -3541,18 +3490,11 @@
       "ref": "A:currency",
       "critical": false,
       "present": true,
-      "correct": true
+      "correct": false
      },
      {
       "subject": "Auditor: net amount",
       "ref": "A:net",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Auditor: tax amount",
-      "ref": "A:tax",
       "critical": false,
       "present": true,
       "correct": true
@@ -3598,6 +3540,20 @@
       "critical": false,
       "present": true,
       "correct": true
+     },
+     {
+      "subject": "Conflicting statement about gross",
+      "ref": "A:conflict:1:1",
+      "critical": false,
+      "present": true,
+      "correct": null
+     },
+     {
+      "subject": "Conflicting statement about gross",
+      "ref": "A:conflict:1:2",
+      "critical": false,
+      "present": true,
+      "correct": null
      },
      {
       "subject": "Another payable amount stated in the document",
@@ -3733,13 +3689,6 @@
       "correct": true
      },
      {
-      "subject": "Net plus tax against gross",
-      "ref": "C:arithmetic",
-      "critical": true,
-      "present": true,
-      "correct": true
-     },
-     {
       "subject": "Sum of line items",
       "ref": "C:lines",
       "critical": true,
@@ -3768,21 +3717,28 @@
       "correct": true
      },
      {
-      "subject": "Validator: issue 1 (R7)",
-      "ref": "X:invoiceNumber",
+      "subject": "Investigator: verified fact 1",
+      "ref": "A:conflict:1:1",
       "critical": false,
       "present": true,
       "correct": null
      },
      {
-      "subject": "Validator: issue 2 (per_payment_limit)",
-      "ref": "C:limit",
+      "subject": "Investigator: verified fact 2",
+      "ref": "V:V-001",
       "critical": false,
       "present": true,
       "correct": null
      },
      {
-      "subject": "Validator: issue 3 (daily_limit)",
+      "subject": "Validator: issue 2 (C:limit)",
+      "ref": "C:lines",
+      "critical": false,
+      "present": true,
+      "correct": null
+     },
+     {
+      "subject": "Validator: issue 3 (C:daily)",
       "ref": "C:daily",
       "critical": false,
       "present": true,
@@ -3792,26 +3748,20 @@
     "findings": [
      {
       "kind": "unsupported_claim",
-      "subject": "Extractor: currency",
-      "ref": "X:currency",
+      "subject": "Auditor: currency",
+      "ref": "A:currency",
       "detail": "The quoted line does not contain the value EUR.",
-      "critical": true
+      "critical": false
      }
     ],
-    "ok": false
+    "ok": true
    },
    "outputChecks": [
     {
-     "at": "2026-11-27T13:03:17.784Z",
-     "agent": "Investigator",
-     "kind": "invalid_result",
-     "detail": "submit_investigation did not match the schema (verifiedFacts: Too big: expected array to have <=10 items); one correction was requested"
-    },
-    {
-     "at": "2026-11-27T13:04:49.208Z",
-     "agent": "Investigator",
-     "kind": "invalid_result",
-     "detail": "submit_investigation did not match the schema (verifiedFacts: Too big: expected array to have <=10 items); second failure, the run was closed"
+     "at": "2026-11-27T16:49:52.445Z",
+     "agent": "Policy",
+     "kind": "unknown_evidence_ref",
+     "detail": "cited evidence that does not exist (CH:contradiction:gross:1); the citation was removed"
     }
    ]
   },
@@ -3821,40 +3771,35 @@
    "fileName": "INV-7701-rappel.txt",
    "hash": "35098a50eec44ec9faecb8128fb1b22a6798a51a61b9b21c7e9ccec50b65a2f1",
    "receivedAt": "2026-11-26T08:03:14.000Z",
-   "version": 13,
+   "version": 17,
    "attempt": 1,
-   "stage": "error",
+   "stage": "blocked",
    "extraction": {
     "status": "done",
-    "startedAt": "2026-11-27T13:04:50.985Z",
-    "finishedAt": "2026-11-27T13:06:44.398Z",
+    "startedAt": "2026-11-27T16:49:53.939Z",
+    "finishedAt": "2026-11-27T16:50:35.297Z",
     "result": {
      "isPaymentRequest": true,
-     "documentKind": "invoice",
+     "documentKind": "invoice reminder",
      "creditorName": "ATELIER LUMIÈRE SAS",
      "vendorTaxId": "FR12345678901",
      "beneficiaryName": null,
      "invoiceNumber": "7701",
-     "invoiceDate": "12/10/2026",
-     "dueDate": "26/11/2026",
-     "currency": null,
-     "net": 112000,
+     "invoiceDate": "2026-10-12",
+     "dueDate": "2026-11-26",
+     "currency": "EUR",
+     "net": null,
      "tax": null,
      "gross": 112000,
      "iban": "FR7630006000011234567890189",
      "bic": "AGRIFRPPXXX",
-     "reference": "7701",
+     "reference": null,
      "poReference": null,
      "lines": [
       {
        "label": "Lampe de table \"Brume\"",
        "amount": 112000,
        "ref": "X:line:1"
-      },
-      {
-       "label": "Total HT",
-       "amount": 112000,
-       "ref": "X:line:2"
       }
      ],
      "refs": {
@@ -3863,11 +3808,10 @@
       "invoiceNumber": "X:invoiceNumber",
       "invoiceDate": "X:invoiceDate",
       "dueDate": "X:dueDate",
-      "net": "X:net",
+      "currency": "X:currency",
       "gross": "X:gross",
       "iban": "X:iban",
-      "bic": "X:bic",
-      "reference": "X:reference"
+      "bic": "X:bic"
      },
      "note": ""
     },
@@ -3875,18 +3819,18 @@
    },
    "validation": {
     "status": "done",
-    "startedAt": "2026-11-27T13:06:44.398Z",
-    "finishedAt": "2026-11-27T13:08:30.494Z",
+    "startedAt": "2026-11-27T16:50:35.297Z",
+    "finishedAt": "2026-11-27T16:51:44.787Z",
     "result": {
      "vendorId": "V-002",
      "ibanValid": true,
      "ibanMatchesMaster": true,
-     "duplicateOf": "duplicate",
+     "duplicateOf": "H-0001",
      "issues": [
       {
-       "code": "R7",
+       "code": "DUPLICATE_PAYMENT_REQUEST",
        "severity": "block",
-       "message": "Invoice 7701 from Atelier Lumière SAS was already paid on 2026-10-28 (H-0001).",
+       "message": "Duplicate payment request for invoice 7701 from Atelier Lumière SAS.",
        "refs": [
         "X:invoiceNumber",
         "H:H-0001",
@@ -3894,21 +3838,21 @@
        ]
       }
      ],
-     "summary": "Duplicate payment request for invoice 7701.",
+     "summary": "Invoice 7701 is a duplicate of a previously paid invoice.",
      "disagreements": []
     },
     "error": null
    },
    "audit": {
     "status": "done",
-    "startedAt": "2026-11-27T13:06:44.398Z",
-    "finishedAt": "2026-11-27T13:07:54.496Z",
+    "startedAt": "2026-11-27T16:50:35.297Z",
+    "finishedAt": "2026-11-27T16:51:25.407Z",
     "result": {
      "reading": {
-      "isPaymentRequest": true,
-      "documentKind": "invoice",
+      "isPaymentRequest": false,
+      "documentKind": "Invoice Reminder",
       "creditorName": "ATELIER LUMIÈRE SAS",
-      "vendorTaxId": "FR12345678901",
+      "vendorTaxId": null,
       "beneficiaryName": null,
       "invoiceNumber": "7701",
       "invoiceDate": "12/10/2026",
@@ -3919,7 +3863,7 @@
       "gross": 112000,
       "iban": "FR7630006000011234567890189",
       "bic": "AGRIFRPPXXX",
-      "reference": "7701",
+      "reference": null,
       "poReference": null,
       "lines": [
        {
@@ -3928,14 +3872,13 @@
         "ref": "A:line:1"
        },
        {
-        "label": "Total HT",
+        "label": "",
         "amount": 112000,
         "ref": "A:line:2"
        }
       ],
       "refs": {
        "creditorName": "A:creditorName",
-       "vendorTaxId": "A:vendorTaxId",
        "invoiceNumber": "A:invoiceNumber",
        "invoiceDate": "A:invoiceDate",
        "dueDate": "A:dueDate",
@@ -3943,8 +3886,7 @@
        "net": "A:net",
        "gross": "A:gross",
        "iban": "A:iban",
-       "bic": "A:bic",
-       "reference": "A:reference"
+       "bic": "A:bic"
       },
       "note": ""
      },
@@ -3954,17 +3896,57 @@
     "error": null
    },
    "investigation": {
-    "status": "error",
-    "startedAt": "2026-11-27T13:08:30.501Z",
-    "finishedAt": "2026-11-27T13:12:25.408Z",
-    "result": null,
-    "error": "The Investigator submitted an invalid result twice: verifiedFacts: Too big: expected array to have <=10 items"
+    "status": "done",
+    "startedAt": "2026-11-27T16:51:44.791Z",
+    "finishedAt": "2026-11-27T16:52:48.374Z",
+    "result": {
+     "category": "Duplicate Payment Request",
+     "assessment": "confirmed_discrepancy",
+     "verifiedFacts": [
+      {
+       "text": "Invoice 7701 is a duplicate of H-0001, both with the same gross amount and vendor.",
+       "refs": [
+        "X:invoiceNumber",
+        "A:invoiceNumber",
+        "V:V-002",
+        "H:H-0001"
+       ]
+      }
+     ],
+     "conflictingEvidence": [],
+     "explanation": "The invoice 7701 is a duplicate of H-0001, as both have the same gross amount and vendor. The document states it is a reminder for an already paid invoice.",
+     "unknowns": [],
+     "recommendedSteps": [
+      "Contact AP@kestrel-retail.example to verify if this is a mistake or intentional."
+     ],
+     "recommendedDisposition": "BLOCKED"
+    },
+    "error": null
    },
    "decision": {
-    "status": "pending",
-    "startedAt": null,
-    "finishedAt": null,
-    "result": null,
+    "status": "done",
+    "startedAt": "2026-11-27T16:52:48.374Z",
+    "finishedAt": "2026-11-27T16:53:19.052Z",
+    "result": {
+     "recommended": {
+      "disposition": "BLOCKED",
+      "rulesApplied": [
+       "R7"
+      ],
+      "passed": [],
+      "failed": [],
+      "humanRequired": false,
+      "explanation": "Duplicate payment request confirmed discrepancy: Invoice 7701 from Atelier Lumière SAS was already paid on 2026-10-28 (H-0001).",
+      "refs": [
+       "X:invoiceNumber",
+       "H:H-0001",
+       "P:R7"
+      ]
+     },
+     "floor": "BLOCKED",
+     "final": "BLOCKED",
+     "overridden": false
+    },
     "error": null
    },
    "controls": [
@@ -3972,12 +3954,13 @@
      "id": "mandatory_fields",
      "label": "Mandatory fields",
      "rule": "R1",
-     "status": "fail",
+     "status": "pass",
      "severity": "block",
-     "detail": "Not on the document: currency. A missing value is never taken from another record.",
+     "detail": "Creditor, gross amount, currency and IBAN are all on the document.",
      "refs": [
       "X:creditorName",
       "X:gross",
+      "X:currency",
       "X:iban",
       "P:R1"
      ]
@@ -3992,6 +3975,7 @@
      "refs": [
       "X:creditorName",
       "X:gross",
+      "X:currency",
       "X:iban",
       "P:R2"
      ]
@@ -4035,12 +4019,24 @@
      ]
     },
     {
+     "id": "currency",
+     "label": "Currency",
+     "rule": "R6",
+     "status": "pass",
+     "severity": "block",
+     "detail": "EUR is payable under the policy.",
+     "refs": [
+      "X:currency",
+      "P:R6"
+     ]
+    },
+    {
      "id": "payable_amount",
      "label": "Payable amount",
      "rule": "R15",
      "status": "pass",
      "severity": "block",
-     "detail": "1,120.00 is a positive amount.",
+     "detail": "1,120.00 EUR is a positive amount.",
      "refs": [
       "X:gross",
       "P:R15"
@@ -4071,24 +4067,12 @@
      ]
     },
     {
-     "id": "line_items",
-     "label": "Line items",
-     "rule": "R14",
-     "status": "review",
-     "severity": "review",
-     "detail": "The line totals add up to 2,240.00, the document states 1,120.00.",
-     "refs": [
-      "C:lines",
-      "P:R14"
-     ]
-    },
-    {
      "id": "per_payment_limit",
      "label": "Per-payment limit",
      "rule": "R9",
      "status": "pass",
      "severity": "review",
-     "detail": "1,120.00 is within the auto-approve limit of 2,500.00 EUR.",
+     "detail": "1,120.00 EUR is within the auto-approve limit of 2,500.00 EUR.",
      "refs": [
       "C:limit",
       "P:R9"
@@ -4136,9 +4120,9 @@
      "id": "stages",
      "label": "Agent stages",
      "rule": null,
-     "status": "fail",
+     "status": "pass",
      "severity": "block",
-     "detail": "Failed: investigation. A payment is never approved on an incomplete run.",
+     "detail": "Extraction, validation and the independent audit all completed.",
      "refs": []
     },
     {
@@ -4147,7 +4131,7 @@
      "rule": "R2",
      "status": "pass",
      "severity": "block",
-     "detail": "Re-verified 8 critical values against the document text, the trusted records and the arithmetic: every reference resolves and supports its value.",
+     "detail": "Re-verified 9 critical values against the document text, the trusted records and the arithmetic: every reference resolves and supports its value.",
      "refs": [
       "P:R2"
      ]
@@ -4162,9 +4146,9 @@
      "doc": {
       "docId": "INV-7701-rappel",
       "field": "creditorName",
-      "lineStart": 5,
-      "lineEnd": 5,
-      "excerpt": "ATELIER LUMIÈRE SAS",
+      "lineStart": 3,
+      "lineEnd": 6,
+      "excerpt": "ATELIER LUMIÈRE SAS\n14 rue des Arts, 69001 Lyon, France",
       "original": "ATELIER LUMIÈRE SAS",
       "normalized": "ATELIER LUMIÈRE SAS",
       "located": true,
@@ -4219,8 +4203,8 @@
       "lineStart": 10,
       "lineEnd": 10,
       "excerpt": "Date: 12/10/2026",
-      "original": "12/10/2026",
-      "normalized": "12/10/2026",
+      "original": "2026-10-12",
+      "normalized": "2026-10-12",
       "located": true,
       "retypedFrom": null,
       "supportsValue": null
@@ -4237,26 +4221,26 @@
       "lineStart": 11,
       "lineEnd": 11,
       "excerpt": "Échéance: 26/11/2026",
-      "original": "26/11/2026",
-      "normalized": "26/11/2026",
+      "original": "2026-11-26",
+      "normalized": "2026-11-26",
       "located": true,
       "retypedFrom": null,
       "supportsValue": null
      }
     },
-    "X:net": {
-     "id": "X:net",
+    "X:currency": {
+     "id": "X:currency",
      "category": "source_document",
-     "label": "Net amount as read by the Extractor",
+     "label": "Currency as read by the Extractor",
      "by": "Extractor",
      "doc": {
       "docId": "INV-7701-rappel",
-      "field": "net",
+      "field": "currency",
       "lineStart": 17,
       "lineEnd": 17,
       "excerpt": "NET À PAYER EUR 1,120.00",
-      "original": "1,120.00",
-      "normalized": "1,120.00",
+      "original": "EUR",
+      "normalized": "EUR",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true
@@ -4273,7 +4257,7 @@
       "lineStart": 17,
       "lineEnd": 17,
       "excerpt": "NET À PAYER EUR 1,120.00",
-      "original": "1,120.00",
+      "original": "1120.00",
       "normalized": "1,120.00",
       "located": true,
       "retypedFrom": null,
@@ -4316,24 +4300,6 @@
       "supportsValue": true
      }
     },
-    "X:reference": {
-     "id": "X:reference",
-     "category": "source_document",
-     "label": "Payment reference as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-7701-rappel",
-      "field": "reference",
-      "lineStart": 22,
-      "lineEnd": 22,
-      "excerpt": "Référence: 7701",
-      "original": "7701",
-      "normalized": "7701",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
     "X:line:1": {
      "id": "X:line:1",
      "category": "source_document",
@@ -4342,28 +4308,10 @@
      "doc": {
       "docId": "INV-7701-rappel",
       "field": "line",
-      "lineStart": 14,
-      "lineEnd": 14,
-      "excerpt": "Lampe de table \"Brume\"                        8    140.00     1,120.00",
-      "original": "1,120.00",
-      "normalized": "1,120.00",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
-    "X:line:2": {
-     "id": "X:line:2",
-     "category": "source_document",
-     "label": "Line item 2 as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-7701-rappel",
-      "field": "line",
       "lineStart": 15,
       "lineEnd": 15,
       "excerpt": "Total HT    1,120.00",
-      "original": "1,120.00",
+      "original": "1120.00",
       "normalized": "1,120.00",
       "located": true,
       "retypedFrom": null,
@@ -4378,29 +4326,11 @@
      "doc": {
       "docId": "INV-7701-rappel",
       "field": "creditorName",
-      "lineStart": 5,
-      "lineEnd": 5,
-      "excerpt": "ATELIER LUMIÈRE SAS",
+      "lineStart": 3,
+      "lineEnd": 6,
+      "excerpt": "ATELIER LUMIÈRE SAS\n14 rue des Arts, 69001 Lyon, France",
       "original": "ATELIER LUMIÈRE SAS",
       "normalized": "ATELIER LUMIÈRE SAS",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
-    "A:vendorTaxId": {
-     "id": "A:vendorTaxId",
-     "category": "source_document",
-     "label": "Vendor tax id as read by the Auditor",
-     "by": "Auditor",
-     "doc": {
-      "docId": "INV-7701-rappel",
-      "field": "vendorTaxId",
-      "lineStart": 7,
-      "lineEnd": 7,
-      "excerpt": "TVA: FR12345678901",
-      "original": "FR12345678901",
-      "normalized": "FR12345678901",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true
@@ -4504,9 +4434,9 @@
      "doc": {
       "docId": "INV-7701-rappel",
       "field": "gross",
-      "lineStart": 17,
-      "lineEnd": 17,
-      "excerpt": "NET À PAYER EUR 1,120.00",
+      "lineStart": 15,
+      "lineEnd": 15,
+      "excerpt": "Total HT    1,120.00",
       "original": "1120.00",
       "normalized": "1,120.00",
       "located": true,
@@ -4550,24 +4480,6 @@
       "supportsValue": true
      }
     },
-    "A:reference": {
-     "id": "A:reference",
-     "category": "source_document",
-     "label": "Payment reference as read by the Auditor",
-     "by": "Auditor",
-     "doc": {
-      "docId": "INV-7701-rappel",
-      "field": "reference",
-      "lineStart": 22,
-      "lineEnd": 22,
-      "excerpt": "Référence: 7701",
-      "original": "7701",
-      "normalized": "7701",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
     "A:line:1": {
      "id": "A:line:1",
      "category": "source_document",
@@ -4576,10 +4488,10 @@
      "doc": {
       "docId": "INV-7701-rappel",
       "field": "line",
-      "lineStart": 14,
-      "lineEnd": 14,
-      "excerpt": "Lampe de table \"Brume\"                        8    140.00     1,120.00",
-      "original": "1,120.00",
+      "lineStart": 15,
+      "lineEnd": 15,
+      "excerpt": "Total HT    1,120.00",
+      "original": "1120.00",
       "normalized": "1,120.00",
       "located": true,
       "retypedFrom": null,
@@ -4594,10 +4506,10 @@
      "doc": {
       "docId": "INV-7701-rappel",
       "field": "line",
-      "lineStart": 15,
-      "lineEnd": 15,
-      "excerpt": "Total HT    1,120.00",
-      "original": "1,120.00",
+      "lineStart": 17,
+      "lineEnd": 17,
+      "excerpt": "NET À PAYER EUR 1,120.00",
+      "original": "1120.00",
       "normalized": "1,120.00",
       "located": true,
       "retypedFrom": null,
@@ -4873,35 +4785,6 @@
       }
      }
     },
-    "C:lines": {
-     "id": "C:lines",
-     "category": "calculation",
-     "label": "Sum of line items",
-     "by": "Desk",
-     "calc": {
-      "method": "sum of the 2 line totals, compared with the net amount",
-      "inputs": [
-       {
-        "label": "Lampe de table \"Brume\"",
-        "value": "1,120.00",
-        "ref": "X:line:1"
-       },
-       {
-        "label": "Total HT",
-        "value": "1,120.00",
-        "ref": "X:line:2"
-       },
-       {
-        "label": "Net on the document",
-        "value": "1,120.00",
-        "ref": "X:net"
-       }
-      ],
-      "result": "2,240.00 computed; difference -1,120.00",
-      "currency": null,
-      "rounding": "exact, in minor units; no rounding or tolerance"
-     }
-    },
     "C:limit": {
      "id": "C:limit",
      "category": "calculation",
@@ -4922,7 +4805,7 @@
        }
       ],
       "result": "under by 1,380.00",
-      "currency": null,
+      "currency": "EUR",
       "rounding": "exact, in minor units; no rounding or tolerance"
      }
     },
@@ -4951,225 +4834,251 @@
        }
       ],
       "result": "2,535.00 of 10,000.00",
-      "currency": null,
+      "currency": "EUR",
       "rounding": "exact, in minor units; no rounding or tolerance"
      }
     }
    },
-   "exposure": null,
+   "exposure": {
+    "minor": 112000,
+    "currency": "EUR",
+    "ref": "X:gross"
+   },
    "verificationRequested": false,
    "review": [],
    "draft": null,
    "runs": [
     {
-     "id": "run_c251128c-f",
+     "id": "run_b3c8d3bb-1",
      "agent": "Extractor",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T13:04:50.985Z",
-     "finishedAt": "2026-11-27T13:06:44.393Z",
+     "startedAt": "2026-11-27T16:49:53.939Z",
+     "finishedAt": "2026-11-27T16:50:35.297Z",
      "status": "done",
      "tokens": {
-      "input": 1613,
-      "output": 528
+      "input": 1587,
+      "output": 476
      },
      "trigger": "document.received",
      "error": null
     },
     {
-     "id": "run_4c030ba1-6",
+     "id": "run_938fe811-3",
      "agent": "Auditor",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T13:06:44.417Z",
-     "finishedAt": "2026-11-27T13:07:54.493Z",
+     "startedAt": "2026-11-27T16:50:35.305Z",
+     "finishedAt": "2026-11-27T16:51:25.406Z",
      "status": "done",
      "tokens": {
-      "input": 1603,
-      "output": 560
+      "input": 1663,
+      "output": 574
      },
      "trigger": "extraction.completed",
      "error": null
     },
     {
-     "id": "run_38fcc4e1-d",
+     "id": "run_ef16a02e-c",
      "agent": "Validator",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T13:06:44.429Z",
-     "finishedAt": "2026-11-27T13:08:30.488Z",
+     "startedAt": "2026-11-27T16:50:35.308Z",
+     "finishedAt": "2026-11-27T16:51:44.786Z",
      "status": "done",
      "tokens": {
-      "input": 2290,
-      "output": 136
+      "input": 2237,
+      "output": 126
      },
      "trigger": "extraction.completed",
      "error": null
     },
     {
-     "id": "run_ee17691c-2",
+     "id": "run_c6665228-a",
      "agent": "Investigator",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T13:08:30.503Z",
-     "finishedAt": "2026-11-27T13:12:25.408Z",
-     "status": "error",
+     "startedAt": "2026-11-27T16:51:44.792Z",
+     "finishedAt": "2026-11-27T16:52:48.374Z",
+     "status": "done",
      "tokens": {
-      "input": 11755,
-      "output": 1676
+      "input": 4374,
+      "output": 189
      },
-     "trigger": "exception: mandatory_fields, duplicate, line_items",
-     "error": "The Investigator submitted an invalid result twice: verifiedFacts: Too big: expected array to have <=10 items"
+     "trigger": "exception: duplicate",
+     "error": null
+    },
+    {
+     "id": "run_75a58a06-5",
+     "agent": "Policy",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
+     "attempt": 1,
+     "retry": 0,
+     "startedAt": "2026-11-27T16:52:48.375Z",
+     "finishedAt": "2026-11-27T16:53:19.051Z",
+     "status": "done",
+     "tokens": {
+      "input": 2056,
+      "output": 114
+     },
+     "trigger": "investigation.completed",
+     "error": null
     }
    ],
    "timeline": [
     {
-     "at": "2026-11-27T13:04:50.986Z",
+     "at": "2026-11-27T16:49:53.939Z",
      "agent": "Extractor",
      "kind": "loop.started",
-     "detail": "Extractor started (gemma2:9b-8k · Ollama, this machine), triggered by document.received, execution run_c251128c-f"
+     "detail": "Extractor started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by document.received, execution run_b3c8d3bb-1"
     },
     {
-     "at": "2026-11-27T13:04:50.995Z",
+     "at": "2026-11-27T16:49:53.942Z",
      "agent": "Extractor",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:06:44.380Z",
+     "at": "2026-11-27T16:50:35.295Z",
      "agent": "Extractor",
      "kind": "tool",
      "detail": "calls submit_reading"
     },
     {
-     "at": "2026-11-27T13:06:44.393Z",
+     "at": "2026-11-27T16:50:35.297Z",
      "agent": "Extractor",
      "kind": "answer",
      "detail": "Extractor finished"
     },
     {
-     "at": "2026-11-27T13:06:44.417Z",
+     "at": "2026-11-27T16:50:35.305Z",
      "agent": "Auditor",
      "kind": "loop.started",
-     "detail": "Auditor started (gemma2:9b-8k · Ollama, this machine), triggered by extraction.completed, execution run_4c030ba1-6"
+     "detail": "Auditor started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by extraction.completed, execution run_938fe811-3"
     },
     {
-     "at": "2026-11-27T13:06:44.429Z",
+     "at": "2026-11-27T16:50:35.308Z",
      "agent": "Validator",
      "kind": "loop.started",
-     "detail": "Validator started (gemma2:9b-8k · Ollama, this machine), triggered by extraction.completed, execution run_38fcc4e1-d"
+     "detail": "Validator started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by extraction.completed, execution run_ef16a02e-c"
     },
     {
-     "at": "2026-11-27T13:06:44.430Z",
+     "at": "2026-11-27T16:50:35.309Z",
      "agent": "Auditor",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:06:44.430Z",
+     "at": "2026-11-27T16:50:35.309Z",
      "agent": "Validator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:07:54.478Z",
+     "at": "2026-11-27T16:51:25.405Z",
      "agent": "Auditor",
      "kind": "tool",
      "detail": "calls submit_independent_reading"
     },
     {
-     "at": "2026-11-27T13:07:54.493Z",
+     "at": "2026-11-27T16:51:25.406Z",
      "agent": "Auditor",
      "kind": "answer",
      "detail": "Auditor finished"
     },
     {
-     "at": "2026-11-27T13:08:12.287Z",
+     "at": "2026-11-27T16:51:25.407Z",
+     "agent": "Firewall",
+     "kind": "info",
+     "detail": "output check on the Auditor: the Auditor reported a contradiction about gross whose sides state the same value (1120.00 and 1120.00); it was not recorded as one"
+    },
+    {
+     "at": "2026-11-27T16:51:29.676Z",
      "agent": "Validator",
      "kind": "tool",
      "detail": "calls lookup_trusted_records"
     },
     {
-     "at": "2026-11-27T13:08:12.296Z",
+     "at": "2026-11-27T16:51:29.678Z",
      "agent": "Validator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:08:30.477Z",
+     "at": "2026-11-27T16:51:44.784Z",
      "agent": "Validator",
      "kind": "tool",
      "detail": "calls submit_validation"
     },
     {
-     "at": "2026-11-27T13:08:30.488Z",
+     "at": "2026-11-27T16:51:44.786Z",
      "agent": "Validator",
      "kind": "answer",
      "detail": "Validator finished"
     },
     {
-     "at": "2026-11-27T13:08:30.500Z",
+     "at": "2026-11-27T16:51:44.791Z",
      "agent": "Firewall",
      "kind": "info",
-     "detail": "exception found (mandatory_fields, duplicate, line_items); sending to the Investigator"
+     "detail": "exception found (duplicate); sending to the Investigator"
     },
     {
-     "at": "2026-11-27T13:08:30.503Z",
+     "at": "2026-11-27T16:51:44.792Z",
      "agent": "Investigator",
      "kind": "loop.started",
-     "detail": "Investigator started (gemma2:9b-8k · Ollama, this machine), triggered by exception: mandatory_fields, duplicate, line_items, execution run_ee17691c-2"
+     "detail": "Investigator started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by exception: duplicate, execution run_c6665228-a"
     },
     {
-     "at": "2026-11-27T13:08:30.514Z",
+     "at": "2026-11-27T16:51:44.796Z",
      "agent": "Investigator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:10:59.876Z",
+     "at": "2026-11-27T16:52:48.373Z",
      "agent": "Investigator",
      "kind": "tool",
      "detail": "calls submit_investigation"
     },
     {
-     "at": "2026-11-27T13:10:59.888Z",
-     "agent": "Firewall",
-     "kind": "info",
-     "detail": "output check on the Investigator: submit_investigation did not match the schema (verifiedFacts: Too big: expected array to have <=10 items); one correction was requested"
+     "at": "2026-11-27T16:52:48.374Z",
+     "agent": "Investigator",
+     "kind": "answer",
+     "detail": "Investigator finished"
     },
     {
-     "at": "2026-11-27T13:10:59.889Z",
-     "agent": "Investigator",
+     "at": "2026-11-27T16:52:48.375Z",
+     "agent": "Policy",
+     "kind": "loop.started",
+     "detail": "Policy started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by investigation.completed, execution run_75a58a06-5"
+    },
+    {
+     "at": "2026-11-27T16:52:48.378Z",
+     "agent": "Policy",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T13:12:25.405Z",
-     "agent": "Investigator",
+     "at": "2026-11-27T16:53:19.050Z",
+     "agent": "Policy",
      "kind": "tool",
-     "detail": "calls submit_investigation"
+     "detail": "calls submit_recommendation"
     },
     {
-     "at": "2026-11-27T13:12:25.408Z",
+     "at": "2026-11-27T16:53:19.051Z",
+     "agent": "Policy",
+     "kind": "answer",
+     "detail": "Policy finished"
+    },
+    {
+     "at": "2026-11-27T16:53:19.052Z",
      "agent": "Firewall",
      "kind": "info",
-     "detail": "output check on the Investigator: submit_investigation did not match the schema (verifiedFacts: Too big: expected array to have <=10 items); second failure, the run was closed"
-    },
-    {
-     "at": "2026-11-27T13:12:25.408Z",
-     "agent": "Investigator",
-     "kind": "error",
-     "detail": "The Investigator submitted an invalid result twice: verifiedFacts: Too big: expected array to have <=10 items"
-    },
-    {
-     "at": "2026-11-27T13:12:25.421Z",
-     "agent": "Firewall",
-     "kind": "info",
-     "detail": "processing error: investigation failed; nothing is approved"
+     "detail": "blocked: duplicate payment request"
     }
    ],
    "challenges": [],
@@ -5211,9 +5120,9 @@
       "correct": null
      },
      {
-      "subject": "Extractor: net amount",
-      "ref": "X:net",
-      "critical": false,
+      "subject": "Extractor: currency",
+      "ref": "X:currency",
+      "critical": true,
       "present": true,
       "correct": true
      },
@@ -5239,13 +5148,6 @@
       "correct": true
      },
      {
-      "subject": "Extractor: payment reference",
-      "ref": "X:reference",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
       "subject": "Extractor: line item 1",
       "ref": "X:line:1",
       "critical": false,
@@ -5253,22 +5155,8 @@
       "correct": true
      },
      {
-      "subject": "Extractor: line item 2",
-      "ref": "X:line:2",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
       "subject": "Auditor: creditor",
       "ref": "A:creditorName",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Auditor: vendor tax id",
-      "ref": "A:vendorTaxId",
       "critical": false,
       "present": true,
       "correct": true
@@ -5325,13 +5213,6 @@
      {
       "subject": "Auditor: bic",
       "ref": "A:bic",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Auditor: payment reference",
-      "ref": "A:reference",
       "critical": false,
       "present": true,
       "correct": true
@@ -5484,13 +5365,6 @@
       "correct": true
      },
      {
-      "subject": "Sum of line items",
-      "ref": "C:lines",
-      "critical": true,
-      "present": true,
-      "correct": true
-     },
-     {
       "subject": "Amount against the auto-approve limit",
       "ref": "C:limit",
       "critical": true,
@@ -5505,7 +5379,21 @@
       "correct": true
      },
      {
-      "subject": "Validator: issue 1 (R7)",
+      "subject": "Exposure",
+      "ref": "X:gross",
+      "critical": true,
+      "present": true,
+      "correct": true
+     },
+     {
+      "subject": "Investigator: verified fact 1",
+      "ref": "X:invoiceNumber",
+      "critical": false,
+      "present": true,
+      "correct": null
+     },
+     {
+      "subject": "Validator: issue 1 (DUPLICATE_PAYMENT_REQUEST)",
       "ref": "X:invoiceNumber",
       "critical": false,
       "present": true,
@@ -5517,16 +5405,10 @@
    },
    "outputChecks": [
     {
-     "at": "2026-11-27T13:10:59.888Z",
-     "agent": "Investigator",
-     "kind": "invalid_result",
-     "detail": "submit_investigation did not match the schema (verifiedFacts: Too big: expected array to have <=10 items); one correction was requested"
-    },
-    {
-     "at": "2026-11-27T13:12:25.408Z",
-     "agent": "Investigator",
-     "kind": "invalid_result",
-     "detail": "submit_investigation did not match the schema (verifiedFacts: Too big: expected array to have <=10 items); second failure, the run was closed"
+     "at": "2026-11-27T16:51:25.407Z",
+     "agent": "Auditor",
+     "kind": "not_a_conflict",
+     "detail": "the Auditor reported a contradiction about gross whose sides state the same value (1120.00 and 1120.00); it was not recorded as one"
     }
    ]
   },
@@ -5534,15 +5416,15 @@
    "id": "INV-ES-55820",
    "origin": "demo",
    "fileName": "INV-ES-55820.txt",
-   "hash": "57eb91e806693a546bbb7cdb32b78eaca14b41441a212cba00cf3c35df213cf3",
+   "hash": "c89df1e00a7cb98573fd07e359b9222f0c753584e401b93a0bb6c6581a9c7ff0",
    "receivedAt": "2026-11-26T08:14:33.000Z",
    "version": 17,
    "attempt": 1,
    "stage": "blocked",
    "extraction": {
     "status": "done",
-    "startedAt": "2026-11-27T12:49:29.312Z",
-    "finishedAt": "2026-11-27T12:50:32.098Z",
+    "startedAt": "2026-11-27T16:41:01.748Z",
+    "finishedAt": "2026-11-27T16:41:58.041Z",
     "result": {
      "isPaymentRequest": true,
      "documentKind": "invoice",
@@ -5550,15 +5432,15 @@
      "vendorTaxId": "ESB12345678",
      "beneficiaryName": null,
      "invoiceNumber": "55820",
-     "invoiceDate": "21/11/2026",
-     "dueDate": "21/12/2026",
+     "invoiceDate": "2026-11-21",
+     "dueDate": "2026-12-21",
      "currency": "EUR",
      "net": null,
      "tax": null,
      "gross": 274400,
-     "iban": "ES6621000418401234567891",
+     "iban": "ES0700120345030000067890",
      "bic": "CAIXESBBXXX",
-     "reference": "55820",
+     "reference": null,
      "poReference": null,
      "lines": [
       {
@@ -5575,11 +5457,6 @@
        "label": "Sillas ergonómicas \"Lira\"",
        "amount": 124000,
        "ref": "X:line:3"
-      },
-      {
-       "label": "Base",
-       "amount": 274400,
-       "ref": "X:line:4"
       }
      ],
      "refs": {
@@ -5591,8 +5468,7 @@
       "currency": "X:currency",
       "gross": "X:gross",
       "iban": "X:iban",
-      "bic": "X:bic",
-      "reference": "X:reference"
+      "bic": "X:bic"
      },
      "note": ""
     },
@@ -5600,8 +5476,8 @@
    },
    "validation": {
     "status": "done",
-    "startedAt": "2026-11-27T12:50:32.098Z",
-    "finishedAt": "2026-11-27T12:52:32.705Z",
+    "startedAt": "2026-11-27T16:41:58.041Z",
+    "finishedAt": "2026-11-27T16:43:23.187Z",
     "result": {
      "vendorId": "V-004",
      "ibanValid": true,
@@ -5609,46 +5485,46 @@
      "duplicateOf": null,
      "issues": [
       {
-       "code": "R7",
+       "code": "IBAN_DOES_NOT_MATCH_VENDOR_MASTER",
+       "severity": "review",
+       "message": "The IBAN ES07 0012 0345 0300 0006 7890 does not match the vendor master record.",
+       "refs": [
+        "X:iban",
+        "V:V-004"
+       ]
+      },
+      {
+       "code": "DUPLICATE_PAYMENT_REQUEST",
        "severity": "block",
-       "message": "No other request for this invoice in the inbox or in the payment history.",
+       "message": "No other request for this invoice in the inbox or in the payment history, but a duplicate check is required.",
        "refs": [
         "X:invoiceNumber",
         "P:R7"
        ]
       },
       {
-       "code": "per_payment_limit",
+       "code": "AMOUNT_ABOVE_AUTO_APPROVE_LIMIT",
        "severity": "review",
-       "message": "2,744.00 EUR is above the auto-approve limit of 2,500.00 EUR.",
+       "message": "The amount 2,744.00 EUR exceeds the auto-approve limit of 2,500.00 EUR and requires manual review.",
        "refs": [
         "C:limit",
         "P:R9"
        ]
-      },
-      {
-       "code": "daily_limit",
-       "severity": "review",
-       "message": "Today's automatic total would be 4,159.00 EUR of 10,000.00 EUR.",
-       "refs": [
-        "C:daily",
-        "P:R10"
-       ]
       }
      ],
-     "summary": "The invoice number is not a duplicate in the inbox or payment history. The amount exceeds the per-payment limit and pushes the daily auto-approved total above 4,000.00 EUR.",
+     "summary": "Review required due to IBAN mismatch, duplicate check, and amount exceeding auto-approval limit.",
      "disagreements": []
     },
     "error": null
    },
    "audit": {
     "status": "done",
-    "startedAt": "2026-11-27T12:50:32.098Z",
-    "finishedAt": "2026-11-27T12:51:49.934Z",
+    "startedAt": "2026-11-27T16:41:58.041Z",
+    "finishedAt": "2026-11-27T16:42:53.872Z",
     "result": {
      "reading": {
-      "isPaymentRequest": true,
-      "documentKind": "invoice",
+      "isPaymentRequest": false,
+      "documentKind": "Invoice",
       "creditorName": "IBERIA OFFICE SUPPLIES S.L.",
       "vendorTaxId": "ESB12345678",
       "beneficiaryName": null,
@@ -5657,11 +5533,11 @@
       "dueDate": "21/12/2026",
       "currency": "EUR",
       "net": 274400,
-      "tax": 0,
+      "tax": null,
       "gross": 274400,
-      "iban": "ES6621000418401234567891",
+      "iban": "ES0700120345030000067890",
       "bic": "CAIXESBBXXX",
-      "reference": "55820",
+      "reference": null,
       "poReference": null,
       "lines": [
        {
@@ -5688,11 +5564,9 @@
        "dueDate": "A:dueDate",
        "currency": "A:currency",
        "net": "A:net",
-       "tax": "A:tax",
        "gross": "A:gross",
        "iban": "A:iban",
-       "bic": "A:bic",
-       "reference": "A:reference"
+       "bic": "A:bic"
       },
       "note": ""
      },
@@ -5703,95 +5577,28 @@
    },
    "investigation": {
     "status": "done",
-    "startedAt": "2026-11-27T12:52:32.717Z",
-    "finishedAt": "2026-11-27T12:55:10.122Z",
+    "startedAt": "2026-11-27T16:43:23.188Z",
+    "finishedAt": "2026-11-27T16:44:41.591Z",
     "result": {
-     "category": "accounts_payable",
+     "category": "IBAN discrepancy and duplicate invoice",
      "assessment": "confirmed_discrepancy",
      "verifiedFacts": [
       {
-       "text": "IBERIA OFFICE SUPPLIES S.L.",
-       "refs": [
-        "X:creditorName"
-       ]
-      },
-      {
-       "text": "ESB12345678",
-       "refs": [
-        "X:vendorTaxId"
-       ]
-      },
-      {
-       "text": "55820",
-       "refs": [
-        "X:invoiceNumber"
-       ]
-      },
-      {
-       "text": "21/11/2026",
-       "refs": [
-        "X:invoiceDate"
-       ]
-      },
-      {
-       "text": "21/12/2026",
-       "refs": [
-        "X:dueDate"
-       ]
-      },
-      {
-       "text": "EUR",
-       "refs": [
-        "X:currency"
-       ]
-      },
-      {
-       "text": "2,744.00",
-       "refs": [
-        "X:gross"
-       ]
-      },
-      {
-       "text": "ES66 2100 0418 4012 3456 7891",
-       "refs": [
-        "X:iban"
-       ]
-      },
-      {
-       "text": "CAIXESBBXXX",
-       "refs": [
-        "X:bic"
-       ]
-      },
-      {
-       "text": "55820",
-       "refs": [
-        "X:reference"
-       ]
-      }
-     ],
-     "conflictingEvidence": [
-      {
-       "text": "The document asks for ES66 2100 0418 4012 3456 7891; the vendor master has ES91 2100 0418 4502 0005 1332. The checksum is valid, but ownership of the new account is unverified.",
+       "text": "The IBAN in the document (ES07 0012 0345 0300 0006 7890) does not match the vendor master record (ES91 2100 0418 4502 0005 1332).",
        "refs": [
         "X:iban",
-        "V:V-004",
-        "P:R5"
-       ]
-      },
-      {
-       "text": "2,744.00 EUR is above the auto-approve limit of 2,500.00 EUR.",
-       "refs": [
-        "C:limit",
-        "P:R9"
+        "V:V-004"
        ]
       }
      ],
-     "explanation": "The invoice number is not a duplicate in the inbox or payment history. The amount exceeds the per-payment limit and pushes the daily auto-approved total above 4,000.00 EUR. The IBAN differs from the vendor master; no verified account-change evidence exists yet.",
-     "unknowns": [],
+     "conflictingEvidence": [],
+     "explanation": "The IBAN in the document differs from the vendor master record. No verified account-change evidence is available.",
+     "unknowns": [
+      "A callback on a number already on file, recorded against this vendor and this account to verify ownership of the new account."
+     ],
      "recommendedSteps": [
-      "Call Iberia Office Supplies S.L. on +34 912345678 to verify the new IBAN and confirm the payment amount.",
-      "Review the vendor's payment history for any recent changes in banking information."
+      "Contact the vendor at +34 123-456789 (recorded in the trusted record) to confirm the IBAN change.",
+      "Check if there is a duplicate invoice by searching the payment history for invoice number 55820."
      ],
      "recommendedDisposition": "NEEDS_APPROVAL"
     },
@@ -5799,15 +5606,14 @@
    },
    "decision": {
     "status": "done",
-    "startedAt": "2026-11-27T12:55:10.122Z",
-    "finishedAt": "2026-11-27T12:56:30.171Z",
+    "startedAt": "2026-11-27T16:44:41.591Z",
+    "finishedAt": "2026-11-27T16:45:15.200Z",
     "result": {
      "recommended": {
       "disposition": "NEEDS_APPROVAL",
       "rulesApplied": [
        "R5",
-       "R9",
-       "R14"
+       "R9"
       ],
       "passed": [
        "mandatory_fields",
@@ -5817,25 +5623,23 @@
        "currency",
        "payable_amount",
        "duplicate",
+       "line_items",
        "daily_limit",
        "instruction_content",
        "agent_agreement",
-       "stages",
        "evidence_integrity"
       ],
       "failed": [
        "beneficiary"
       ],
       "humanRequired": true,
-      "explanation": "The beneficiary IBAN differs from the vendor master; no verified account-change evidence exists yet. The amount exceeds the per-payment limit and pushes the daily auto-approved total above 4,000.00 EUR. The line totals add up to 5,488.00, the document states 2,744.00.",
+      "explanation": "The IBAN in the document differs from the vendor master record and ownership of the new account is unverified. The payment amount exceeds the auto-approve limit.",
       "refs": [
        "X:iban",
        "V:V-004",
-       "C:lines",
-       "C:limit",
        "P:R5",
-       "P:R9",
-       "P:R14"
+       "C:limit",
+       "P:R9"
       ]
      },
      "floor": "BLOCKED",
@@ -5906,7 +5710,7 @@
      "rule": "R5",
      "status": "fail",
      "severity": "block",
-     "detail": "The document asks for ES66 2100 0418 4012 3456 7891; the vendor master has ES91 2100 0418 4502 0005 1332. The checksum is valid, but ownership of the new account is unverified.",
+     "detail": "The document asks for ES07 0012 0345 0300 0006 7890; the vendor master has ES91 2100 0418 4502 0005 1332. The checksum is valid, but ownership of the new account is unverified.",
      "refs": [
       "X:iban",
       "V:V-004",
@@ -5964,9 +5768,9 @@
      "id": "line_items",
      "label": "Line items",
      "rule": "R14",
-     "status": "review",
+     "status": "pass",
      "severity": "review",
-     "detail": "The line totals add up to 5,488.00, the document states 2,744.00.",
+     "detail": "The 3 line totals add up to 2,744.00.",
      "refs": [
       "C:lines",
       "P:R14"
@@ -6052,9 +5856,9 @@
      "doc": {
       "docId": "INV-ES-55820",
       "field": "creditorName",
-      "lineStart": 5,
-      "lineEnd": 5,
-      "excerpt": "IBERIA OFFICE SUPPLIES S.L.",
+      "lineStart": 3,
+      "lineEnd": 6,
+      "excerpt": "IBERIA OFFICE SUPPLIES S.L.\nCalle Mayor 8, 28013 Madrid, España",
       "original": "IBERIA OFFICE SUPPLIES S.L.",
       "normalized": "IBERIA OFFICE SUPPLIES S.L.",
       "located": true,
@@ -6109,8 +5913,8 @@
       "lineStart": 10,
       "lineEnd": 10,
       "excerpt": "Fecha: 21/11/2026",
-      "original": "21/11/2026",
-      "normalized": "21/11/2026",
+      "original": "2026-11-21",
+      "normalized": "2026-11-21",
       "located": true,
       "retypedFrom": null,
       "supportsValue": null
@@ -6127,8 +5931,8 @@
       "lineStart": 11,
       "lineEnd": 11,
       "excerpt": "Vencimiento: 21/12/2026",
-      "original": "21/12/2026",
-      "normalized": "21/12/2026",
+      "original": "2026-12-21",
+      "normalized": "2026-12-21",
       "located": true,
       "retypedFrom": null,
       "supportsValue": null
@@ -6180,9 +5984,9 @@
       "field": "iban",
       "lineStart": 22,
       "lineEnd": 22,
-      "excerpt": "IBAN: ES66 2100 0418 4012 3456 7891",
-      "original": "ES66 2100 0418 4012 3456 7891",
-      "normalized": "ES66 2100 0418 4012 3456 7891",
+      "excerpt": "IBAN: ES07 0012 0345 0300 0006 7890",
+      "original": "ES07 0012 0345 0300 0006 7890",
+      "normalized": "ES07 0012 0345 0300 0006 7890",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true
@@ -6201,24 +6005,6 @@
       "excerpt": "BIC: CAIXESBBXXX",
       "original": "CAIXESBBXXX",
       "normalized": "CAIXESBBXXX",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
-    "X:reference": {
-     "id": "X:reference",
-     "category": "source_document",
-     "label": "Payment reference as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-ES-55820",
-      "field": "reference",
-      "lineStart": 24,
-      "lineEnd": 24,
-      "excerpt": "Referencia: 55820",
-      "original": "55820",
-      "normalized": "55820",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true
@@ -6278,24 +6064,6 @@
       "supportsValue": true
      }
     },
-    "X:line:4": {
-     "id": "X:line:4",
-     "category": "source_document",
-     "label": "Line item 4 as read by the Extractor",
-     "by": "Extractor",
-     "doc": {
-      "docId": "INV-ES-55820",
-      "field": "line",
-      "lineStart": 17,
-      "lineEnd": 17,
-      "excerpt": "Base      2,744.00",
-      "original": "2744.00",
-      "normalized": "2,744.00",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
     "A:creditorName": {
      "id": "A:creditorName",
      "category": "source_document",
@@ -6304,9 +6072,9 @@
      "doc": {
       "docId": "INV-ES-55820",
       "field": "creditorName",
-      "lineStart": 5,
-      "lineEnd": 5,
-      "excerpt": "IBERIA OFFICE SUPPLIES S.L.",
+      "lineStart": 3,
+      "lineEnd": 6,
+      "excerpt": "IBERIA OFFICE SUPPLIES S.L.\nCalle Mayor 8, 28013 Madrid, España",
       "original": "IBERIA OFFICE SUPPLIES S.L.",
       "normalized": "IBERIA OFFICE SUPPLIES S.L.",
       "located": true,
@@ -6394,14 +6162,14 @@
      "doc": {
       "docId": "INV-ES-55820",
       "field": "currency",
-      "lineStart": 19,
-      "lineEnd": 19,
-      "excerpt": "TOTAL EUR 2,744.00",
+      "lineStart": null,
+      "lineEnd": null,
+      "excerpt": "",
       "original": "EUR",
       "normalized": "EUR",
-      "located": true,
+      "located": false,
       "retypedFrom": null,
-      "supportsValue": true
+      "supportsValue": false
      }
     },
     "A:net": {
@@ -6417,24 +6185,6 @@
       "excerpt": "Base      2,744.00",
       "original": "2744.00",
       "normalized": "2,744.00",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
-    "A:tax": {
-     "id": "A:tax",
-     "category": "source_document",
-     "label": "Tax amount as read by the Auditor",
-     "by": "Auditor",
-     "doc": {
-      "docId": "INV-ES-55820",
-      "field": "tax",
-      "lineStart": 18,
-      "lineEnd": 18,
-      "excerpt": "IVA 0% (operación intracomunitaria)",
-      "original": "0.00",
-      "normalized": "0.00",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true
@@ -6468,9 +6218,9 @@
       "field": "iban",
       "lineStart": 22,
       "lineEnd": 22,
-      "excerpt": "IBAN: ES66 2100 0418 4012 3456 7891",
-      "original": "ES66 2100 0418 4012 3456 7891",
-      "normalized": "ES66 2100 0418 4012 3456 7891",
+      "excerpt": "IBAN: ES07 0012 0345 0300 0006 7890",
+      "original": "ES07 0012 0345 0300 0006 7890",
+      "normalized": "ES07 0012 0345 0300 0006 7890",
       "located": true,
       "retypedFrom": null,
       "supportsValue": true
@@ -6494,24 +6244,6 @@
       "supportsValue": true
      }
     },
-    "A:reference": {
-     "id": "A:reference",
-     "category": "source_document",
-     "label": "Payment reference as read by the Auditor",
-     "by": "Auditor",
-     "doc": {
-      "docId": "INV-ES-55820",
-      "field": "reference",
-      "lineStart": 24,
-      "lineEnd": 24,
-      "excerpt": "Referencia: 55820",
-      "original": "55820",
-      "normalized": "55820",
-      "located": true,
-      "retypedFrom": null,
-      "supportsValue": true
-     }
-    },
     "A:line:1": {
      "id": "A:line:1",
      "category": "source_document",
@@ -6522,7 +6254,7 @@
       "field": "line",
       "lineStart": null,
       "lineEnd": null,
-      "excerpt": "",
+      "excerpt": "Importe\n916.00",
       "original": "916.00",
       "normalized": "916.00",
       "located": false,
@@ -6540,7 +6272,7 @@
       "field": "line",
       "lineStart": null,
       "lineEnd": null,
-      "excerpt": "",
+      "excerpt": "Importe\n588.00",
       "original": "588.00",
       "normalized": "588.00",
       "located": false,
@@ -6558,8 +6290,8 @@
       "field": "line",
       "lineStart": null,
       "lineEnd": null,
-      "excerpt": "",
-      "original": "1,240.00",
+      "excerpt": "Importe\n1,240.00",
+      "original": "1240.00",
       "normalized": "1,240.00",
       "located": false,
       "retypedFrom": null,
@@ -6825,7 +6557,7 @@
      "label": "Sum of line items",
      "by": "Desk",
      "calc": {
-      "method": "sum of the 4 line totals, compared with the gross amount",
+      "method": "sum of the 3 line totals, compared with the gross amount",
       "inputs": [
        {
         "label": "Papel A4 80g (caja 5 resmas)",
@@ -6843,17 +6575,12 @@
         "ref": "X:line:3"
        },
        {
-        "label": "Base",
-        "value": "2,744.00",
-        "ref": "X:line:4"
-       },
-       {
         "label": "Gross on the document",
         "value": "2,744.00",
         "ref": "X:gross"
        }
       ],
-      "result": "5,488.00 computed; difference -2,744.00",
+      "result": "2,744.00 computed; difference 0.00",
       "currency": "EUR",
       "rounding": "exact, in minor units; no rounding or tolerance"
      }
@@ -6922,81 +6649,81 @@
    "draft": null,
    "runs": [
     {
-     "id": "run_1225d6fb-6",
+     "id": "run_7e8d2d39-9",
      "agent": "Extractor",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:49:29.312Z",
-     "finishedAt": "2026-11-27T12:50:32.094Z",
+     "startedAt": "2026-11-27T16:41:01.748Z",
+     "finishedAt": "2026-11-27T16:41:58.040Z",
      "status": "done",
      "tokens": {
-      "input": 1664,
-      "output": 615
+      "input": 1642,
+      "output": 600
      },
      "trigger": "document.received",
      "error": null
     },
     {
-     "id": "run_3ec23cce-4",
+     "id": "run_57f55b93-8",
      "agent": "Auditor",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:50:32.113Z",
-     "finishedAt": "2026-11-27T12:51:49.932Z",
+     "startedAt": "2026-11-27T16:41:58.043Z",
+     "finishedAt": "2026-11-27T16:42:53.871Z",
      "status": "done",
      "tokens": {
-      "input": 1654,
-      "output": 559
+      "input": 1718,
+      "output": 623
      },
      "trigger": "extraction.completed",
      "error": null
     },
     {
-     "id": "run_2e3ca620-0",
+     "id": "run_37598548-b",
      "agent": "Validator",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:50:32.122Z",
-     "finishedAt": "2026-11-27T12:52:32.704Z",
+     "startedAt": "2026-11-27T16:41:58.045Z",
+     "finishedAt": "2026-11-27T16:43:23.186Z",
      "status": "done",
      "tokens": {
-      "input": 2231,
-      "output": 253
+      "input": 2182,
+      "output": 255
      },
      "trigger": "extraction.completed",
      "error": null
     },
     {
-     "id": "run_79c8e9cb-0",
+     "id": "run_7ed91ecd-7",
      "agent": "Investigator",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:52:32.728Z",
-     "finishedAt": "2026-11-27T12:55:10.119Z",
+     "startedAt": "2026-11-27T16:43:23.189Z",
+     "finishedAt": "2026-11-27T16:44:41.591Z",
      "status": "done",
      "tokens": {
-      "input": 5803,
-      "output": 765
+      "input": 5021,
+      "output": 270
      },
-     "trigger": "exception: beneficiary, line_items, per_payment_limit",
+     "trigger": "exception: beneficiary, per_payment_limit",
      "error": null
     },
     {
-     "id": "run_291c973f-1",
+     "id": "run_45501b7e-f",
      "agent": "Policy",
-     "model": "gemma2:9b-8k · Ollama, this machine",
+     "model": "qwen2.5:7b-instruct-12k · Ollama, this machine",
      "attempt": 1,
      "retry": 0,
-     "startedAt": "2026-11-27T12:55:10.124Z",
-     "finishedAt": "2026-11-27T12:56:30.145Z",
+     "startedAt": "2026-11-27T16:44:41.592Z",
+     "finishedAt": "2026-11-27T16:45:15.199Z",
      "status": "done",
      "tokens": {
-      "input": 2645,
-      "output": 234
+      "input": 2396,
+      "output": 173
      },
      "trigger": "investigation.completed",
      "error": null
@@ -7004,154 +6731,160 @@
    ],
    "timeline": [
     {
-     "at": "2026-11-27T12:49:29.312Z",
+     "at": "2026-11-27T16:41:01.748Z",
      "agent": "Extractor",
      "kind": "loop.started",
-     "detail": "Extractor started (gemma2:9b-8k · Ollama, this machine), triggered by document.received, execution run_1225d6fb-6"
+     "detail": "Extractor started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by document.received, execution run_7e8d2d39-9"
     },
     {
-     "at": "2026-11-27T12:49:29.346Z",
+     "at": "2026-11-27T16:41:01.759Z",
      "agent": "Extractor",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:50:32.086Z",
+     "at": "2026-11-27T16:41:58.039Z",
      "agent": "Extractor",
      "kind": "tool",
      "detail": "calls submit_reading"
     },
     {
-     "at": "2026-11-27T12:50:32.094Z",
+     "at": "2026-11-27T16:41:58.040Z",
      "agent": "Extractor",
      "kind": "answer",
      "detail": "Extractor finished"
     },
     {
-     "at": "2026-11-27T12:50:32.114Z",
+     "at": "2026-11-27T16:41:58.043Z",
      "agent": "Auditor",
      "kind": "loop.started",
-     "detail": "Auditor started (gemma2:9b-8k · Ollama, this machine), triggered by extraction.completed, execution run_3ec23cce-4"
+     "detail": "Auditor started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by extraction.completed, execution run_57f55b93-8"
     },
     {
-     "at": "2026-11-27T12:50:32.122Z",
+     "at": "2026-11-27T16:41:58.045Z",
      "agent": "Validator",
      "kind": "loop.started",
-     "detail": "Validator started (gemma2:9b-8k · Ollama, this machine), triggered by extraction.completed, execution run_2e3ca620-0"
+     "detail": "Validator started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by extraction.completed, execution run_37598548-b"
     },
     {
-     "at": "2026-11-27T12:50:32.123Z",
+     "at": "2026-11-27T16:41:58.046Z",
      "agent": "Auditor",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:50:32.123Z",
+     "at": "2026-11-27T16:41:58.046Z",
      "agent": "Validator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:51:49.929Z",
+     "at": "2026-11-27T16:42:53.870Z",
      "agent": "Auditor",
      "kind": "tool",
      "detail": "calls submit_independent_reading"
     },
     {
-     "at": "2026-11-27T12:51:49.932Z",
+     "at": "2026-11-27T16:42:53.871Z",
      "agent": "Auditor",
      "kind": "answer",
      "detail": "Auditor finished"
     },
     {
-     "at": "2026-11-27T12:52:06.631Z",
+     "at": "2026-11-27T16:42:53.872Z",
+     "agent": "Firewall",
+     "kind": "info",
+     "detail": "output check on the Auditor: the Auditor reported a contradiction about currency whose sides state the same value (EUR and TOTAL EUR 2,744.00); it was not recorded as one"
+    },
+    {
+     "at": "2026-11-27T16:42:58.222Z",
      "agent": "Validator",
      "kind": "tool",
      "detail": "calls lookup_trusted_records"
     },
     {
-     "at": "2026-11-27T12:52:06.657Z",
+     "at": "2026-11-27T16:42:58.225Z",
      "agent": "Validator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:52:32.699Z",
+     "at": "2026-11-27T16:43:23.185Z",
      "agent": "Validator",
      "kind": "tool",
      "detail": "calls submit_validation"
     },
     {
-     "at": "2026-11-27T12:52:32.704Z",
+     "at": "2026-11-27T16:43:23.186Z",
      "agent": "Validator",
      "kind": "answer",
      "detail": "Validator finished"
     },
     {
-     "at": "2026-11-27T12:52:32.713Z",
+     "at": "2026-11-27T16:43:23.188Z",
      "agent": "Firewall",
      "kind": "info",
-     "detail": "exception found (beneficiary, line_items, per_payment_limit); sending to the Investigator"
+     "detail": "exception found (beneficiary, per_payment_limit); sending to the Investigator"
     },
     {
-     "at": "2026-11-27T12:52:32.728Z",
+     "at": "2026-11-27T16:43:23.189Z",
      "agent": "Investigator",
      "kind": "loop.started",
-     "detail": "Investigator started (gemma2:9b-8k · Ollama, this machine), triggered by exception: beneficiary, line_items, per_payment_limit, execution run_79c8e9cb-0"
+     "detail": "Investigator started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by exception: beneficiary, per_payment_limit, execution run_7ed91ecd-7"
     },
     {
-     "at": "2026-11-27T12:52:32.745Z",
+     "at": "2026-11-27T16:43:23.191Z",
      "agent": "Investigator",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:55:10.095Z",
+     "at": "2026-11-27T16:44:41.589Z",
      "agent": "Investigator",
      "kind": "tool",
      "detail": "calls submit_investigation"
     },
     {
-     "at": "2026-11-27T12:55:10.119Z",
+     "at": "2026-11-27T16:44:41.591Z",
      "agent": "Investigator",
      "kind": "answer",
      "detail": "Investigator finished"
     },
     {
-     "at": "2026-11-27T12:55:10.132Z",
+     "at": "2026-11-27T16:44:41.592Z",
      "agent": "Policy",
      "kind": "loop.started",
-     "detail": "Policy started (gemma2:9b-8k · Ollama, this machine), triggered by investigation.completed, execution run_291c973f-1"
+     "detail": "Policy started (qwen2.5:7b-instruct-12k · Ollama, this machine), triggered by investigation.completed, execution run_45501b7e-f"
     },
     {
-     "at": "2026-11-27T12:55:10.142Z",
+     "at": "2026-11-27T16:44:41.594Z",
      "agent": "Policy",
      "kind": "inference",
      "detail": "thinking"
     },
     {
-     "at": "2026-11-27T12:56:30.137Z",
+     "at": "2026-11-27T16:45:15.198Z",
      "agent": "Policy",
      "kind": "tool",
      "detail": "calls submit_recommendation"
     },
     {
-     "at": "2026-11-27T12:56:30.145Z",
+     "at": "2026-11-27T16:45:15.199Z",
      "agent": "Policy",
      "kind": "answer",
      "detail": "Policy finished"
     },
     {
-     "at": "2026-11-27T12:56:30.171Z",
+     "at": "2026-11-27T16:45:15.201Z",
      "agent": "Firewall",
      "kind": "info",
      "detail": "the Policy agent recommended NEEDS_APPROVAL; the controls require BLOCKED. Enforced: BLOCKED"
     },
     {
-     "at": "2026-11-27T12:56:30.171Z",
+     "at": "2026-11-27T16:45:15.201Z",
      "agent": "Firewall",
      "kind": "info",
-     "detail": "blocked: beneficiary account, line items, per-payment limit"
+     "detail": "blocked: beneficiary account, per-payment limit"
     }
    ],
    "challenges": [
@@ -7163,7 +6896,7 @@
      "field": "iban",
      "challenged": {
       "by": "Document",
-      "value": "ES6621000418401234567891",
+      "value": "ES0700120345030000067890",
       "ref": "X:iban"
      },
      "observed": {
@@ -7242,13 +6975,6 @@
       "correct": true
      },
      {
-      "subject": "Extractor: payment reference",
-      "ref": "X:reference",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
       "subject": "Extractor: line item 1",
       "ref": "X:line:1",
       "critical": false,
@@ -7265,13 +6991,6 @@
      {
       "subject": "Extractor: line item 3",
       "ref": "X:line:3",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Extractor: line item 4",
-      "ref": "X:line:4",
       "critical": false,
       "present": true,
       "correct": true
@@ -7315,19 +7034,12 @@
       "subject": "Auditor: currency",
       "ref": "A:currency",
       "critical": false,
-      "present": true,
-      "correct": true
+      "present": false,
+      "correct": false
      },
      {
       "subject": "Auditor: net amount",
       "ref": "A:net",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Auditor: tax amount",
-      "ref": "A:tax",
       "critical": false,
       "present": true,
       "correct": true
@@ -7349,13 +7061,6 @@
      {
       "subject": "Auditor: bic",
       "ref": "A:bic",
-      "critical": false,
-      "present": true,
-      "correct": true
-     },
-     {
-      "subject": "Auditor: payment reference",
-      "ref": "A:reference",
       "critical": false,
       "present": true,
       "correct": true
@@ -7537,97 +7242,41 @@
      },
      {
       "subject": "Investigator: verified fact 1",
-      "ref": "X:creditorName",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Investigator: verified fact 2",
-      "ref": "X:vendorTaxId",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Investigator: verified fact 3",
-      "ref": "X:invoiceNumber",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Investigator: verified fact 4",
-      "ref": "X:invoiceDate",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Investigator: verified fact 5",
-      "ref": "X:dueDate",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Investigator: verified fact 6",
-      "ref": "X:currency",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Investigator: verified fact 7",
-      "ref": "X:gross",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Investigator: verified fact 8",
       "ref": "X:iban",
       "critical": false,
       "present": true,
       "correct": null
      },
      {
-      "subject": "Investigator: verified fact 9",
-      "ref": "X:bic",
+      "subject": "Validator: issue 1 (IBAN_DOES_NOT_MATCH_VENDOR_MASTER)",
+      "ref": "X:iban",
       "critical": false,
       "present": true,
       "correct": null
      },
      {
-      "subject": "Investigator: verified fact 10",
-      "ref": "X:reference",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Validator: issue 1 (R7)",
+      "subject": "Validator: issue 2 (DUPLICATE_PAYMENT_REQUEST)",
       "ref": "X:invoiceNumber",
       "critical": false,
       "present": true,
       "correct": null
      },
      {
-      "subject": "Validator: issue 2 (per_payment_limit)",
+      "subject": "Validator: issue 3 (AMOUNT_ABOVE_AUTO_APPROVE_LIMIT)",
       "ref": "C:limit",
-      "critical": false,
-      "present": true,
-      "correct": null
-     },
-     {
-      "subject": "Validator: issue 3 (daily_limit)",
-      "ref": "C:daily",
       "critical": false,
       "present": true,
       "correct": null
      }
     ],
     "findings": [
+     {
+      "kind": "broken_reference",
+      "subject": "Auditor: currency",
+      "ref": "A:currency",
+      "detail": "The quoted text was not found in the document.",
+      "critical": false
+     },
      {
       "kind": "broken_reference",
       "subject": "Auditor: line item 1",
@@ -7651,7 +7300,15 @@
      }
     ],
     "ok": true
-   }
+   },
+   "outputChecks": [
+    {
+     "at": "2026-11-27T16:42:53.872Z",
+     "agent": "Auditor",
+     "kind": "not_a_conflict",
+     "detail": "the Auditor reported a contradiction about currency whose sides state the same value (EUR and TOTAL EUR 2,744.00); it was not recorded as one"
+    }
+   ]
   }
  ]
 }

@@ -282,11 +282,12 @@ await check("the fault-injection test shows nothing before it runs, then what ca
 	await until(`txt(".lab-kicker") === "Controlled architecture fault-injection test" && control("Run the test") != null`, "the test, labelled, not yet run")
 	if (await page(`$("[data-case]") != null || $$(".lab-detail .tag").length > 0`)) throw new Error("an outcome is shown before the test has run")
 	await click("Run the test")
-	await until(`$$("[data-case]").length === 7`, "seven cases with results", 30_000)
+	await until(`$$("[data-case]").length === 10`, "ten cases with results", 30_000)
 	const rows = await page(`Object.fromEntries($$("[data-case]").map((r) => [r.dataset.case, [...r.querySelectorAll(".tag")].map((t) => t.textContent.trim())]))`)
 	if (rows.F0.join() !== "Auto-approved,Auto-approved,nothing to catch") throw new Error(`the control case reads ${rows.F0}`)
-	if (!rows.F2.includes("only the independent second reading") || rows.F2[0] !== "Auto-approved" || !rows.F2.includes("wrong amount") || !rows.F2.includes("Blocked")) throw new Error(`F2 reads ${rows.F2}`)
-	for (const id of ["F1", "F3", "F4", "F5", "F6"]) if (!rows[id].includes("code controls, in both configurations") || rows[id].includes("Auto-approved")) throw new Error(`${id} reads ${rows[id]}`)
+	if (!rows.F7.includes("only the independent second reading") || rows.F7[0] !== "Auto-approved" || !rows.F7.includes("wrong amount") || !rows.F7.includes("Blocked")) throw new Error(`F7 reads ${rows.F7}`)
+	if (!rows.F9.includes("not caught") || !rows.F9.includes("declared limit") || rows.F9.filter((t) => t === "Auto-approved").length !== 2) throw new Error(`the declared limit reads ${rows.F9}`)
+	for (const id of ["F1", "F2", "F3", "F4", "F5", "F6", "F8"]) if (!rows[id].includes("code controls, in both configurations") || rows[id].includes("Auto-approved")) throw new Error(`${id} reads ${rows[id]}`)
 	if (await page(`$$("[data-case] .tag").some((t) => t.textContent.includes("not as declared"))`)) throw new Error("a case did not end as declared")
 	await until(`/not a language-model benchmark/i.test($(".lab-detail").textContent)`, "the statement of what the test is not")
 	if (await page(`fetch("/api/state").then((x) => x.json()).then((s) => s.cases.some((c) => c.timeline.some((t) => /experiment/i.test(t.detail))))`)) throw new Error("the test touched the payment inbox")
@@ -350,6 +351,17 @@ const openIntake = async () => {
 }
 const queue = `$$("dialog[open] .queue-row").map((r) => r.textContent.replace(/\\s+/g, " ").trim())`
 const onDesk = async (id) => (await (await fetch(`${base}/api/state`)).json()).cases.some((c) => c.id === id)
+await check("the two stored runs on a local model replay as recordings: the current one with four decided scenarios, the earlier one with its two failures", async () => {
+	await open(`${base}/#/showcase/recorded-current`)
+	await until(`txt(".sc-top .tag") === "Recorded execution" && /qwen2\\.5/.test(txt(".sc-top-id .fine") ?? "") && txt(".sc-top-id .fine")?.includes("replay only")`, "the current local run, labelled as a recording with its model")
+	await until(`$$(".sc-step").filter((s) => s.dataset.result === "confirmed").length >= 4 && !$$(".sc-step").some((s) => s.dataset.result === "failed")`, "four scenarios that ended as expected and none that failed")
+	if (await page(`control("Run this scenario") != null || control("Restart") != null`)) throw new Error("the recorded view offers to run something")
+	await page(`$$(".sc-step")[2].click()`)
+	await until(`txt(".verdict .what") === "Held for a person" && $$(".sc-runs .runs li").length >= 4 && $$(".sc-runs .runs li").every((l) => /qwen2\\.5:7b/.test(l.textContent) && /this machine/.test(l.textContent))`, "the held payment and its loops, each naming the local model")
+	await open(`${base}/#/showcase/recorded-previous`)
+	await until(`txt(".sc-top .tag") === "Recorded execution" && /gemma2:9b/.test(txt(".sc-top-id .fine") ?? "") && /earlier state of the code/.test(txt(".sc-top-id .fine") ?? "")`, "the earlier local run, labelled with its model and as an earlier state of the code")
+	await until(`$$(".sc-step").filter((s) => s.dataset.result === "failed").length >= 2`, "its two scenarios that did not finish, shown as failed")
+})
 await check("Add documents: a sample PDF is validated and parsed, previewed as the original, and nothing runs until Process", async () => {
 	await open(`${base}/#/inbox`)
 	await openIntake()

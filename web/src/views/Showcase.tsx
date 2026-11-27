@@ -47,10 +47,10 @@ const utc = (iso: string) => `${day(iso)}, ${new Date(iso).toISOString().slice(1
 
 export function Showcase({ snapshot, health, canAct, id, loadingAll, onLoadAll }: Props) {
 	// Two stored runs can ship: the earlier one (hosted models, older code) at #/showcase/recorded, and one of this version at #/showcase/recorded-current.
-	const recordedView = id === "recorded" || id === "recorded-current"
-	const [stored, setStored] = useState<{ recording: Recording | null; current: Recording | null } | undefined>(undefined)
+	const recordedView = id === "recorded" || id === "recorded-current" || id === "recorded-previous"
+	const [stored, setStored] = useState<{ recording: Recording | null; previous?: Recording | null; current: Recording | null } | undefined>(undefined)
 	useEffect(() => { let gone = false; fetchRecordings().then((r) => !gone && setStored(r)).catch(() => !gone && setStored({ recording: null, current: null })); return () => { gone = true } }, [])
-	const recording = stored === undefined ? undefined : id === "recorded-current" ? stored.current : stored.recording
+	const recording = stored === undefined ? undefined : id === "recorded-current" ? stored.current : id === "recorded-previous" ? stored.previous ?? null : stored.recording
 
 	if (recordedView) {
 		if (recording === undefined) return <main className="view sc" aria-busy="true"><div className="skel" style={{ height: 30, width: 260 }} /><div className="skel" style={{ height: 320 }} /></main>
@@ -58,13 +58,13 @@ export function Showcase({ snapshot, health, canAct, id, loadingAll, onLoadAll }
 		return <Journey key={id} viewKey={`${id}:${recording.recordedAt}`} mode="recorded" steps={recording.steps} cases={recording.cases} snapshot={snapshot} canAct={false} recording={recording} />
 	}
 	const sc = snapshot.showcase
-	if (!sc) return <Intro snapshot={snapshot} health={health} canAct={canAct} recording={stored?.recording ?? null} current={stored?.current ?? null} />
+	if (!sc) return <Intro snapshot={snapshot} health={health} canAct={canAct} recording={stored?.recording ?? null} current={stored?.current ?? null} previous={stored?.previous ?? null} />
 	return <Journey key={sc.id} viewKey={sc.id} mode={sc.mode} steps={sc.steps} cases={snapshot.cases} snapshot={snapshot} canAct={canAct} recording={stored?.recording ?? stored?.current ?? null} loadingAll={loadingAll} onLoadAll={onLoadAll} />
 }
 
 // ───────── the opening ─────────
 
-function Intro({ snapshot, health, canAct, recording, current }: { snapshot: DeskSnapshot; health: Health | null; canAct: boolean; recording: Recording | null; current: Recording | null }) {
+function Intro({ snapshot, health, canAct, recording, current, previous }: { snapshot: DeskSnapshot; health: Health | null; canAct: boolean; recording: Recording | null; current: Recording | null; previous: Recording | null }) {
 	const [busy, setBusy] = useState(false)
 	const [err, setErr] = useState<string | null>(null)
 	const mode = snapshot.modelMode
@@ -143,6 +143,13 @@ function Intro({ snapshot, health, canAct, recording, current }: { snapshot: Des
 								<b>A stored run of this version <span className="fine">· {utc(current.recordedAt)}</span></b>
 								<p>The same scenarios on {current.version}. {current.steps.filter((s) => !s.optional && s.result === "confirmed").length} of {current.steps.filter((s) => !s.optional).length} scenarios ended as the scenario file expects; what the model answered is shown as it was.</p>
 								<a className="linkish" href={href("showcase", "recorded-current")}><ClockCounterClockwise size={13} /> Watch the recorded run of this version <ArrowRight size={12} /></a>
+							</>
+						)}
+						{previous && (
+							<>
+								<b>An earlier run with a local model <span className="fine">· {utc(previous.recordedAt)}</span></b>
+								<p>{previous.version}. {previous.steps.filter((s) => !s.optional && s.result === "confirmed").length} of {previous.steps.filter((s) => !s.optional && s.startedAt).length} scenarios ended as the scenario file expects; the others failed, and are shown that way.</p>
+								<a className="linkish" href={href("showcase", "recorded-previous")}><ClockCounterClockwise size={13} /> Watch the earlier local run <ArrowRight size={12} /></a>
 							</>
 						)}
 					</div>

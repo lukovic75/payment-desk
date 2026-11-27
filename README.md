@@ -14,7 +14,7 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 
 > Sandbox demonstration. All data is synthetic, no money moves, nothing is sent to a bank, and nothing here is financial advice.
 
-**Start here:** [`JUDGE_QUICKSTART.md`](JUDGE_QUICKSTART.md), ten minutes with no API key · [two-minute video](docs/demo/payment-desk-demo.mp4) of the running application (scripted demo, captions, no narration) · [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md), where every piece of data comes from.
+**Start here:** [`JUDGE_QUICKSTART.md`](JUDGE_QUICKSTART.md), ten minutes with no API key · [video, two and a half minutes](docs/demo/payment-desk-demo.mp4), of the running application (scripted demo and one stored real-model run, captions, no narration) · [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md), where every piece of data comes from.
 
 ```bash
 npm ci && npm run demo     # http://localhost:8799, then press Start demo
@@ -33,14 +33,14 @@ npm ci && npm run demo     # http://localhost:8799, then press Start demo
 | Evidence-backed resolution | Scenario 3 → *Resolve it with independent evidence* | `verify_amount` in [`server/desk.ts`](server/desk.ts#L1118) | `resolution.test.ts` |
 | Reproducible showcase | `npm ci && npm run demo` | [`server/showcase.ts`](server/showcase.ts) | `showcase.test.ts`, `npm run test:browser` |
 | PDF intake with page evidence | **Add documents** → a sample PDF; showcase scenario 3 runs on a two-page PDF | [`server/pdf.ts`](server/pdf.ts), [`server/pdf-worker.mjs`](server/pdf-worker.mjs) | `pdf.test.ts`, `npm run test:browser` |
-| Real models with no key | `LOCAL_MODEL=gemma2:9b npm run demo:local`; a stored run of this version is in the showcase | [`server/local.ts`](server/local.ts) | `local.test.ts`; *Local inference* and *Live verification* below |
+| Real models with no key | `LOCAL_MODEL=qwen2.5:7b-instruct-12k npm run demo:local`; a stored run of this version is in the showcase: four of four scenarios as expected | [`server/local.ts`](server/local.ts) | `local.test.ts`; *Local inference* and *Live verification* below |
 | What catches a wrong agent | Stress lab → **Fault injection** → Run the test | [`server/lab/experiment.ts`](server/lab/experiment.ts) | `npm run experiment`, `experiment.test.ts` |
 | Decision report of a payment | Any payment → Overview → *Decision report* → Open | [`server/report.ts`](server/report.ts) | `report.test.ts` |
 | What the desk has done, in numbers | Evidence & audit → *What the desk has done* | `operationalSummary` in [`server/report.ts`](server/report.ts) | `report.test.ts` |
 | Financial Stress Lab | Stress lab → Run all 12 | [`server/lab/`](server/lab) | `npm run lab`, `lab.test.ts` |
 | Data provenance and sandbox boundaries | | [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md) | every dataset, identifier and recording, with what is not known |
-| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 158 tests, 12 lab scenarios, 31 browser checks (the browser checks run locally, not in CI) |
-| Real models on this version | Showcase opening → *Watch the recorded run of this version* (a local model, 27 Nov); *Watch the recorded execution* for the earlier hosted run | [`server/data/recordings/`](server/data/recordings) | Local model: 2 of 4 scenarios as expected, 2 failed safely. Hosted models: **not verified** (provider credit). See *Live verification* |
+| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 165 tests, 12 lab scenarios, 32 browser checks (the browser checks run locally, not in CI) |
+| Real models on this version | Showcase opening → *Watch the recorded run of this version* (local `qwen2.5:7b`, 27 Nov), *Watch the earlier local run* (`gemma2:9b`), *Watch the recorded execution* (hosted, earlier code) | [`server/data/recordings/`](server/data/recordings) | Final run: 4 of 4 scenarios as expected. Earlier runs the same day: 2 of 4 and 3 of 4, both kept. Hosted models: **not verified** (provider credit). See *Live verification* |
 
 Walkthrough: [`DEMO_GUIDE.md`](DEMO_GUIDE.md). Likely questions: [`JUDGE_QA.md`](JUDGE_QA.md).
 
@@ -58,11 +58,11 @@ Walkthrough: [`DEMO_GUIDE.md`](DEMO_GUIDE.md). Likely questions: [`JUDGE_QA.md`]
 
 ![The fault-injection test: an injected error that every code control passed, approved by one agent and stopped by five](docs/evidence/07-fault-injection.jpg)
 
-*The controlled fault-injection test. Five injected agent errors are stopped by code with one agent or with five; one, a line item quoted correctly as the total, is stopped only by the independent second reading.*
+*The controlled fault-injection test. Seven of nine injected agent errors are stopped by code with one agent or with five; one, a line item quoted correctly as the total on a document whose total label the code does not know, is stopped only by the independent second reading; one, where both readers make that mistake, is reported as not caught.*
 
-![Execution details of one payment: every agent loop with its trigger, start and finish, as the runtime recorded them](docs/evidence/08-execution-proof.jpg)
+![A stored run with a real model: scenario three of the run on a local qwen2.5:7b, with the model named on every loop](docs/evidence/08-real-model-recording.jpg)
 
-*Execution proof. Every loop the Mozaik runtime ran for a payment, with its trigger and its recorded start and finish. All eleven current screenshots are in [`docs/evidence/`](docs/evidence); earlier ones are kept in [`docs/history/`](docs/history).*
+*A real model, recorded. `qwen2.5:7b-instruct` on a laptop ran the four scenarios on this code and all four ended as expected; here its Auditor found both amounts on its own. The two earlier runs that went worse are kept beside it. All twelve current screenshots are in [`docs/evidence/`](docs/evidence); earlier ones are kept in [`docs/history/`](docs/history).*
 
 ## Try it in two minutes, without an API key
 
@@ -76,16 +76,18 @@ Open http://localhost:8799 and press **Start demo**: four synthetic scenarios, o
 This is the **scripted demo: real orchestration, predefined model responses**. The Mozaik runtime, the agent loops, the evidence checks, the controls and the enforcement run for real; the agents' answers are fixed text, and every screen says so. It shows the architecture and the workflow, not the quality of a language model.
 
 ```bash
-npm test                 # 158 automated tests on the real Mozaik runtime with a scripted model, about a minute
+npm test                 # 165 automated tests on the real Mozaik runtime with a scripted model, about a minute
 npm run lab              # the 12 stress scenarios from the terminal, scripted model, a few seconds
-npm run test:browser     # 31 browser checks of the showcase and PDF intake (needs Node 22+ and a local Chrome or Chromium)
+npm run test:browser     # 32 browser checks of the showcase and PDF intake (needs Node 22+ and a local Chrome or Chromium)
 ```
 
 With real models and no key, on your own machine (see *Local inference* below):
 
 ```bash
-ollama pull gemma2:9b                      # once, about 5 GB
-LOCAL_MODEL=gemma2:9b npm run demo:local   # http://localhost:8798, says Live local AI
+ollama pull qwen2.5:7b-instruct
+printf 'FROM qwen2.5:7b-instruct\nPARAMETER num_ctx 12288\nPARAMETER temperature 0\n' > Modelfile
+ollama create qwen2.5:7b-instruct-12k -f Modelfile   # the same model with room for the Investigator's case file
+LOCAL_MODEL=qwen2.5:7b-instruct-12k npm run demo:local   # http://localhost:8798, says Live local AI
 ```
 
 With a model key, for live agents on a hosted provider:
@@ -97,7 +99,7 @@ npm run dev              # API on :8787, UI on http://localhost:5173
 
 Open http://localhost:5173. **Start demo** then runs the same scenarios with live models and says *Live AI*; the full inbox of sixteen synthetic documents can be loaded from the overview or the demo summary; **Financial Stress Lab** runs twelve reproducible scenarios, on a deterministic path that needs no key or on live models. A provider refusal (no credit, a bad key) is shown as a failure with what to do about it. The application never switches from live to scripted by itself.
 
-**Status of real models on this version.** A local model (`gemma2:9b`) ran the four showcase scenarios on this version on 27 November: two ended as expected, two failed safely, none ended looser than expected. That run is stored and replays in the app. Hosted models (Anthropic, Google, OpenAI) have **not** been run on this version: the provider account had no credit. Details in *Live verification, stated plainly* below.
+**Status of real models on this version.** A local model (`qwen2.5:7b-instruct`, on the same laptop) ran the four showcase scenarios on this code on 27 November and all four ended as the scenario file expects; the run is stored and replays in the app. It was the third real-model run of the day, and the two before it are kept and described too: `gemma2:9b` reached a decision in two of four, and the first `qwen2.5:7b` run held a valid invoice for a false alarm. Hosted models (Anthropic, Google, OpenAI) have **not** been run on this version: the provider account had no credit. Details in *Live verification, stated plainly* below.
 
 ## The problem
 
@@ -213,7 +215,7 @@ Four things are kept apart: a value appearing in the document, a citation of the
 
 Every loop leaves a record on its case: execution id, agent, model, attempt, real start and finish timestamps, status, retries, tokens as reported by the provider, and the event that triggered it. **Agent activity** draws those records on one clock, so concurrency is overlap you can measure, and draws the dependencies of one payment (Extractor to Validator and Auditor, then the Investigator if called, then Policy). The same records are in every Stress Lab audit report. Model reasoning is not recorded or shown: only tool calls, structured findings and results.
 
-![Execution details of one payment, from recorded state](docs/evidence/08-execution-proof.jpg)
+![Execution details of one payment, from recorded state](docs/evidence/09-execution-proof.jpg)
 
 ### Shared case state
 
@@ -308,7 +310,35 @@ Metrics, each with its definition shown next to the number in the app (`server/l
 npm run lab:benchmark            # live models only
 ```
 
-**Status: the benchmark has not been run.** What does run without a model is the controlled fault-injection test in the next section; it is a different thing and does not replace this.  The API account used for development ran out of credit before it could be. The benchmark page shows an empty state, and no figure appears in this README in its place. The baseline's workflow and the metric arithmetic are covered by tests on the scripted model; what the two configurations actually score against live models is unknown.
+**Status: run once, on five of the ten scenarios, with a local model (27 November 2026).** Both configurations on `qwen2.5:7b-instruct` on the same laptop, one model request at a time, 18:35 to 19:04 CET; summary in [`docs/evidence/benchmark-local-qwen-2026-11-27.json`](docs/evidence/benchmark-local-qwen-2026-11-27.json). Hosted models: not run (no credit). The benchmark page in the app shows only runs made on that machine, so it is empty on a fresh checkout.
+
+```bash
+DESK_INFERENCE=local LOCAL_MODEL=qwen2.5:7b-instruct-12k npm run lab -- --benchmark --only S01,S02,S04,S05,S09
+```
+
+| | Single agent | Five agents |
+|---|---|---|
+| Scenarios ending as declared | 3 of 5 | 4 of 5 |
+| Valid invoice approved (S01) | no: held for a person | yes |
+| Changed account blocked (S02) | yes | yes |
+| Arithmetic discrepancy blocked (S04) | **no: held, not blocked** | **no: held, not blocked** |
+| Instruction-like text held (S05) | yes | yes |
+| Missing amount blocked (S09) | yes | yes |
+| Raw recommendation equal to the required outcome | 3 of 5 | 2 of 5 |
+| Unsafe approvals, recommended or enforced | 0 | 0 |
+| Critical fields matching the reference | 24 of 24 | 24 of 24 |
+| Agent loops | 5 | 24 |
+| Time | 557 s | 1,160 s |
+| Tokens the server reported | 37,828 | 66,539 |
+
+What it says, without stretching it:
+
+- **Final outcomes: one scenario apart.** The single agent held the valid invoice for a person; the five-agent workflow approved it. Everything else ended the same in both.
+- **The single agent's own recommendations were better.** It recommended "blocked" for the changed account and the missing amount; the five-agent workflow's Policy agent recommended only "needs approval" for both and code enforced the block. More agents did not make the recommendation better here. The controls made the outcome the same.
+- **Both missed the arithmetic discrepancy, and that is a gap in the code path as much as in the model.** The invoice states net 1,500.00, VAT 300.00 and total 1,900.00. Neither configuration's reader reported net and tax, so the arithmetic control had nothing to add up and was "not applicable". The payment was held for other reasons, not blocked. With the scripted reading, which does report them, the control blocks it.
+- **The price of five agents:** about twice the time and 1.8 times the tokens on this hardware.
+- Five scenarios, one run each, one small model. Observations, not rates. The remaining five benchmark scenarios were not run for lack of time.
+
 
 ## Controlled fault-injection test: what catches a wrong agent
 
@@ -319,13 +349,16 @@ npm run experiment               # a table, in under a second, no API key
 npm run experiment -- --json     # every control, challenge and loop of both runs
 ```
 
-In the app: **Stress lab → Fault injection → Run the test**. Each case scripts one error into one agent's answer and runs the same synthetic document twice on the real runtime, with one agent and with five. Trusted records, policy, controls and enforcement are the same in both; nothing is switched off. Result of the run on 27 November 2026:
+In the app: **Stress lab → Fault injection → Run the test**. Each case scripts one error into one agent's answer and runs the same synthetic document twice on the real runtime, with one agent and with five. Trusted records, policy, controls and enforcement are the same in both; nothing is switched off. Result (the same on every run; the answers are scripted):
 
 | Injected error | One agent | Five agents | What caught it |
 |---|---|---|---|
 | None (control case) | approved | approved | nothing to catch |
 | Wrong amount, unsupported by its quote | blocked | blocked | code controls, in both |
-| A line item reported as the total, quoted correctly | **approved: 1,230.00 instead of 1,415.00** | blocked | **only the independent second reading** |
+| A line item reported as the total, quoted correctly | held for a person | blocked | code controls, in both: the document's labelled total line states another amount |
+| The same error on a copy whose total is labelled in words code does not know | **approved: 1,230.00 instead of 1,415.00** | blocked | **only the independent second reading** |
+| Both readers make the same mistake | held for a person | held for a person | code controls, in both: the labelled total line |
+| Both readers make the same mistake, total labelled in words code does not know | **approved: 1,230.00** | **approved: 1,230.00** | **not caught**: declared in advance as a limit of the design |
 | A second payable amount is missed | held for a person | held for a person | code controls, in both; the Auditor also reports it |
 | Validator overlooks a changed bank account | blocked | blocked | code controls, in both |
 | Validator does not report an earlier payment | blocked | blocked | code controls, in both |
@@ -333,9 +366,11 @@ In the app: **Stress lab → Fault injection → Run the test**. Each case scrip
 
 How to read it:
 
-- **Five of six injected errors are stopped by deterministic controls, with or without a second agent.** That is the firewall, and the result says so instead of crediting the agents.
-- **One is not.** A wrong amount that is internally consistent and correctly quoted passes every control, and the one-agent baseline approved it. With an independent Auditor the two readings differ, code raises the challenge `CH:reading:gross`, the Investigator is called and the payment is blocked. This is what the second reading is for.
-- **It is not a model benchmark.** The errors are put there on purpose, and the baseline repeats the wrong first reading by construction. It shows the mechanism, not how often a language model makes such an error. Seven cases are observations, not rates.
+- **Seven of nine injected errors are stopped by deterministic controls, with or without a second agent.** That is the firewall, and the result says so instead of crediting the agents.
+- **A quote can be right and the field wrong.** A line item quoted correctly as the amount to pay passes the quote check. Since 27 November a control reads the document's own labelled total line and holds the payment when it states another amount, with one agent or with five. That control knows a list of labels in several languages, and no such list is complete.
+- **One error is stopped only by the second reading.** The same mistake on a copy whose total is labelled in words the list does not contain passes every control, and the one-agent baseline approves it. With an independent Auditor the two readings differ, code raises the challenge `CH:reading:gross`, the Investigator is called and the payment is blocked. This is what the second reading is for: it covers what a rule did not foresee.
+- **One error is not caught at all, and it is in the table on purpose.** When both readers make the same mistake and the label is unknown, two agreeing readings, a correct quote and consistent arithmetic leave nothing for code to object to. Independent readers reduce the chance of that; they do not remove it. What remains is the per-payment limit, the daily budget and a person on larger amounts.
+- **It is not a model benchmark.** The errors are put there on purpose, and the baseline repeats the wrong first reading by construction. It shows the mechanism, not how often a language model makes such an error. Ten cases are observations, not rates.
 
 The page shows nothing before the test has run on that server, and `server/test/experiment.test.ts` runs it on every commit.
 
@@ -343,7 +378,7 @@ The page shows nothing before the test has run on that server, and `server/test/
 
 **Decision report.** Every payment has one record of everything behind its decision: *payment → Overview → Decision report*, or `GET /api/cases/<id>/report`. It is assembled by code from the case state; no model writes any part of it. It keeps apart what the document says (with file name and content hash), each critical field with its source line and what code found when it read that line again, what the agents observed, what the controls established, the trusted records used, what was recommended against what is in force, every human action, and what is still unresolved. A value the case does not have is `null`. It is marked as sandbox data and is not a payment authorization, a certification or a signed record; the hash identifies the content that was read and says nothing about whether that content is true.
 
-**Critical values are counted apart.** With the sixteen demo documents the integrity verifier re-reads 556 values. 115 of them are critical, meaning a payment decision rests on them (creditor, amount, currency, account, exposure, draft, trusted records, calculations), and **all 115 are verified at their source**. 56 values cannot be checked by a program and none of them is critical: 30 dates (the quoted line is there; the date format is not compared), 20 agent statements (the cited evidence exists; a sentence is not a value) and 6 quoted passages (the text is in the document). They are never counted as verified. What this does not cover: a value can be in its quoted line and still be the wrong field, which is what the fault-injection test's line-item case shows; no code control checks that today, the independent second reading does.
+**Critical values are counted apart.** With the sixteen demo documents the integrity verifier re-reads 556 values. 115 of them are critical, meaning a payment decision rests on them (creditor, amount, currency, account, exposure, draft, trusted records, calculations), and **all 115 are verified at their source**. 56 values cannot be checked by a program and none of them is critical: 30 dates (the quoted line is there; the date format is not compared), 20 agent statements (the cited evidence exists; a sentence is not a value) and 6 quoted passages (the text is in the document). They are never counted as verified. What this does not cover: a value can be in its quoted line and still be the wrong field. A control now holds a payment whose amount is not the one on the document's labelled total line; where the total is labelled in words that control does not know, only the independent second reading notices, and where both readers agree on the wrong line nothing does. The fault-injection test shows all three cases.
 
 **Operational summary.** *Evidence & audit → What the desk has done*, or `GET /api/summary`: documents received, distinct invoices, decisions in force by kind, amounts blocked and waiting for a person **per currency**, controls evaluated, values re-read against their source, challenges raised and settled, sandbox drafts. Every figure is counted from the cases on the desk, a document processed twice is one document, and nothing is shown for an empty desk. The part of the blocked amount that repeats an invoice already recorded is named separately (with the demo documents: 10,282.54 of 19,236.54 EUR). A blocked amount is not presented as a prevented loss, and nothing claims time or money saved: that was not measured.
 
@@ -408,14 +443,16 @@ The sample PDFs are in [`server/data/documents/pdf/`](server/data/documents/pdf)
 Payment Desk can run its agents on a model that runs on your own machine. Nothing is sent to a cloud provider and nothing is paid for. Only the transport changes: the Mozaik runtime still runs the five agent loops, the events, the tools and the shared state.
 
 ```bash
-# once: install Ollama (https://ollama.com) and fetch a model, about 5 GB
-ollama pull gemma2:9b
+# once: install Ollama (https://ollama.com) and fetch a model, about 4.7 GB
+ollama pull qwen2.5:7b-instruct
+printf 'FROM qwen2.5:7b-instruct\nPARAMETER num_ctx 12288\nPARAMETER temperature 0\n' > Modelfile
+ollama create qwen2.5:7b-instruct-12k -f Modelfile   # the same model with room for the Investigator's case file
 
 # then
-LOCAL_MODEL=gemma2:9b npm run demo:local      # builds the UI, serves it on http://localhost:8798
+LOCAL_MODEL=qwen2.5:7b-instruct-12k npm run demo:local      # builds the UI, serves it on http://localhost:8798
 ```
 
-Open http://localhost:8798. The showcase says **Live local AI**, and every agent loop is recorded with the model that ran it, for example `gemma2:9b · Ollama, this machine`.
+Open http://localhost:8798. The showcase says **Live local AI**, and every agent loop is recorded with the model that ran it, for example `qwen2.5:7b-instruct-12k · Ollama, this machine`.
 
 | Variable | Default | Meaning |
 |---|---|---|
@@ -461,10 +498,10 @@ cp .env.example .env     # only for live models
 | `npm run dev` | API on :8787 and UI on http://localhost:5173 | for live agents |
 | `LOCAL_MODEL=<model> npm run demo:local` | builds the UI and serves it on http://localhost:8798 with agents on a local model (Ollama or another OpenAI-compatible local server) | no |
 | `npm run heldout -- http://localhost:8798` | uploads the five held-out invoices to a running server with real inference and compares the outcome with `server/data/heldout/expected.json` | no |
-| `npm test` | 158 automated tests, scripted model | no |
-| `npm run test:browser` | 31 browser checks of the showcase and PDF intake, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
+| `npm test` | 165 automated tests, scripted model | no |
+| `npm run test:browser` | 32 browser checks of the showcase and PDF intake, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
 | `npm run lab` | Stress Lab in the terminal, deterministic path | no |
-| `npm run experiment` | the controlled fault-injection test: six scripted agent errors, one agent against five | no |
+| `npm run experiment` | the controlled fault-injection test: nine scripted agent errors and one control case, one agent against five | no |
 | `npm run lab:live`, `npm run lab:benchmark` | Stress Lab and the benchmark with live models | a key, or `DESK_INFERENCE=local` with `LOCAL_MODEL` |
 | `npm run cli` | the sixteen demo documents with live models, headless | yes |
 | `npm run typecheck` | TypeScript, server and UI | no |
@@ -475,7 +512,7 @@ There is no linter in the project; the type checker and the tests are the gates.
 
 ## Tests
 
-`npm test` runs 158 tests in thirteen files with Node's test runner, in about a minute (the PDF tests parse real files), with no API key and no model. `AGENT_INTELLIGENCE_REPORT.md` describes the agents, how they check each other and what is verified. `QA_REPORT.md` lists the defects the stabilisation pass found and fixed, `TEST_MATRIX.md` maps each behaviour to its test, and `DEMO_READINESS.md` says what is and is not verified.
+`npm test` runs 165 tests in thirteen files with Node's test runner, in about a minute (the PDF tests parse real files), with no API key and no model. `AGENT_INTELLIGENCE_REPORT.md` describes the agents, how they check each other and what is verified. `QA_REPORT.md` lists the defects the stabilisation pass found and fixed, `TEST_MATRIX.md` maps each behaviour to its test, and `DEMO_READINESS.md` says what is and is not verified.
 
 - `server/test/firewall.test.ts`: money parsing, IBAN, instruction detection, per-currency totals. No runtime.
 - `server/test/workflow.test.ts`: the whole workflow on the **real Mozaik runtime** with a **scripted model**. Loops, tools, events, the firewall, enforcement and human actions are the real code; only the model's words are fixed. In most tests the scripted Policy agent recommends approval for everything, so a pass means the deterministic layer held by itself.
@@ -499,31 +536,54 @@ What they cover from the firewall's point of view: a valid invoice is approved; 
 
 ### Live verification, stated plainly
 
-### A run of this version with a real model, 27 November 2026
+### Real-model runs of this version, 27 November 2026
 
-The four showcase scenarios were run on this version of the code with **`gemma2:9b` on the same laptop** (as `gemma2:9b-8k`, the same model with an 8k context; Ollama 0.32.5, Apple M4, 16 GB, one model request at a time, `json` tool protocol). No cloud provider was called. The cases are stored in `server/data/recordings/current.json` and replay in the app: showcase opening, *Watch the recorded run of this version*.
+Three runs of the four showcase scenarios were made with a model on the same laptop (Ollama 0.32.5, Apple M4, 16 GB, one model request at a time, `json` tool protocol). No cloud provider was called. Nothing was retried, and every run is reported, including the ones that went badly.
 
-| Scenario | Expected | What happened | Time |
-|---|---|---|---|
-| Legitimate invoice | AUTO_APPROVED | **AUTO_APPROVED.** Extractor and Auditor each read 1,415.00 EUR and the IBAN, with the exact lines; the Validator looked the vendor up and found the account on file; the Policy agent recommended approval; sandbox draft | 190 s |
-| Changed bank account | BLOCKED | **BLOCKED.** The Validator reported that the IBAN is not the one on file and the Investigator was called. **The Policy agent recommended only "needs approval"; the controls kept it blocked.** No draft | 422 s |
-| Two amounts in a PDF | NEEDS_APPROVAL or BLOCKED | **Processing error, nothing approved.** This model's Auditor did not report the second amount. The control in code did (1,890.00 against 1,980.00, challenge on record). The Investigator then twice returned a result that failed validation (more than ten facts), so its loop was closed and the payment failed | 500 s |
-| Duplicate payment | BLOCKED | **Processing error, nothing approved.** The Extractor left the currency empty; the Validator reported the duplicate and the duplicate control failed; the Investigator again returned an invalid result twice | 455 s |
+| Run | Model | Code | As expected | What went wrong | Wall time |
+|---|---|---|---|---|---|
+| 1, 12:46 UTC | `gemma2:9b`, 8k context | on top of `9b79777` | **2 of 4** | Two processing errors: the Investigator returned a list longer than its schema allows, twice (the adapter did not enforce list limits then). The Auditor missed the second amount; the Extractor returned no currency for one invoice | about 26 min |
+| 2, 16:16 UTC | `qwen2.5:7b-instruct`, 12k context | `0b725c8` plus the total-line control and the first contradiction check | **3 of 4** | A valid invoice was held for a person: the Auditor reported the total against one of its own line items as a contradiction. No processing error | 19 min |
+| 3, 16:37 UTC | the same | the code as it is now | **4 of 4** | Nothing ended wrongly. The Auditor made the same three false contradictions as before; code now recognises each as not a contradiction, removes it and records that it did | 16 min |
 
-What the stored records say about the two failures (read from `current.json`, not rerun):
+Before run 2, the two scenarios that failed in run 1 were run alone on `0b725c8` with `qwen2.5:7b-instruct`: both ended as expected (311 s and 289 s).
 
-- **Investigator, both failed scenarios: a defect in this project's adapter, and a model limitation behind it.** The result was refused with `verifiedFacts: expected array to have <=10 items`, a correction was requested, and the second answer failed the same way. The instructions ask for at most four facts and the tool's schema allows ten. The adapter asked the model server to enforce the schema but had removed the list limits from it first, so nothing stopped a longer list. Since this version the limits are kept in the enforced schema and stated in plain words (`server/local.ts`, `local.test.ts`). **This fix is tested against a stand-in server only; no model has been run since.**
-- **Auditor, two-amount invoice: a model error.** Both pages were in its input (the control in code found the second amount on line 5), and the instructions ask for exactly this kind of contradiction. It returned no conflict. Nothing in the adapter explains it.
-- **Extractor, duplicate reminder: a model error.** It returned no currency for "NET À PAYER EUR 1,120.00". The mandatory-field control failed, as it should.
-- **Time.** 17 loops took 1,846 s in total, for 57,328 input and 9,447 output tokens as the server reported them: between 5 and 10 output tokens a second. The Investigator alone took 670 s, because each failed answer is a full second generation over a case file of about 6,000 tokens. With one request at a time the Validator's loop also waits for the Auditor's request. Model load, prompt evaluation and generation were not recorded separately, so they cannot be told apart here.
+Runs 1 and 3 replay in the app (showcase opening: *Watch the earlier local run* and *Watch the recorded run of this version*); files `server/data/recordings/local-gemma-2026-11-27.json` and `current.json`. Run 2 is not stored in the repository; its figures are above.
 
-What this shows, and what it does not:
+What run 3 showed, agent by agent (four documents, 19 loops, no failed loop, no invalid structured result):
 
-- **Shown:** real model inference through the Mozaik runtime on the current version: 17 agent loops, each recorded with its model, its start and finish, its trigger and the token usage the server reported. The Validator and Auditor loops start from the same event and overlap; their model requests ran one after the other, because one request at a time was configured.
-- **Shown:** the reason for the architecture. In one scenario an agent recommended less than the policy requires and the code overruled it. In two, an agent failed, and the payment failed with it instead of being approved. No scenario ended looser than expected.
-- **Not shown:** that a small local model is a good Auditor or Investigator. Two of four scenarios did not reach a decision, and the Auditor missed the contradiction that the hosted model found in the earlier run. That is what this model did, stored as it happened.
-- **Not run:** the five held-out invoices (`npm run heldout`), the live Stress Lab and the single-agent benchmark. The laptop ran out of disk through swap while the model was loaded; the files and scripts are in the repository. An earlier attempt with `qwen2.5:7b` and native tool calls stopped at the Auditor: the server returned an empty message for a 307-token answer, which is why the `json` protocol exists.
+- **Extractor and Auditor:** creditor, amount, currency and IBAN correct on all four documents, 16 of 16 critical fields each, every one with a quote that code found in the document.
+- **Auditor, contradictions:** found the one real contradiction (1,890.00 against 1,980.00 across two PDF pages) on its own. It also reported three that are not: the total against a line item, an amount against itself, and the currency against the line that contains it. Raw, that is 1 true and 3 false alarms on 4 documents. After the checks in code: 1 recorded, 3 removed, each removal on the case as an output check.
+- **Validator:** reported the changed account and the earlier payment (`H-0001`) from the lookup; code computes both from the records as well and they agree.
+- **Investigator:** called on the three exceptions, valid result each time.
+- **Policy agent:** recommended "needs approval" for the changed account, which the policy blocks; the controls kept it blocked. Its other three recommendations matched what was enforced. Code removed citations to evidence ids that do not exist.
+
+What changed between the runs, so the improvement is not credited to the model alone: the model (run 1 to 2), the adapter keeping list limits in the enforced schema (before run 2), three checks that drop a reported contradiction which is not one, and one sentence added to the Auditor's instructions (before run 3; the model's raw answers did not change with it, the checks did the work).
+
+What this does and does not establish:
+
+- **It does:** a small open model on a laptop, through the Mozaik runtime, can carry the whole workflow to the right decision on these four documents, with independent readings that agree on every critical field.
+- **It does not:** show how often that holds. Four known documents, run once on the final code. The Auditor's false alarms would have held three of four payments without the code checks.
+- **Time:** about four minutes a document on this hardware, with one model request at a time: 45,822 input and 7,047 output tokens over 19 loops in run 3. The agent loops overlap; the model requests do not.
 - **Not verified:** hosted models on this version. Mozaik in this repository supports `gemini-3.5-flash-lite` and `gemini-3.8-flash`, which Google listed with a free tier on 27 November 2026; with `GEMINI_API_KEY` set, `FAST_MODEL=gemini-3.5-flash-lite CAREFUL_MODEL=gemini-3.8-flash npm run dev` should use them, but no key was available and it has not been run.
+
+### Held-out invoices on a real model, 27 November 2026
+
+Five synthetic invoices that have no predefined answer, that no instruction or control had been adjusted on, and whose expected facts and outcomes were written before any model read them (`server/data/heldout/expected.json`, never sent to the server). Uploaded through the application's own intake and run once on `qwen2.5:7b-instruct`, 16:56 to 17:16 UTC, 1,192 seconds. `npm run heldout -- http://localhost:8798` repeats it against a server with real inference. One account number in the set had been replaced by a provider test number earlier that day (see `DATA_PROVENANCE.md`); the declared outcome of that document did not change.
+
+| Document | Declared outcome | What happened |
+|---|---|---|
+| Valid invoice, new number, German number format | approved | **Approved.** Five of five fields right; amount evidence on the right line |
+| Known vendor, different bank account | blocked | **Blocked.** The Validator reported the mismatch. The Policy agent recommended only "needs approval"; the controls kept it blocked |
+| Contradictory instructions: 1,750.00 invoiced, 1,570.00 asked for | held or blocked | **Held.** The Auditor found the second amount on its own. **The control in code did not**: the wording is not one it knows. Here the second reading caught what code missed |
+| No amount stated anywhere | blocked | **Blocked.** The Extractor **invented an amount** (589.20). The mandatory-field and evidence controls failed, as they should. Here code caught what the agents missed |
+| Valid invoice as a text-layer PDF, French, a layout unlike the samples | approved | **Held for a person: not as declared.** Every field was right. The Auditor had filed the only amount under "net" and left "gross" empty, and the agreement control read that as a reader who could not find the amount |
+
+Counted as the script reports it: 5 of 5 processed with no failed loop; 24 of 25 critical fields correct and 1 invented; outcome as declared 4 of 5; 2 of 5 Policy recommendations looser than the policy, both overruled by code; no payment approved that should not have been; 1 of 2 valid invoices held without need.
+
+Three of the five carry a real discrepancy. An agent noticed two of them and code noticed two of them, and not the same two: together, three of three. That is the argument for having both, on documents neither had seen. It is five documents and one run; it is not a rate.
+
+**After the run.** The false hold was traced by running that one document again (same result, 295 s) and fixed in code: with no tax stated, an amount the second reader files as "net" is the amount found. Run a third time on the corrected code, the document was approved in 165 s, with the Auditor's answer unchanged. That document is therefore no longer held out; the table above is the first run, before the fix.
 
 ### The earlier run with hosted models, 26 November 2026
 
@@ -554,7 +614,7 @@ The sidebar is grouped by what a person comes to do: **Workspace** (Overview, Pa
 
 The interface is a web interpretation of a glass material system: an ambient background, a floating navigation layer, content glass for summaries and near-opaque reading surfaces for financial detail. It is designed in dark and light, for a phone as well as a desktop, and it honours reduced motion, reduced transparency and increased contrast. `DESIGN.md` has the system.
 
-![A blocked payment in the workspace: the reason in one sentence with its source line, the next step, and the actions the server allows](docs/evidence/09-payment-blocked.jpg)
+![A blocked payment in the workspace: the reason in one sentence with its source line, the next step, and the actions the server allows](docs/evidence/10-payment-blocked.jpg)
 
 ## Three-minute demonstration
 
@@ -626,16 +686,18 @@ HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 ## Known limitations
 
 - **Sandbox only.** No bank connection, no payment execution. The payment draft is a structured JSON record, not an ISO 20022 message: producing schema-validated pain.001 XML was not practical in the time, so the app does not claim it.
-- **The fix for the local Investigator failure has not been run against a model.** The stored local run failed twice on a list longer than the schema allows; the adapter now keeps list limits in the schema the model server enforces. That is tested against a stand-in server. Whether `gemma2:9b` then completes all four scenarios is not known.
-- **The fault-injection test is not a benchmark.** It shows which component catches a scripted error; it says nothing about how often a model errs. The live single-agent against multi-agent benchmark has not been run.
-- **Hosted models are not verified on the current version**, and the benchmark has not been run. A local model ran the four showcase scenarios on it: two as expected, two failed safely. See *Live verification, stated plainly*.
+- **A real model is slow here and raises false alarms.** On a laptop a document takes about four minutes with one model request at a time, and the local Auditor reported a contradiction that is not one on three of four documents. Code removes the kinds it has seen; a kind it has not seen would hold a valid payment for a person.
+- **Field meaning is checked by a list of labels and a second reading, not understood by code.** The total-line control knows labels in a handful of languages. One case in the fault-injection test gets through both: the same wrong line read by both agents on a document whose total label the control does not know.
+- **The arithmetic control depends on the reader.** It adds up the net and tax the agent reports. In the real-model benchmark neither configuration reported them for the invoice whose figures do not add up, so the control did not apply and the payment was held instead of blocked.
+- **The fault-injection test is not a benchmark.** It shows which component catches a scripted error; it says nothing about how often a model errs. The real-model benchmark has been run once, on five scenarios, with one small local model.
+- **Hosted models are not verified on the current version**. A local model ran the four showcase scenarios on it three times in one day: two, three and then four of four as expected. See *Live verification, stated plainly*.
 - **The scripted demo proves the workflow, not a model.** Its agent answers for the five showcase documents are predefined text, written after what the live models returned in the recorded run.
 - **A hackathon sandbox, not a production system.** It is not deployed, not hardened and not connected to anything.
 - **No authentication.** Human actions are recorded as "Demo reviewer". Permissions are enforced on the server, but there is one reviewer.
 - **Text and text-layer PDF only. No OCR.** A scanned or image-only PDF is refused. Encrypted PDFs are refused. Images are not read.
 - **PDF reading order is simple.** Lines are read top to bottom by baseline. A multi-column page can come out interleaved, and a table is read row by row. The synthetic fixtures are single-column invoices; nothing is claimed about arbitrary layouts.
 - **The marker covers a line.** It is drawn only where the parser measured a box, and it marks the cited line, not the single value. Rotated text and a quote that crosses pages get the page without a marker.
-- **Arbitrary PDFs need live models, and that is not verified here.** The scripted demo interprets only its registered synthetic documents; with no provider credit, a PDF outside that set has never been run through live agents on this version.
+- **Arbitrary PDFs need a real model, and the evidence for that is one document.** The scripted demo interprets only its registered synthetic documents. With a local model, one unseen text-layer PDF was read correctly in every field and then held for a person without need; the cause was fixed afterwards. Hosted models have not read an unseen PDF on this version.
 - **Models are non-deterministic.** The same document can be worded differently between runs, and an agent may be stricter than the controls require. It can never be looser.
 - **Heuristics are labelled as such.** Instruction-like content and "another payable amount in the document" are pattern matches that send a case to review; vendor matching is token overlap on names.
 - **One process for the inbox.** State is one JSON file and the concurrency guarantees are those of a single Node process. Stress Lab runs are separate processes. A person's decision is written to the file before the request returns; agent progress within a second.

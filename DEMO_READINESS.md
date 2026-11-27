@@ -6,11 +6,11 @@
 |---|---|
 | **Scripted showcase** | **Ready.** Verified end to end in a browser and by automated checks |
 | **Live showcase, hosted models** | **Blocked, not verified on this version.** The provider account has no credit; the last live call (26 Nov, 23:56 CET) was refused |
-| **Live showcase, local model** | **Run once on this version** (27 Nov, `gemma2:9b` through Ollama on the same laptop): 2 of 4 scenarios as expected, 2 ended as processing errors with nothing approved. Stored and replayable. Too slow to run live in a presentation (3 to 8 minutes per scenario) |
+| **Live showcase, local model** | **Run three times on 27 Nov**, on the same laptop through Ollama: `gemma2:9b` 2 of 4 scenarios as expected, `qwen2.5:7b-instruct` 3 of 4, and `qwen2.5:7b-instruct` on the final code 4 of 4. First and last are stored and replayable. Too slow to run live in a presentation (about four minutes per scenario) |
 | **PDF intake (text layer)** | **Ready in the scripted demo** for the registered synthetic PDFs: parsing, page evidence, the original page with the cited line marked. Verified by tests and in a browser. **With live models: not verified** |
 | **Recorded execution** | Available. A stored live run of an earlier version, three of five scenarios complete |
 
-**Scripted showcase ready. A local model has run this version, with mixed results that are stored as they happened. Hosted models unverified.**
+**Scripted showcase ready. A local model has run this version: four of four scenarios as expected on the final code, after two runs with worse results that are kept and described. Hosted models unverified.**
 
 ## Scripted demonstration readiness
 
@@ -33,10 +33,10 @@ npm run demo             # builds the UI, serves it on http://localhost:8799
 | Check | Result |
 |---|---|
 | `npm run typecheck` | pass |
-| `npm test` | 158 of 158, thirteen files, about a minute (the PDF tests parse real files) |
+| `npm test` | 165 of 165, thirteen files, about a minute (the PDF tests parse real files) |
 | `npm run lab` | 12 of 12 scenarios |
 | `npm run build` | pass |
-| `npm run test:browser` | 31 of 31: the agent inspector's model label, the two-amount rule in the workspace, PDF evidence on its page with the line marked, document intake (sample parsed, previewed, processed on request; refusals; an unregistered document; a duplicate), and startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
+| `npm run test:browser` | 32 of 32: the agent inspector's model label, the two-amount rule in the workspace, PDF evidence on its page with the line marked, document intake (sample parsed, previewed, processed on request; refusals; an unregistered document; a duplicate), and startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
 | Looked at in a browser | Opening, each scenario, both drawers, summary, recorded view and failure state; dark and light; 375, 768, 1024, 1280, 1440 and 1920 px wide with no horizontal overflow; reduced motion |
 
 What the scripted demonstration does not show: anything about a language model. The agents' answers are fixed text.
@@ -53,7 +53,7 @@ npm run dev              # http://localhost:5173
 | Credentials | `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY` / `GEMINI_API_KEY` with matching model names) |
 | Provider credit | **None.** Two single attempts in the final passes, 26 Nov 22:58 and 23:38 CET (one live Stress Lab scenario each): refused, reported as "could not be judged". Not retried further |
 | Verified on a live server | The opening screen states *Live AI*, the models and that calls cost credit; a server with no key refuses to run a scenario (503) and substitutes nothing (test) |
-| Not verified | Hosted models on this version; the live Stress Lab; the benchmark; any change made after the local run of 27 November against a real model (the list-limit change in `server/local.ts` is tested against a stand-in server only) |
+| Not verified | Hosted models on this version; the live Stress Lab; the benchmark; the other five benchmark scenarios; hosted models |
 
 When credit is available, in this order, stopping at the first failure:
 
@@ -78,7 +78,7 @@ It is evidence that the workflow ran with live models once. It is not verificati
 
 ## Known limitations
 
-- **Hosted models unverified on this version**, and the live benchmark has never completed. One local-model run exists: 2 of 4 scenarios as expected, 2 failed safely.
+- **Hosted models unverified on this version**, and the live benchmark has never completed. Local-model runs exist: 2 of 4, 3 of 4 and, on the final code, 4 of 4 scenarios as expected.
 - **One sandbox workspace.** Scenario payments are demo documents on the desk and count toward the same daily auto-approval budget as anything else there. Starting the demo, or loading the full inbox, replaces the demo documents; documents a person added, their decisions and their callback verifications are kept (tested).
 - **Trusted records are synthetic fixtures.** A contradiction about an amount is settled by a vendor confirmation and a changed account by a callback record. The desk matches a reference to a record for the right vendor, invoice or account, currency and amount; it does not contact anyone. Without a record, a document that states two payable amounts is not released at all: a written statement is refused (policy v7), and the reviewer rejects it and asks for a corrected invoice.
 - **Local only.** The server listens on 127.0.0.1, refuses requests from other sites and foreign hostnames, and has no sign-in. Hosting it publicly is out of scope.
