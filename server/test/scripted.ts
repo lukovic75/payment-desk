@@ -66,6 +66,7 @@ export function scriptedModel(script: Script): InferenceRunner {
 					vendorId: seen.vendor?.found ? seen.vendor.record.id : null, ibanValid: seen.iban?.checksumValid ?? null, ibanMatchesMaster: seen.iban?.matchesVendorMaster ?? null,
 					duplicateOf: null, issues: [], conflicts: [], summary: "scripted single-agent assessment",
 					disposition: script.policy ?? "AUTO_APPROVED", rulesApplied: [], passed: [], failed: [], humanRequired: false, explanation: "scripted: approve everything", refs: [],
+					...script.validations?.[docId],
 				})
 			}
 			if (agent === "Extractor") {

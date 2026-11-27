@@ -11,6 +11,7 @@
     "demo": "npm run build && npm run dev:scripted",
     "cli": "tsx server/cli.ts",
     "lab": "tsx server/lab/cli.ts",
+    "experiment": "tsx server/lab/experiment-cli.ts",
     "lab:live": "tsx server/lab/cli.ts --live",
     "lab:benchmark": "tsx server/lab/cli.ts --benchmark",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p web/tsconfig.json --noEmit",

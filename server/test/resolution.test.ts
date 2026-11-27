@@ -101,6 +101,7 @@ test("what cannot settle it: no reference, an unknown one, another vendor's, an 
 		["VC-0000-0000-00", /not a confirmation on record/],
 		[OTHER_VENDOR, /not a confirmation on record/],
 		[OTHER_AMOUNT, /not a confirmation on record/], // right vendor, another invoice
+		["VC-2026-1126-05", /not a confirmation on record/], // right vendor, invoice and figure, verified, but in USD: another currency is another amount
 		[UNVERIFIED, /on record as unverified/],
 		["'; DROP TABLE confirmations; --", /not a confirmation on record/],
 		["<img src=x onerror=alert(1)>", /not a confirmation on record/],

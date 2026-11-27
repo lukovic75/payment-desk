@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { ArrowLeft, ArrowRight, ArrowsClockwise, Bank, CaretRight, CheckCircle, ClockCounterClockwise, DownloadSimple, FileText, Function as Fn, Hourglass, PhoneCall, Prohibit, Scales, SealCheck, ShieldWarning, User, Warning, XCircle } from "@phosphor-icons/react"
-import { act, draftUrl, fetchDocument, type Action, type Challenge, type Control, type DeskSnapshot, type EvidenceEntry, type PaymentCase, documentFileUrl, fetchSource, type DocSource } from "../lib/api"
+import { act, draftUrl, reportUrl, fetchDocument, type Action, type Challenge, type Control, type DeskSnapshot, type EvidenceEntry, type PaymentCase, documentFileUrl, fetchSource, type DocSource } from "../lib/api"
 import { flagged, isBlocking, isRunning, loopsOf, outcomeOf, titleOf, type AgentName } from "../lib/derive"
 import { cap, clock, day, dueLabel, fieldLabel, iban as fmtIban, money, plain, reduceMotion, words } from "../lib/format"
 import { href, type View } from "../lib/router"
@@ -318,6 +318,13 @@ export function PaymentDetail({ c, snapshot, view, onDecided }: Props) {
 											</div>
 										</details>
 										<button type="button" className="btn btn-link" style={{ justifySelf: "start", marginLeft: -6 }} onClick={() => setTab("verification")}>See all {c.controls.length} checks <ArrowRight size={12} className="nudge" /></button>
+										<div className="report-row" data-report>
+											<span className="fine"><b>Decision report.</b> Everything behind this decision in one record: source facts, agent findings, controls, trusted records, enforcement, review history and what is still open. Assembled by code from this case; no model writes it.</span>
+											<span className="report-actions">
+												<a className="btn btn-sm" href={reportUrl(c.id)} target="_blank" rel="noreferrer"><FileText size={13} /> Open</a>
+												<a className="btn btn-sm" href={reportUrl(c.id, true)} download={`decision-report-${c.id}.json`}><DownloadSimple size={13} /> JSON</a>
+											</span>
+										</div>
 									</section>
 								)}
 							</div>

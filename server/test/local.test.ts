@@ -17,7 +17,7 @@ import { fileURLToPath } from "node:url"
 import { FunctionCallItem, ModelMessageItem } from "@mozaik-ai/core"
 import { scriptedModel } from "./scripted.js"
 import { READINGS } from "./fixtures.js"
-import { jsonToOutput, localConfig, localLabel, probeLocal, pruneNulls, strictSchema } from "../local.js"
+import { jsonMessages, jsonToOutput, listLimitsOf, localConfig, localLabel, probeLocal, pruneNulls, strictSchema } from "../local.js"
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..")
 const DOC = (id: string) => readFileSync(join(ROOT, "server", "data", "documents", `${id}.txt`), "utf8")
@@ -244,6 +244,23 @@ test("both intake routes obey one rule on the scripted server: an unregistered d
 	const c = await settle("INV-ES-55820")
 	assert.equal(c.stage, "blocked")
 	assert.equal((await post(`/api/cases/${c.id}/actions`, { action: "approve", reason: "sent on the other route, please approve" })).status, 409)
+})
+
+test("list limits reach the model twice: enforced by the server's schema and stated in plain words", () => {
+	// The shape of the Investigator's result: in the stored local run it returned more than ten facts, twice, and its loop was closed.
+	const tool = { type: "object", properties: { verifiedFacts: { type: "array", maxItems: 10, items: { type: "object", properties: { text: { type: "string", maxLength: 400 }, refs: { type: "array", maxItems: 12, items: { type: "string", maxLength: 60 } } }, required: ["text"] } }, unknowns: { default: [], type: "array", maxItems: 8, items: { type: "string" } }, note: { type: "string" } }, required: ["verifiedFacts"] }
+	const strict = strictSchema(tool) as any
+	assert.equal(strict.properties.verifiedFacts.maxItems, 10, "the limit is part of what the server enforces")
+	assert.equal(strict.properties.verifiedFacts.items.properties.refs.anyOf[0].maxItems, 12)
+	assert.equal(strict.properties.unknowns.anyOf[0].maxItems, 8)
+	assert.equal(strict.properties.verifiedFacts.items.properties.text.maxLength, undefined, "text lengths are still left to the desk's own validation")
+	const old = strictSchema(tool, false) as any
+	assert.equal(old.properties.verifiedFacts.maxItems, undefined, "LOCAL_SCHEMA_LIMITS=off sends the earlier form")
+	assert.deepEqual(listLimitsOf(tool), ["verifiedFacts: at most 10 items", "verifiedFacts[].refs: at most 12 items", "unknowns: at most 8 items"])
+	const messages = jsonMessages({ tools: [{ name: "submit_investigation", description: "d", parameters: tool, strict: false }], context: { getItems: () => [] } } as never)
+	assert.match(messages[0]!.content, /list limits, a longer list is refused: verifiedFacts: at most 10 items/)
+	assert.equal(localConfig({ DESK_INFERENCE: "local", LOCAL_MODEL: "x" })!.listLimits, true)
+	assert.equal(localConfig({ DESK_INFERENCE: "local", LOCAL_MODEL: "x", LOCAL_SCHEMA_LIMITS: "off" })!.listLimits, false)
 })
 
 test("the strict schema and its undoing: nothing optional is silently dropped, and a forced null is not passed on as a value", () => {

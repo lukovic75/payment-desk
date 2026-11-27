@@ -132,14 +132,30 @@ Run on Node 20.20.2, 22.23.5 and 26.8.2 (macOS, Apple silicon), from a copy that
 |---|---|
 | `npm ci` | installs from the lockfile |
 | `npm run typecheck` | passes |
-| `npm test` | 142 of 142, eleven files, about a minute |
+| `npm test` | 158 of 158, thirteen files, about a minute |
 | `npm run build` | passes |
 | `npm run lab` | 12 of 12 stress scenarios |
 | `npm run demo` | builds and serves the scripted showcase on http://localhost:8799 |
-| `npm run test:browser` | 28 of 28 (Node 22 or newer and a local Chrome or Chromium) |
+| `npm run test:browser` | 31 of 31 (Node 22 or newer and a local Chrome or Chromium) |
 
 GitHub Actions runs the first five on Node 20 and 22, on Linux ([.github/workflows/ci.yml](.github/workflows/ci.yml)); the run on commit `6ed3345` passed, as did every run since `4c5b2ba`. The run before it failed at `npm ci` and is what exposed a lockfile that npm 10 rejected.
 
+## Proof I: what the second agent adds that code does not
+
+A controlled fault-injection test, not a model benchmark: `npm run experiment`, or **Stress lab → Fault injection** in the app. One deliberate error is scripted into one agent's answer, and the same synthetic document runs twice on the real runtime: with one agent, and with five. Same trusted records, policy, controls and enforcement.
+
+| Injected error | One agent | Five agents | What caught it |
+|---|---|---|---|
+| None (control) | approved | approved | nothing to catch |
+| Wrong amount, unsupported by its quote | blocked | blocked | code: evidence controls |
+| A line item reported as the total, quoted correctly | **approved for 1,230.00 instead of 1,415.00** | blocked | **only the second reading**: the Auditor's amount differs, challenge `CH:reading:gross` |
+| A second payable amount is missed | held | held | code: stated amounts; the Auditor also reports it |
+| Validator overlooks a changed bank account | blocked | blocked | code: beneficiary control |
+| Validator does not report an earlier payment | blocked | blocked | code: duplicate control |
+| Policy agent recommends approving a blocked payment | blocked | blocked | code: enforcement |
+
+Five of six injected errors are stopped by deterministic controls with or without a second agent, and the result says so. One is internally consistent and correctly quoted, so no control can fault it; it is caught only because a second agent read the document without seeing the first reading. `server/test/experiment.test.ts` runs this on every commit. The errors are injected on purpose and the baseline repeats the wrong reading by construction: this shows the mechanism, not how often a model makes such an error.
+
 ## What is not proven here
 
-Anything about live language models on this version. The scripted model replays fixed answers, so these proofs cover the orchestration, the controls and the evidence checks. The stored live run is from an earlier version. `DEMO_READINESS.md` and `FINAL_RELEASE_REPORT.md` say exactly what was and was not run.
+How well language models do this work. The scripted model replays fixed answers, so these proofs cover the orchestration, the controls and the evidence checks. One run of this version on a small local model is stored (2 of 4 scenarios reached a decision); the stored hosted run is from an earlier version. `DEMO_READINESS.md` and `FINAL_RELEASE_REPORT.md` say exactly what was and was not run.

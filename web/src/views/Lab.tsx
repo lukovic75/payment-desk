@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react"
-import { ArrowLeft, CaretRight, CheckCircle, DownloadSimple, Lightning, Play, Prohibit, Scales, Stop, Warning, WarningCircle, XCircle } from "@phosphor-icons/react"
-import { cancelLabRun, labReportUrl, startLabRun, useLab, useLabDetail, type BenchmarkView, type ConfigMetrics, type LabItemView, type LabMode, type LabOverview, type LabRunView, type LabScenarioView, type Ratio } from "../lib/lab"
+import { ArrowLeft, Bug, CaretRight, CheckCircle, DownloadSimple, Lightning, Play, Prohibit, Scales, Stop, Warning, WarningCircle, XCircle } from "@phosphor-icons/react"
+import { cancelLabRun, labReportUrl, startLabRun, useExperiment, useLab, useLabDetail, type BenchmarkView, type ConfigMetrics, type LabItemView, type LabMode, type LabOverview, type LabRunView, type LabScenarioView, type Ratio } from "../lib/lab"
 import { loopsOf } from "../lib/derive"
 import { clock, count, duration, iban, money } from "../lib/format"
 import { href } from "../lib/router"
@@ -52,7 +52,8 @@ export function Lab({ id }: { id: string | null }) {
 
 	const active = data.runs.find((r) => r.id === data.active) ?? null
 	const benchmark = id === "benchmark"
-	const selected = benchmark ? null : data.scenarios.find((s) => s.id === id) ?? data.scenarios[0]!
+	const experiment = id === "experiment"
+	const selected = benchmark || experiment ? null : data.scenarios.find((s) => s.id === id) ?? data.scenarios[0]!
 	const rows = data.scenarios.map((s) => ({ s, cur: latest(data, s.id, mode) }))
 	const judged = rows.filter((r) => r.cur && ["pass", "fail"].includes(r.cur.item.status))
 	const sum = (pick: (i: NonNullable<LabItemView["result"]>) => number) => judged.reduce((n, r) => n + pick(r.cur!.item.result!), 0)
@@ -63,6 +64,7 @@ export function Lab({ id }: { id: string | null }) {
 		<main className="view" data-open={id != null}>
 			<PageHead title="Financial Stress Lab" sub="Twelve reproducible scenarios. Each declares what must happen before it runs, and no agent ever sees that declaration.">
 				<Seg value={mode} onChange={setMode} label="Execution path" options={[{ value: "scripted", label: <><Lightning size={13} /> Deterministic</> }, { value: "live", label: <><Play size={11} weight="fill" /> Live models</> }]} />
+				<a className="btn" href={href("lab", "experiment")} aria-current={experiment ? "page" : undefined}><Bug size={14} /> Fault injection</a>
 				<a className="btn" href={href("lab", "benchmark")} aria-current={benchmark ? "page" : undefined}><Scales size={14} /> Benchmark</a>
 				{active ? (
 					<button className="btn" disabled={busy} onClick={cancel}><Stop size={13} weight="fill" /> Cancel run</button>
@@ -118,7 +120,7 @@ export function Lab({ id }: { id: string | null }) {
 
 				<div className="lab-detail">
 					<a className="back lab-back" href={href("lab")}><ArrowLeft size={14} /> All scenarios</a>
-					{benchmark
+					{experiment ? <Experiment /> : benchmark
 						? <Benchmark data={data} busy={busy || active != null} onRun={() => start({ kind: "benchmark", executions: data.scenarios.filter((s) => s.benchmark).length * 2 }, "live", false)} />
 						: <ScenarioPanel key={`${selected!.id}:${mode}`} s={selected!} cur={latest(data, selected!.id, mode)} mode={mode} blocked={busy || active != null || liveBlocked} onRun={() => start({ kind: "scenario", ids: [selected!.id], executions: 1 }, mode, false)} />}
 				</div>
@@ -399,6 +401,81 @@ function Benchmark({ data, busy, onRun }: { data: LabOverview; busy: boolean; on
 									</div>
 								)
 							})}
+						</div>
+					</section>
+				</>
+			)}
+		</>
+	)
+}
+
+
+const CAUGHT_TONE: Record<string, string> = { "only the independent second reading": "run", "code controls, in both configurations": "", "nothing to catch": "", "not caught": "bad" }
+
+/** Controlled architecture fault-injection test. Everything shown is what the last run on this server returned. */
+function Experiment() {
+	const { data, error, run } = useExperiment()
+	if (!data) return <section className="panel">{error ? <div className="errbox" role="alert">{error}</div> : <div className="panel-body"><div className="skel" style={{ height: 80 }} /></div>}</section>
+	const r = data.result
+	const running = data.status === "running"
+	return (
+		<>
+			<section className="panel">
+				<div className="lab-head">
+					<div>
+						<div className="lab-kicker">Controlled architecture fault-injection test</div>
+						<h2>When one agent is wrong, who notices?</h2>
+						<p className="say">One deliberate error is scripted into one agent's answer. The same document then runs twice through the real Mozaik workflow: once with one agent, once with five, where the Auditor reads the document without seeing the first reading. Same trusted records, policy, controls and enforcement. Where code alone stops the error, the result says so and the agents get no credit for it.</p>
+					</div>
+					<div className="lab-buttons"><button className="btn btn-primary" disabled={running} onClick={run}>{running ? <Spinner /> : <Play size={13} weight="fill" />} {r ? "Run again" : "Run the test"}</button></div>
+				</div>
+				<div className="panel-body lab-limits">
+					<b>What this is not</b>
+					<ul>
+						<li>Not a language-model benchmark. The answers are scripted and the errors are put there on purpose; no model is called and no API key is needed.</li>
+						<li>The one-agent baseline repeats the wrong first reading by construction. The test shows what an independent second reading adds when the first is wrong.</li>
+						<li>Seven synthetic cases are observations, not rates.</li>
+					</ul>
+				</div>
+			</section>
+
+			{data.status === "error" && <section className="panel"><div className="errbox" role="alert">The test could not be completed: {data.error}</div></section>}
+
+			{!r ? (
+				<section className="panel">
+					<div className="sec-head"><h3>What will be injected</h3><span className="right"><span className="truncate">{running ? "running…" : "not run on this server yet · no result is shown before a run"}</span></span></div>
+					<div className="grid-table lab-table bench" style={{ ["--cols" as string]: "minmax(150px, 1fr) minmax(90px, 0.4fr) minmax(0, 2.2fr)" }}>
+						<div className="tr h"><span>Case</span><span>Agent</span><span>Injected error</span></div>
+						{data.cases.map((k) => <div className="tr" key={k.id}><span><span className="lab-id">{k.id}</span> {k.title}</span><span data-k="Agent">{k.agent === "none" ? "none" : k.agent}</span><span className="wide soft">{k.injected}</span></div>)}
+					</div>
+				</section>
+			) : (
+				<>
+					<section className="statbar glass" aria-label="Result of the last run">
+						<div className="stat"><span className="k">Errors injected</span><span className="v">{r.summary.injected}<small>and 1 control</small></span></div>
+						<div className="stat" title="Stopped by deterministic controls with one agent and with five. Not credited to the agents."><span className="k">By code alone</span><span className="v">{r.summary.caughtByCodeInBoth}<small>of {r.summary.injected}</small></span></div>
+						<div className="stat" title="Approved automatically by the one-agent baseline, stopped when an independent Auditor read the document."><span className="k">Only by 2nd reading</span><span className="v">{r.summary.caughtOnlyBySecondReading}<small>of {r.summary.injected}</small></span></div>
+						<div className="stat" title="Payments approved automatically for an amount the document does not ask for: with one agent, and with five."><span className="k">Wrong approvals</span><span className="v">{r.summary.baselineWrongApprovals}<small>five agents: {r.summary.multiWrongApprovals}</small></span></div>
+						<div className="stat"><span className="k">Not caught</span><span className="v">{r.summary.notCaught}<small>of {r.summary.injected}</small></span></div>
+					</section>
+					<section className="panel">
+						<div className="sec-head"><h3>Case by case</h3><span className="right"><span className="truncate">scripted answers, real runtime · ran {clock(r.ranAt)} in {duration(r.durationMs)} · {r.policy}</span></span></div>
+						<div className="grid-table lab-table bench" style={{ ["--cols" as string]: "minmax(150px, 1fr) minmax(118px, 0.55fr) minmax(118px, 0.55fr) minmax(0, 2.2fr)" }}>
+							<div className="tr h"><span>Injected error</span><span>One agent</span><span>Five agents</span><span>What caught it</span></div>
+							{r.rows.map((row) => (
+								<div className="tr" key={row.id} data-case={row.id}>
+									<span><span className="lab-id">{row.id}</span> {row.title}<br /><span className="soft">{row.agent === "none" ? "no agent" : row.agent}: {row.injected}</span></span>
+									<span data-k="One agent"><DispositionTag value={row.single.outcome} />{row.single.wrongAmountApproved && <><br /><span className="tag bad">wrong amount</span><br /><span className="soft">{row.single.amount}</span></>}</span>
+									<span data-k="Five agents"><DispositionTag value={row.multi.outcome} />{row.multi.investigator && <><br /><span className="soft">Investigator called</span></>}</span>
+									<span className="wide"><span className={`tag ${CAUGHT_TONE[row.caughtBy] ?? ""}`}>{row.caughtBy}</span>{!row.pass && <span className="tag bad">not as declared</span>}<br /><span className="soft">{row.detail}</span>
+										{row.multi.challenges.length > 0 && <><br /><span className="soft">Challenges on record: {row.multi.challenges.map((c) => `${c.id} (${c.raisedBy}: ${c.challenged.by} ${c.challenged.value} against ${c.observed.by} ${c.observed.value})`).join("; ")}</span></>}
+									</span>
+								</div>
+							))}
+						</div>
+						<div className="panel-body lab-limits">
+							<b>Reproduce it</b>
+							<ul><li><code>npm run experiment</code> prints the same table; <code>npm run experiment -- --json</code> gives every control, challenge and loop of both runs. <code>server/test/experiment.test.ts</code> runs it on every commit.</li></ul>
 						</div>
 					</section>
 				</>

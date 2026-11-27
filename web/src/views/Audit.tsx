@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react"
-import { CheckCircle, DownloadSimple, Hourglass, MagnifyingGlass, XCircle } from "@phosphor-icons/react"
-import type { DeskSnapshot } from "../lib/api"
+import { CaretRight, CheckCircle, DownloadSimple, Hourglass, MagnifyingGlass, XCircle } from "@phosphor-icons/react"
+import { useSummary, type DeskSnapshot } from "../lib/api"
 import { auditOf, isRunning, outcomeOf, titleOf, type ActorKind, type AuditEvent } from "../lib/derive"
 import { clock } from "../lib/format"
 import { go, href } from "../lib/router"
@@ -14,6 +14,31 @@ const ACTORS: { value: "all" | ActorKind; label: string }[] = [
 	{ value: "human", label: "People" },
 	{ value: "desk", label: "Desk" },
 ]
+
+
+/** What the desk has done so far. Every number is counted by the server from the cases; nothing is shown for an empty desk. */
+function Operations({ stamp, empty }: { stamp: string; empty: boolean }) {
+	const s = useSummary(stamp)
+	if (empty || !s || s.documents === 0) return null
+	const o = s.outcomes
+	const money = (list: { formatted: string; payments: number }[]) => list.length ? list.map((m) => `${m.formatted} in ${m.payments} payment${m.payments === 1 ? "" : "s"}`).join(" · ") : "none"
+	return (
+		<details className="guide ops" data-ops>
+			<summary><CaretRight size={12} weight="bold" className="caret" /> What the desk has done: {s.documents} document{s.documents === 1 ? "" : "s"}, {o.autoApproved + o.approvedByPerson} approved, {o.waitingForPerson} waiting for a person, {o.blocked} blocked{o.processingErrors ? `, ${o.processingErrors} failed` : ""}</summary>
+			<dl className="kv ops-kv">
+				<div title={s.definitions.documents}><dt>Documents received</dt><dd>{s.documents} · {s.obligations} distinct invoice{s.obligations === 1 ? "" : "s"} · {s.processingAttempts} processing attempt{s.processingAttempts === 1 ? "" : "s"} · {s.agentLoops} agent loops</dd></div>
+				<div><dt>Decisions in force</dt><dd>{o.autoApproved} approved automatically · {o.approvedByPerson} approved by a person · {o.waitingForPerson} waiting for a person · {o.blocked} blocked · {o.rejected} rejected{o.notPaymentRequests ? ` · ${o.notPaymentRequests} not a payment request` : ""}{o.processingErrors ? ` · ${o.processingErrors} processing error${o.processingErrors === 1 ? "" : "s"}` : ""}{o.inProgress ? ` · ${o.inProgress} in progress` : ""}</dd></div>
+				<div title={s.definitions.restricted}><dt>Blocked right now</dt><dd>{money(s.restricted.blocked)}</dd></div>
+				<div title={s.definitions.restricted}><dt>Waiting for a person</dt><dd>{money(s.restricted.waitingForPerson)}</dd></div>
+				<div><dt>Controls evaluated</dt><dd>{s.controls.evaluated} · {s.controls.passed} passed · {s.controls.notPassed} did not pass</dd></div>
+				<div title={s.definitions.evidence}><dt>Values re-read against their source</dt><dd>{s.evidence.valuesChecked} · {s.evidence.verified} verified · {s.evidence.notMechanicallyCheckable} not checkable mechanically · {s.evidence.failed} failed</dd></div>
+				<div><dt>Challenges</dt><dd>{s.challenges.raised} raised ({s.challenges.byAuditor} by the Auditor, {s.challenges.byValidator} by the Validator, {s.challenges.byCode} by code) · {s.challenges.settled} settled · {s.challenges.open} open</dd></div>
+				<div><dt>Sandbox drafts</dt><dd>{s.sandboxDrafts}</dd></div>
+			</dl>
+			<p className="fine">Counted from the cases on this desk. Amounts are per currency and never added across currencies. A blocked or held amount is not a prevented loss, and nothing here measures time or money saved. <a className="linkish" href="/api/summary" target="_blank" rel="noreferrer">Open as JSON</a></p>
+		</details>
+	)
+}
 
 /** Assurance in one place: whether every figure still rests on its source, every recorded step, and expected against actual. */
 export function Audit({ snapshot, id }: { snapshot: DeskSnapshot; id: string | null }) {
@@ -64,6 +89,8 @@ export function Audit({ snapshot, id }: { snapshot: DeskSnapshot; id: string | n
 				<div className="stat" title="Of the references that can be checked mechanically, those whose source really contains the value."><span className="k">Source supports value <Prov kind="computed" label="" /></span>{checkable.length ? <span className="v">{checkable.filter((v) => v.correct).length}<small>of {checkable.length} checkable</small></span> : <span className="v none">Not measured</span>}</div>
 				<div className="stat"><span className="k">Critical findings</span>{reports.length ? <span className="v">{critical}<small>{critical ? "each blocks its payment" : "none"}</small></span> : <span className="v none">Not measured</span>}</div>
 			</section>
+
+			<Operations stamp={cases.map((c) => `${c.id}:${c.version}`).join("|")} empty={cases.length === 0} />
 
 			<section className="sec">
 				<Tabs value={tab} onChange={(t) => go("audit", t === "scenarios" ? "scenarios" : null, true)} label="Assurance views" tabs={[{ value: "trail", label: "Audit trail", count: all.length }, { value: "scenarios", label: "Scenario check" }]} />

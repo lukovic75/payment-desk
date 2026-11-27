@@ -52,6 +52,29 @@ export function useLabDetail(runId: string | null, key: string | null, running: 
 	return { detail: detail && runId && key && detail.runId === runId && detail.item.key === key ? detail : null, error }
 }
 
+export type { ExperimentView } from "../../../server/lab/experiment-host"
+export type { ExperimentRow, ExperimentSide } from "../../../server/lab/experiment"
+import type { ExperimentView } from "../../../server/lab/experiment-host"
+
+/** The controlled fault-injection test: what the server holds, polled while a run is in flight. */
+export function useExperiment(): { data: ExperimentView | null; error: string | null; run: () => Promise<void> } {
+	const [data, setData] = useState<ExperimentView | null>(null)
+	const [error, setError] = useState<string | null>(null)
+	const load = useCallback(async () => {
+		try { setData(await ok<ExperimentView>(await fetch("/api/lab/experiment"))); setError(null) } catch (e) { setError((e as Error).message) }
+	}, [])
+	const running = data?.status === "running"
+	useEffect(() => {
+		load()
+		const t = running ? setInterval(load, 400) : undefined
+		return () => clearInterval(t)
+	}, [load, running])
+	const run = useCallback(async () => {
+		try { setData(await ok<ExperimentView>(await fetch("/api/lab/experiment", { method: "POST" }))); setError(null) } catch (e) { setError((e as Error).message) }
+	}, [])
+	return { data, error, run }
+}
+
 export async function startLabRun(body: { kind: "scenario" | "suite" | "benchmark"; mode: LabMode; scenarioIds?: string[]; confirmLive?: boolean }): Promise<{ id: string }> {
 	return ok(await fetch("/api/lab/runs", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }))
 }

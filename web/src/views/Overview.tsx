@@ -190,7 +190,7 @@ function Guide({ snapshot }: Pick<Props, "snapshot">) {
 				<li><b>Verify a figure at its source</b><span>In a payment, select any reference{line ? <> such as <span className="mono">line {line}</span></> : ""}: the line lights up in the document.</span>{sourced ? <a className="linkish" href={href("inbox", sourced.id)}>Open {titleOf(sourced)} <ArrowRight size={12} /></a> : <span className="muted">{wait}</span>}</li>
 				<li><b>Watch the agents collaborate</b><span>One lane per agent; overlap is real concurrency from recorded timestamps.</span><a className="linkish" href={href("activity")}>Agent Activity <ArrowRight size={12} /></a></li>
 				<li><b>Check outcomes against the scenario file</b><span>Expected and actual, side by side, for every synthetic document.</span><a className="linkish" href={href("audit", "scenarios")}>Scenario check <ArrowRight size={12} /></a></li>
-				<li><b>Open the Financial Stress Lab</b><span>Twelve reproducible scenarios. The deterministic path needs no API key and takes seconds.</span><a className="linkish" href={href("lab")}>Stress Lab <ArrowRight size={12} /></a></li>
+				<li><b>Open the Stress lab</b><span>Twelve reproducible scenarios, and a test of what catches a wrong agent. No API key; a few seconds.</span><span><a className="linkish" href={href("lab")}>Stress lab <ArrowRight size={12} /></a> · <a className="linkish" href={href("lab", "experiment")}>Fault-injection test <ArrowRight size={12} /></a></span></li>
 			</ol>
 		</details>
 	)

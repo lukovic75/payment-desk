@@ -896,3 +896,11 @@ dialog.sheet.intake { width: min(var(--sheet-w-wide), calc(100vw - 32px)); max-h
 @media (max-width: 599.98px) { .onboard-preview li { grid-template-columns: auto minmax(0, 1fr); row-gap: 4px; } .onboard-preview li .status { grid-column: 2; } .onboard .actions .btn { flex: 1 1 auto; justify-content: center; } }
 .inspector-meta { margin-top: var(--sp-3); }
 .next-step { display: block; margin-top: 4px; color: var(--ink); font-weight: 500; }
+
+/* decision report: one quiet row under the decision */
+.report-row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2) var(--sp-4); padding-top: var(--sp-3); border-top: 1px solid var(--line); }
+.report-row .fine { flex: 1 1 260px; }
+.report-row .fine b { color: var(--ink); font-weight: 600; }
+.report-actions { display: flex; gap: var(--sp-2); }
+.ops .ops-kv { padding: var(--sp-3) 0 var(--sp-2); }
+.ops .fine { max-width: 110ch; }

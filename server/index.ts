@@ -5,8 +5,10 @@ import { existsSync, readFileSync, statSync } from "node:fs"
 import { extname, join, normalize, dirname, sep } from "node:path"
 import { fileURLToPath } from "node:url"
 import * as lab from "./lab/manager.js"
+import { experimentView, startExperiment } from "./lab/experiment-host.js"
+import { decisionReport, operationalSummary } from "./report.js"
 import { randomUUID } from "node:crypto"
-import { DeskError, LOCAL, MODELS, currentRecordingView, inferenceNow, act, addDocument, exportDraft, findSame, flush, getDocumentFile, getDocumentSource, getDocumentText, getRecordedDocumentText, pdfFixtureBytes, pdfFixtures, prepare, recordingView, resetDemo, runDemo, runShowcaseStep, setModelRunner, snapshot, startShowcase, subscribe, type Action } from "./desk.js"
+import { DeskError, LOCAL, MODELS, currentRecordingView, inferenceNow, act, addDocument, exportDraft, findSame, flush, getDocumentFile, getDocumentSource, getDocumentText, getRecordedDocumentText, pdfFixtureBytes, pdfFixtures, peek, prepare, recordingView, resetDemo, runDemo, runShowcaseStep, setModelRunner, snapshot, startShowcase, subscribe, type Action } from "./desk.js"
 import { contentHash, loadDocuments } from "./data.js"
 import type { DocumentSource } from "./domain.js"
 import { DocumentError, LIMITS, parsePdf, sniff } from "./pdf.js"
@@ -259,6 +261,13 @@ const server = createServer(async (req, res) => {
 			if (body.action === "reprocess" && !hasKey) throw new DeskError(503, NO_KEY)
 			return json(res, 200, act(param(action[1]!), body.action, { reason: typeof body.reason === "string" ? body.reason : null, callbackRef: typeof body.callbackRef === "string" ? body.callbackRef : null, confirmationRef: typeof body.confirmationRef === "string" ? body.confirmationRef : null, resolutions: Array.isArray(body.resolutions) ? body.resolutions.filter((r: any) => r && typeof r.challengeId === "string" && typeof r.chosenRef === "string").slice(0, 12) : null }))
 		}
+		// The Financial Decision Report of one payment and the operational summary of the desk: assembled by code from the case state, no model involved.
+		const report = path.match(/^\/api\/cases\/([^/]+)\/report$/)
+		if (m === "GET" && report) {
+			const c = peek(param(report[1]!))
+			return json(res, 200, decisionReport(c, snapshot().policy), url.searchParams.get("download") === "1" ? { "content-disposition": `attachment; filename="decision-report-${c.id.replace(/[^\w.-]+/g, "_")}.json"` } : {})
+		}
+		if (m === "GET" && path === "/api/summary") return json(res, 200, operationalSummary(snapshot().cases))
 		const draft = path.match(/^\/api\/cases\/([^/]+)\/draft$/)
 		if (m === "GET" && draft) {
 			const d = exportDraft(param(draft[1]!))
@@ -268,6 +277,9 @@ const server = createServer(async (req, res) => {
 		if (m === "GET" && path === "/api/lab") return json(res, 200, lab.overview(hasLiveKey))
 		if (m === "POST" && path === "/api/lab/runs") return json(res, 200, lab.startRun(await readBody(req), hasLiveKey))
 		if (m === "POST" && path === "/api/lab/cancel") return json(res, 200, { cancelled: lab.cancelRun()?.id ?? null })
+		// Controlled architecture fault-injection test: scripted answers with deliberate errors, in a worker process of its own.
+		if (m === "GET" && path === "/api/lab/experiment") return json(res, 200, experimentView())
+		if (m === "POST" && path === "/api/lab/experiment") return json(res, 200, startExperiment())
 		const labItem = path.match(/^\/api\/lab\/runs\/([^/]+)\/items\/([^/]+)$/)
 		if (m === "GET" && labItem) return json(res, 200, lab.detail(param(labItem[1]!), param(labItem[2]!)))
 		const labReport = path.match(/^\/api\/lab\/runs\/([^/]+)\/report$/)

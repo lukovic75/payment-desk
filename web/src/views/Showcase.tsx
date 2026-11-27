@@ -535,6 +535,7 @@ function Summary({ steps, cases, mode, onPick, loadingAll, onLoadAll, canAct, ru
 						<a className="btn btn-primary" href={href("inbox")}>Explore payment cases <ArrowRight size={13} /></a>
 						<a className="btn" href={href("activity")}>View agent execution</a>
 						<a className="btn" href={href("lab")}>Open Financial Stress Lab</a>
+						<a className="btn" href={href("lab", "experiment")}>What catches a wrong agent</a>
 						{recording && <a className="btn" href={href("showcase", "recorded")}><ClockCounterClockwise size={13} /> Recorded live run</a>}
 						<a className="btn btn-ghost" href={href("overview")}>Return to workspace</a>
 					</>

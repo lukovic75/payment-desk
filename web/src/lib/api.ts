@@ -117,10 +117,24 @@ export const fetchPending = async (token: string): Promise<{ text: string; sourc
 export const documentFileUrl = (id: string) => `/api/documents/${encodeURIComponent(id)}/file`
 export const fetchSource = async (id: string): Promise<DocSource> => expectOk(await fetch(`/api/documents/${encodeURIComponent(id)}/source`))
 export const draftUrl = (id: string) => `/api/cases/${encodeURIComponent(id)}/draft`
+export const reportUrl = (id: string, download = false) => `/api/cases/${encodeURIComponent(id)}/report${download ? "?download=1" : ""}`
 
 /** The source text of a document on the desk, or (recorded) of a document in the stored execution. */
 export async function fetchDocument(id: string, recorded = false, hash?: string): Promise<string> {
 	const res = await fetch(recorded ? `/api/recording/documents/${encodeURIComponent(id)}${hash ? `?hash=${encodeURIComponent(hash)}` : ""}` : `/api/documents/${encodeURIComponent(id)}`)
 	if (!res.ok) throw new Error(recorded ? "The source text of this recorded document is not available." : `The document could not be loaded (${res.status}).`)
 	return res.text()
+}
+
+export type { OperationalSummary } from "../../../server/report"
+import type { OperationalSummary } from "../../../server/report"
+/** What the desk has done, counted by the server from the cases it holds. Refetched when a case changes. */
+export function useSummary(stamp: string): OperationalSummary | null {
+	const [data, setData] = useState<OperationalSummary | null>(null)
+	useEffect(() => {
+		let stop = false
+		fetch("/api/summary").then((r) => (r.ok ? r.json() : null)).then((d) => { if (!stop) setData(d) }).catch(() => { if (!stop) setData(null) })
+		return () => { stop = true }
+	}, [stamp])
+	return data
 }

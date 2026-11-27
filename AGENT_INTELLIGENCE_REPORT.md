@@ -1,5 +1,7 @@
 # Payment Desk · agent intelligence report
 
+> **Historical report, 26 November 2026.** It describes the project as it was then and is kept unchanged below. Since then: policy v7 (a document that states two payable amounts is released only by a verified vendor confirmation, never on a written statement), local inference, one stored run of the current version on a local model, and more tests. The current state is in `README.md`, `DEMO_READINESS.md` and `TEST_MATRIX.md`.
+
 26 November 2026. What each agent is for, what it is given, what it may do, how the agents check each other, and what has and has not been verified. Five kinds of evidence appear below and are never interchangeable:
 
 | Label | Meaning |

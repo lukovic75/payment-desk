@@ -28,8 +28,11 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 | Reproducible showcase | `npm ci && npm run demo` | [`server/showcase.ts`](server/showcase.ts) | `showcase.test.ts`, `npm run test:browser` |
 | PDF intake with page evidence | **Add documents** → a sample PDF; showcase scenario 3 runs on a two-page PDF | [`server/pdf.ts`](server/pdf.ts), [`server/pdf-worker.mjs`](server/pdf-worker.mjs) | `pdf.test.ts`, `npm run test:browser` |
 | Real models with no key | `LOCAL_MODEL=gemma2:9b npm run demo:local`; a stored run of this version is in the showcase | [`server/local.ts`](server/local.ts) | `local.test.ts`; *Local inference* and *Live verification* below |
+| What catches a wrong agent | Stress lab → **Fault injection** → Run the test | [`server/lab/experiment.ts`](server/lab/experiment.ts) | `npm run experiment`, `experiment.test.ts` |
+| Decision report of a payment | Any payment → Overview → *Decision report* → Open | [`server/report.ts`](server/report.ts) | `report.test.ts` |
+| What the desk has done, in numbers | Evidence & audit → *What the desk has done* | `operationalSummary` in [`server/report.ts`](server/report.ts) | `report.test.ts` |
 | Financial Stress Lab | Stress lab → Run all 12 | [`server/lab/`](server/lab) | `npm run lab`, `lab.test.ts` |
-| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 142 tests, 12 lab scenarios, 28 browser checks (the browser checks run locally, not in CI) |
+| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 158 tests, 12 lab scenarios, 31 browser checks (the browser checks run locally, not in CI) |
 | Real models on this version | Showcase opening → *Watch the recorded run of this version* (a local model, 27 Nov); *Watch the recorded execution* for the earlier hosted run | [`server/data/recordings/`](server/data/recordings) | Local model: 2 of 4 scenarios as expected, 2 failed safely. Hosted models: **not verified** (provider credit). See *Live verification* |
 
 Walkthrough: [`DEMO_GUIDE.md`](DEMO_GUIDE.md). Likely questions: [`JUDGE_QA.md`](JUDGE_QA.md).
@@ -52,9 +55,9 @@ Open http://localhost:8799 and press **Start demo**: four synthetic scenarios, o
 This is the **scripted demo: real orchestration, predefined model responses**. The Mozaik runtime, the agent loops, the evidence checks, the controls and the enforcement run for real; the agents' answers are fixed text, and every screen says so. It shows the architecture and the workflow, not the quality of a language model.
 
 ```bash
-npm test                 # 142 automated tests on the real Mozaik runtime with a scripted model, about a minute
+npm test                 # 158 automated tests on the real Mozaik runtime with a scripted model, about a minute
 npm run lab              # the 12 stress scenarios from the terminal, scripted model, a few seconds
-npm run test:browser     # 28 browser checks of the showcase and PDF intake (needs Node 22+ and a local Chrome or Chromium)
+npm run test:browser     # 31 browser checks of the showcase and PDF intake (needs Node 22+ and a local Chrome or Chromium)
 ```
 
 With real models and no key, on your own machine (see *Local inference* below):
@@ -288,7 +291,42 @@ Metrics, each with its definition shown next to the number in the app (`server/l
 npm run lab:benchmark            # live models only
 ```
 
-**Status: the benchmark has not been run.** The API account used for development ran out of credit before it could be. The benchmark page shows an empty state, and no figure appears in this README in its place. The baseline's workflow and the metric arithmetic are covered by tests on the scripted model; what the two configurations actually score against live models is unknown.
+**Status: the benchmark has not been run.** What does run without a model is the controlled fault-injection test in the next section; it is a different thing and does not replace this.  The API account used for development ran out of credit before it could be. The benchmark page shows an empty state, and no figure appears in this README in its place. The baseline's workflow and the metric arithmetic are covered by tests on the scripted model; what the two configurations actually score against live models is unknown.
+
+## Controlled fault-injection test: what catches a wrong agent
+
+The benchmark above needs live models and has not run. This is a different thing and is labelled as such everywhere it appears: **a controlled architecture fault-injection test, with real Mozaik orchestration and deliberately injected synthetic agent errors.** It answers one question: when one agent is wrong, which component notices?
+
+```bash
+npm run experiment               # a table, in under a second, no API key
+npm run experiment -- --json     # every control, challenge and loop of both runs
+```
+
+In the app: **Stress lab → Fault injection → Run the test**. Each case scripts one error into one agent's answer and runs the same synthetic document twice on the real runtime, with one agent and with five. Trusted records, policy, controls and enforcement are the same in both; nothing is switched off. Result of the run on 27 November 2026:
+
+| Injected error | One agent | Five agents | What caught it |
+|---|---|---|---|
+| None (control case) | approved | approved | nothing to catch |
+| Wrong amount, unsupported by its quote | blocked | blocked | code controls, in both |
+| A line item reported as the total, quoted correctly | **approved: 1,230.00 instead of 1,415.00** | blocked | **only the independent second reading** |
+| A second payable amount is missed | held for a person | held for a person | code controls, in both; the Auditor also reports it |
+| Validator overlooks a changed bank account | blocked | blocked | code controls, in both |
+| Validator does not report an earlier payment | blocked | blocked | code controls, in both |
+| Policy agent recommends approving a blocked payment | blocked | blocked | code controls, in both |
+
+How to read it:
+
+- **Five of six injected errors are stopped by deterministic controls, with or without a second agent.** That is the firewall, and the result says so instead of crediting the agents.
+- **One is not.** A wrong amount that is internally consistent and correctly quoted passes every control, and the one-agent baseline approved it. With an independent Auditor the two readings differ, code raises the challenge `CH:reading:gross`, the Investigator is called and the payment is blocked. This is what the second reading is for.
+- **It is not a model benchmark.** The errors are put there on purpose, and the baseline repeats the wrong first reading by construction. It shows the mechanism, not how often a language model makes such an error. Seven cases are observations, not rates.
+
+The page shows nothing before the test has run on that server, and `server/test/experiment.test.ts` runs it on every commit.
+
+## Decision report and operational summary
+
+**Decision report.** Every payment has one record of everything behind its decision: *payment → Overview → Decision report*, or `GET /api/cases/<id>/report`. It is assembled by code from the case state; no model writes any part of it. It keeps apart what the document says (with file name and content hash), each critical field with its source line and what code found when it read that line again, what the agents observed, what the controls established, the trusted records used, what was recommended against what is in force, every human action, and what is still unresolved. A value the case does not have is `null`. It is marked as sandbox data and is not a payment authorization, a certification or a signed record; the hash identifies the content that was read and says nothing about whether that content is true.
+
+**Operational summary.** *Evidence & audit → What the desk has done*, or `GET /api/summary`: documents received, distinct invoices, decisions in force by kind, amounts blocked and waiting for a person **per currency**, controls evaluated, values re-read against their source, challenges raised and settled, sandbox drafts. Every figure is counted from the cases on the desk, a document processed twice is one document, and nothing is shown for an empty desk. A blocked amount is not presented as a prevented loss, and nothing claims time or money saved: that was not measured.
 
 ## Documents: plain text and text-layer PDF
 
@@ -367,6 +405,7 @@ Open http://localhost:8798. The showcase says **Live local AI**, and every agent
 | `LOCAL_MODEL_BASE_URL` | `http://127.0.0.1:11434/v1` | any OpenAI-compatible server on this machine. A remote address is refused |
 | `LOCAL_MAX_CONCURRENCY` | `1` | model requests at one time. Agent loops still overlap; their requests wait in turn |
 | `LOCAL_TOOL_PROTOCOL` | `json` | `json`: tool calls as schema-constrained JSON. `native`: the server's own tool calls, through Mozaik's `OpenAIChatCompletions` |
+| `LOCAL_SCHEMA_LIMITS` | `on` | `on`: list-length limits of a tool's schema are part of what the model server is asked to enforce. `off`: the form used in the stored run of 27 November, for a server that rejects them |
 | `AGENT_TIMEOUT_MS` | `600000` in this mode | per-loop timeout |
 
 What to know before relying on it:
@@ -403,9 +442,10 @@ cp .env.example .env     # only for live models
 | `npm run dev` | API on :8787 and UI on http://localhost:5173 | for live agents |
 | `LOCAL_MODEL=<model> npm run demo:local` | builds the UI and serves it on http://localhost:8798 with agents on a local model (Ollama or another OpenAI-compatible local server) | no |
 | `npm run heldout -- http://localhost:8798` | uploads the five held-out invoices to a running server with real inference and compares the outcome with `server/data/heldout/expected.json` | no |
-| `npm test` | 142 automated tests, scripted model | no |
-| `npm run test:browser` | 28 browser checks of the showcase and PDF intake, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
+| `npm test` | 158 automated tests, scripted model | no |
+| `npm run test:browser` | 31 browser checks of the showcase and PDF intake, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
 | `npm run lab` | Stress Lab in the terminal, deterministic path | no |
+| `npm run experiment` | the controlled fault-injection test: six scripted agent errors, one agent against five | no |
 | `npm run lab:live`, `npm run lab:benchmark` | Stress Lab and the benchmark with live models | a key, or `DESK_INFERENCE=local` with `LOCAL_MODEL` |
 | `npm run cli` | the sixteen demo documents with live models, headless | yes |
 | `npm run typecheck` | TypeScript, server and UI | no |
@@ -416,7 +456,7 @@ There is no linter in the project; the type checker and the tests are the gates.
 
 ## Tests
 
-`npm test` runs 142 tests in eleven files with Node's test runner, in about a minute (the PDF tests parse real files), with no API key and no model. `AGENT_INTELLIGENCE_REPORT.md` describes the agents, how they check each other and what is verified. `QA_REPORT.md` lists the defects the stabilisation pass found and fixed, `TEST_MATRIX.md` maps each behaviour to its test, and `DEMO_READINESS.md` says what is and is not verified.
+`npm test` runs 158 tests in thirteen files with Node's test runner, in about a minute (the PDF tests parse real files), with no API key and no model. `AGENT_INTELLIGENCE_REPORT.md` describes the agents, how they check each other and what is verified. `QA_REPORT.md` lists the defects the stabilisation pass found and fixed, `TEST_MATRIX.md` maps each behaviour to its test, and `DEMO_READINESS.md` says what is and is not verified.
 
 - `server/test/firewall.test.ts`: money parsing, IBAN, instruction detection, per-currency totals. No runtime.
 - `server/test/workflow.test.ts`: the whole workflow on the **real Mozaik runtime** with a **scripted model**. Loops, tools, events, the firewall, enforcement and human actions are the real code; only the model's words are fixed. In most tests the scripted Policy agent recommends approval for everything, so a pass means the deterministic layer held by itself.
@@ -427,6 +467,8 @@ There is no linter in the project; the type checker and the tests are the gates.
 - `server/test/resolution.test.ts`: how a held or blocked payment is resolved with a trusted record, and what cannot stand in for one. A verified vendor confirmation for the right vendor, invoice and amount settles a contradiction and a person still approves; no reference, an unknown one, another vendor's, another invoice's, an unverified one and malformed input are refused; a confirmation that states the other amount blocks the payment; readers that disagree are not settled by it; a callback clears only its own vendor and account and never changes the vendor master; missing and contradictory currency.
 - `server/test/pdf.test.ts`: PDF intake. The fixtures regenerate byte for byte; one and two pages; European number and date formats; a rotated page; refusals (empty, executable, image, text named `.pdf`, corrupted, truncated, too large, too many pages, too much text, image-only, encrypted); the parse timeout and eight parses requested at once; five invoices reaching the same decision as text and as PDF; page and line on every located reference; the integrity verifier on a tampered page reference; three kinds of duplicate (the same file under another name, the same text in another file, the same obligation in another document); the financial controls on PDFs (changed IBAN, arithmetic, zero amount, missing IBAN, unknown vendor, instruction-like text, an invented value, a failing agent); the HTTP flow from sample to processed payment; the scripted server refusing to interpret an unregistered document; persistence across a restart, and honesty when the original file is gone.
 - `server/test/local.test.ts`: local inference and mode labels, with a stand-in OpenAI-compatible server over real HTTP (no real model). Configuration (a remote address is refused, a model must be named, limits are bounded); the startup probe; a clean invoice through both tool protocols with tool results round-tripping and usage recorded; every label saying local and no cloud model name anywhere; model requests bounded to the configured concurrency while two agent loops still overlap; malformed answers, an answer with no tool call, a body that is not JSON, a model that never answers and a server that goes away, none of which approves anything or is replaced by a scripted answer; the scripted server naming no model; and both intake routes refusing an unregistered document before a case exists.
+- `server/test/experiment.test.ts`: the controlled fault-injection test on the real runtime. The five-agent workflow never approves a wrong amount; the control case is approved in both configurations; a line item reported as the total passes every control with one agent and is stopped only by the second reading; errors that code stops on its own are reported as such; the summary is counted from the rows.
+- `server/test/report.test.ts`: the decision report repeats the case (amount, source line, hash, controls, recommendation against enforcement, review history), reports what the case does not have as null, and names its execution mode from what each loop stored; the operational summary's parts add up, a repeated invoice is one obligation, and amounts in two currencies are never added.
 - `server/test/api.test.ts`: the real server under hostile and careless use: malformed bodies and addresses, bad uploads, path traversal, a run started twice, conflicting amounts approved without a resolution, approvals that race, reprocessing a decided payment, an open page compared with server state, a server killed straight after a decision, and requests from another site or under a foreign hostname (refused; the server listens on this machine only).
 - `server/test/http.test.ts`: the real server process driven over HTTP the way the UI drives it: run the inbox, approve, refuse approval of a blocked payment, export a draft, reject, a wrong callback reference, add a document, run the Stress Lab, export an audit report.
 
@@ -448,6 +490,13 @@ The four showcase scenarios were run on this version of the code with **`gemma2:
 | Changed bank account | BLOCKED | **BLOCKED.** The Validator reported that the IBAN is not the one on file and the Investigator was called. **The Policy agent recommended only "needs approval"; the controls kept it blocked.** No draft | 422 s |
 | Two amounts in a PDF | NEEDS_APPROVAL or BLOCKED | **Processing error, nothing approved.** This model's Auditor did not report the second amount. The control in code did (1,890.00 against 1,980.00, challenge on record). The Investigator then twice returned a result that failed validation (more than ten facts), so its loop was closed and the payment failed | 500 s |
 | Duplicate payment | BLOCKED | **Processing error, nothing approved.** The Extractor left the currency empty; the Validator reported the duplicate and the duplicate control failed; the Investigator again returned an invalid result twice | 455 s |
+
+What the stored records say about the two failures (read from `current.json`, not rerun):
+
+- **Investigator, both failed scenarios: a defect in this project's adapter, and a model limitation behind it.** The result was refused with `verifiedFacts: expected array to have <=10 items`, a correction was requested, and the second answer failed the same way. The instructions ask for at most four facts and the tool's schema allows ten. The adapter asked the model server to enforce the schema but had removed the list limits from it first, so nothing stopped a longer list. Since this version the limits are kept in the enforced schema and stated in plain words (`server/local.ts`, `local.test.ts`). **This fix is tested against a stand-in server only; no model has been run since.**
+- **Auditor, two-amount invoice: a model error.** Both pages were in its input (the control in code found the second amount on line 5), and the instructions ask for exactly this kind of contradiction. It returned no conflict. Nothing in the adapter explains it.
+- **Extractor, duplicate reminder: a model error.** It returned no currency for "NET À PAYER EUR 1,120.00". The mandatory-field control failed, as it should.
+- **Time.** 17 loops took 1,846 s in total, for 57,328 input and 9,447 output tokens as the server reported them: between 5 and 10 output tokens a second. The Investigator alone took 670 s, because each failed answer is a full second generation over a case file of about 6,000 tokens. With one request at a time the Validator's loop also waits for the Auditor's request. Model load, prompt evaluation and generation were not recorded separately, so they cannot be told apart here.
 
 What this shows, and what it does not:
 
@@ -512,6 +561,7 @@ server/
   desk.ts          Mozaik runtime: shared state, the agents, bound tools, event reactions, enforcement, human actions, persistence
   firewall.ts      every deterministic control, the evidence builders, the reading comparison (no model)
   integrity.ts     independent re-verification of the evidence ledger (no model)
+  report.ts        the decision report of one payment and the operational summary, assembled from case state
   local.ts         local inference: configuration, startup probe, the runner that reaches a local model server (no fallback)
   pdf.ts           PDF validation, limits, the parse with a timeout, canonical text and its source map (no model)
   pdf-worker.mjs   the PDF parser, in a worker thread: text lines with page, line and box
@@ -528,6 +578,8 @@ server/
     run.ts         runs one scenario and judges it
     worker.ts      one scenario in its own process
     manager.ts     queue, concurrency, timeouts, results, audit report
+    experiment.ts  the controlled fault-injection test: cases, runner, what caught each injected error
+    experiment-cli.ts, experiment-host.ts  the same test from the terminal and as a worker process of the server
     metrics.ts     benchmark arithmetic and metric definitions
     cli.ts         the lab from the terminal
   data/            policy, vendors, history, purchase orders, callbacks, scenarios, documents (all synthetic)
@@ -557,6 +609,8 @@ HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 ## Known limitations
 
 - **Sandbox only.** No bank connection, no payment execution. The payment draft is a structured JSON record, not an ISO 20022 message: producing schema-validated pain.001 XML was not practical in the time, so the app does not claim it.
+- **The fix for the local Investigator failure has not been run against a model.** The stored local run failed twice on a list longer than the schema allows; the adapter now keeps list limits in the schema the model server enforces. That is tested against a stand-in server. Whether `gemma2:9b` then completes all four scenarios is not known.
+- **The fault-injection test is not a benchmark.** It shows which component catches a scripted error; it says nothing about how often a model errs. The live single-agent against multi-agent benchmark has not been run.
 - **Hosted models are not verified on the current version**, and the benchmark has not been run. A local model ran the four showcase scenarios on it: two as expected, two failed safely. See *Live verification, stated plainly*.
 - **The scripted demo proves the workflow, not a model.** Its agent answers for the five showcase documents are predefined text, written after what the live models returned in the recorded run.
 - **A hackathon sandbox, not a production system.** It is not deployed, not hardened and not connected to anything.

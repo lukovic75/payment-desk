@@ -87,7 +87,7 @@ Resolved: 19 of 19 (one P0, six P1, seven P2, five P3) through the final release
 | Approve with a token note ("ok", "approved", spaces) | PASS: refused, 422 |
 | Approve with a stated resolution | Allowed. Recorded with reviewer, time, statement and the evidence references. Five refused attempts are on the record beside it |
 
-**What this is and is not.** The policy lets a person resolve a discrepancy, so the product does too. The resolution is a written statement by a clearly labelled demo reviewer; the system does not verify it against anything. Only the changed-bank-account case has machine-checked evidence (a callback reference matched against the trusted record).
+**What this was at the time (superseded for two stated amounts by policy v7, see PD-23 and policy change 6).** The policy lets a person resolve a discrepancy, so the product does too. The resolution is a written statement by a clearly labelled demo reviewer; the system does not verify it against anything. Only the changed-bank-account case has machine-checked evidence (a callback reference matched against the trusted record).
 
 ## Agent failures seen earlier (1 Investigator, 3 Policy, 4 documents)
 
@@ -114,8 +114,8 @@ Investigated from the stored execution records of the live run of 26 November, 1
 | `api.test.ts`, one test added for PD-17 | | 10 of 10 |
 | `pdf.test.ts` (PDF intake pass, 27 Nov) | parser, limits, refusals, text/PDF equivalence, page evidence, integrity, duplicates, financial controls on PDFs, HTTP, persistence | 16 of 16 |
 | `local.test.ts` (recovery pass, 27 Nov) | local inference over a stand-in server, mode labels, the intake rule | 12 of 12 |
-| **`npm test` total** | | **142 of 142**, about a minute (the PDF tests parse real files) |
-| `npm run test:browser` | headless Chrome against the scripted server, in the repository | 28 of 28 |
+| **`npm test` total** | | **158 of 158**, about a minute (the PDF tests parse real files) |
+| `npm run test:browser` | headless Chrome against the scripted server, in the repository | 31 of 31 |
 | Live Stress Lab, one scenario, 26 Nov 22:58 CET | | **BLOCKED** again (provider credit) |
 | `npm run lab` | 12 scenarios, scripted | 12 of 12, 87 checks |
 | Live Stress Lab, one scenario | genuine Mozaik with live models | **BLOCKED** (provider credit) |

@@ -62,7 +62,9 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | A-05 | Loop left over from a superseded attempt | Stops before its next model call | PASS | `workflow.test.ts` 14c |
 | A-06 | Expected outcomes never reach an agent | Not in any prompt | PASS | `lab.test.ts` |
 | A-07 | Stress Lab run is isolated | Own process; inbox untouched | PASS | `lab.test.ts`, `http.test.ts` |
-| A-08 | Genuine execution with live models | Workflow completes | **BLOCKED**: provider credit exhausted | `npm run lab:live` |
+| A-08 | Genuine execution with real models | Workflow completes | **PARTIAL**: local model, 27 Nov, 2 of 4 showcase scenarios reached a decision, 2 failed safely (stored run). Hosted models and the live lab: BLOCKED, provider credit | `server/data/recordings/current.json`, `npm run lab:live` |
+| A-09 | Controlled fault injection: six scripted agent errors, one agent against five | Five-agent workflow never approves a wrong amount; what caught each error is reported | PASS: 5 by code controls in both, 1 only by the second reading | `experiment.test.ts`, `npm run experiment` |
+| A-10 | Decision report and operational summary | Equal to the case state; nothing invented; per-currency totals; no double counting | PASS | `report.test.ts` |
 | A-09 | Single agent against multi-agent benchmark | Recorded comparison | **BLOCKED**: live only, never run | `npm run lab:benchmark` |
 | A-10 | Malformed output: invalid or truncated JSON, missing field, wrong type, unknown disposition, nesting, oversize, refusal, empty | Never an approval; one correction, then a processing error; the failure is recorded | PASS (fault injection; invalid JSON was FAIL: PD-13) | `intelligence.test.ts` |
 | A-11 | Well-formed but wrong: unsupported amount, negative amount, unknown currency | Blocked | PASS (fault injection) | `intelligence.test.ts` |
@@ -139,7 +141,7 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | U-16 | Server stops and returns under an open page | Says so, pauses actions, reconnects, shows the server's real state | PASS | Browser |
 | U-17 | Horizontal overflow, ten routes, nine widths | None | PASS | Browser |
 | U-18 | Text contrast, seven pages, both appearances | WCAG AA | PASS | Browser, measured from pixels |
-| U-19 | Automated browser suite in the repository | A smoke suite of the showcase and PDF intake | PASS, 28 of 28 | `npm run test:browser` |
+| U-19 | Automated browser suite in the repository | A smoke suite of the showcase and PDF intake | PASS, 31 of 31 | `npm run test:browser` |
 
 ## Interactive showcase
 
@@ -159,7 +161,7 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | S-12 | A figure in the showcase | Opens the cited line of the document or the trusted record | PASS | browser |
 | S-13 | Provider refuses every call (injected, labelled) | Banner with the kind and the advice; scenario failed; nothing approved; nothing confirmed | PASS | browser |
 | S-14 | Showcase at 375 to 1920 px, dark and light, reduced motion | No horizontal overflow; outcome before the tall stage on a phone; no automatic replay with reduced motion | PASS | Browser, looked at |
-| S-15 | A showcase scenario with live models | | BLOCKED (provider credit) | |
+| S-15 | A showcase scenario with real models | | Local model: run once, 2 of 4 as expected (stored). Hosted: BLOCKED (provider credit) | |
 
 ## Resolution with a trusted record
 

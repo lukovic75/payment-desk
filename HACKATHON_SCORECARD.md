@@ -11,8 +11,8 @@ Every claim below names the file that implements it and the evidence that it wor
 | Check | Result |
 |---|---|
 | `npm run typecheck` (server and UI) | passes |
-| `npm test` | 142 of 142 pass, about a minute, eleven files, on Node 20.20.2, 22.23.5 and 26.8.2 (see `QA_REPORT.md`, `AGENT_INTELLIGENCE_REPORT.md` and `TEST_MATRIX.md` for what they cover) |
-| `npm run test:browser` | 24 of 28 browser checks of the interactive showcase and PDF intake, headless Chrome against the scripted server |
+| `npm test` | 158 of 158 pass, about a minute, thirteen files (see `QA_REPORT.md`, `AGENT_INTELLIGENCE_REPORT.md` and `TEST_MATRIX.md` for what they cover) |
+| `npm run test:browser` | 31 of 31 browser checks of the interactive showcase and PDF intake, headless Chrome against the scripted server |
 | Clean copy of the repository files | `npm ci` (npm 10.8.2 and 11.19.1), typecheck, tests, build, lab, `npm run demo` and the browser checks all pass with no `.env`, no saved state and no build output |
 | GitHub Actions | `.github/workflows/ci.yml`, Node 20 and 22 on Linux: **passed** on commit `272ed34` (with PDF intake) and on every commit since `4c5b2ba`. The first run failed at `npm ci` and exposed a lockfile that npm 10 rejected; that run is in the history |
 | Scripted showcase (`npm run demo`) | four scenarios, each ending as `scenarios.json` expects; looked at in dark and light, phone to wide desktop |
@@ -22,8 +22,9 @@ Every claim below names the file that implements it and the evidence that it wor
 | Live demo run, 16 documents, real models | **partial**: 12 decided before the API credit ran out, 11 as expected; 4 stopped as processing errors with nothing approved |
 | Live Stress Lab run | **not completed**: one scenario was tried again on 26 Nov at 22:58 and at 23:38 CET and was correctly reported as "could not be judged" (provider refused: no credit) |
 | Single-agent versus multi-agent benchmark | **not run** (needs live models) |
+| `npm run experiment` | Controlled architecture fault-injection test, scripted answers with deliberate errors: 6 injected errors, 5 stopped by code controls with one agent and with five, 1 stopped only by the independent second reading; the one-agent baseline approved one wrong amount automatically, the five-agent workflow none. Not a model benchmark |
 | Linter | none in the project |
-| Live showcase on this version | **not run** (provider credit). A recorded live run of an earlier version is replayable in the app: 3 of 5 showcase documents reached a decision |
+| Showcase with a real model on this version | **Run once with a local model** (`gemma2:9b`, 27 Nov): 2 of 4 scenarios as expected, 2 ended as processing errors with nothing approved; stored and replayable. **Hosted models: not run** (provider credit); a recorded hosted run of an earlier version is replayable: 3 of 5 documents decided |
 
 ## 1. Financial usefulness — 30 points
 
@@ -62,7 +63,7 @@ Every claim below names the file that implements it and the evidence that it wor
 
 **Where to check quickly**: `ARCHITECTURE_PROOF.md` gives eight claims with file and line and the test for each.
 
-**Limitations**: parallelism with live models was observed once, in the partial live run of an earlier version (replayable in the app for five documents). Whether five agents do better than one is exactly what the benchmark would show, and it has not been run. Mozaik Cloud tracing works when the machine is paired but is not required and is not asserted by tests.
+**Limitations**: parallelism with real models was observed in the hosted run of an earlier version and in the local run of this one (loops overlap; with one request at a time, the model calls do not). Whether five live agents do better than one is what the benchmark would show, and it has not been run. The fault-injection test shows the mechanism with scripted errors: one of six injected errors passed every code control and was stopped only by the second reading. Mozaik Cloud tracing works when the machine is paired but is not required and is not asserted by tests.
 
 **Self-assessment: 25 of 30.** The Mozaik usage is genuine and specific (events, handlers, interception, shared state, bound tools). The missing piece is measured evidence that the architecture earns its cost.
 
@@ -71,7 +72,7 @@ Every claim below names the file that implements it and the evidence that it wor
 **What is implemented**
 
 - Runs from the README: `npm ci` and `npm run demo` for the guided showcase with no key, `npm test` and `npm run lab`, or `.env` plus `npm run dev` for live agents. `DEMO_GUIDE.md` is a ten-minute walkthrough.
-- 142 automated tests in eleven files: unit, workflow on the real runtime, financial safety at the edges, malformed and wrong model output, provider failures, cross-agent challenges, the showcase and its isolation, resolution with trusted records, Stress Lab, and the real server over HTTP under normal and hostile use. Sixteen of them on PDF intake. Twenty-two browser checks of the showcase and PDF intake. A CI workflow for Node 20 and 22.
+- 158 automated tests in thirteen files: unit, workflow on the real runtime, financial safety at the edges, malformed and wrong model output, provider failures, cross-agent challenges, the showcase and its isolation, resolution with trusted records, Stress Lab, and the real server over HTTP under normal and hostile use. Sixteen of them on PDF intake. Twenty-two browser checks of the showcase and PDF intake. A CI workflow for Node 20 and 22.
 - The server listens on the local machine only and refuses requests from other sites, so a page open in the same browser cannot start a run that spends model credit.
 - A deterministic path that needs no credentials and a live path, labelled apart in the UI, the CLI, the API and the reports.
 - Failure handling: bounded retries, loop timeouts, fail-closed stages, recoverable cases, persistence across restarts, a heartbeat on the event stream, honest error states in the UI.
@@ -109,6 +110,10 @@ Every claim below names the file that implements it and the evidence that it wor
 
 **A. On what is verified today: 83 of 100, self-assessed, not an official score** (25 + 25 + 20 + 13). One point more than before PDF intake, in criterion 1.
 
+**A2. On what is verified on 27 November, after the local-model run, policy v7, the fault-injection test and the decision report: 86 of 100, self-assessed** (26 + 26 + 21 + 13). What moved: criterion 1 by one point (a disputed amount is now released only by a trusted record; every payment has one inspectable decision record; the desk reports what it did, per currency), criterion 2 by one (a real model has run this version through Mozaik, and one injected error out of six is shown to be caught only by the independent second reading), criterion 3 by one (158 tests, 31 browser checks, consistent documents). Read as a demanding judge would, the same evidence gives about 84: an independent-style jury simulation of the earlier release gave 77.
+
+What did not move, and why: the real-model run reached a decision in two of four scenarios, its Auditor missed the contradiction the control in code found, and the fix for the Investigator failure has not been run against a model. The live benchmark has not run. These are the largest remaining deductions and they depend on model access, not on more code.
+
 **B. If the current version runs cleanly with live models and the benchmark completes: perhaps 87 to 91.** The range, not a number, because it depends on what those runs show. A clean live showcase and Stress Lab would mostly lift criteria 2 and 3 (to about 27 and 22). The benchmark can go either way: if one agent does as well as five on these scenarios, criterion 2 does not move, and the honest argument becomes independence and auditability rather than accuracy.
 
 What keeps it from full marks under either reading: no scanned documents, PDF interpretation shown only on synthetic fixtures, and fixture records (criterion 1), no measured advantage of the architecture (criterion 2), no live observation of the final version (2 and 3), and values that code cannot check mechanically (4). The spread is deliberate: the points we do not give ourselves are almost all for things that are built but not yet observed against live models.
@@ -117,8 +122,8 @@ What keeps it from full marks under either reading: no scanned documents, PDF in
 
 | Weakness | Criterion | Why it is still there |
 |---|---|---|
-| No run with live models on the final version; no live Stress Lab | Multi-agent, Working implementation | Provider credit. The scripted demo proves orchestration and controls, not model behaviour |
-| The benchmark has never completed, so the value of five agents over one is argued, not measured | Multi-agent | Same blocker |
+| Only one real-model run of the final version, on a small local model, with 2 of 4 scenarios reaching a decision; no hosted run, no live Stress Lab | Multi-agent, Working implementation | Provider credit and a 16 GB laptop. The scripted demo proves orchestration and controls, not model behaviour |
+| The live benchmark has never completed, so the value of five agents over one is shown with injected errors, not measured on model behaviour | Multi-agent | Same blocker |
 | PDF support is text layer only, and shown on synthetic single-column invoices | Financial usefulness | No OCR in this build; interpreting an arbitrary PDF needs live models, which are blocked |
 | Trusted records for resolution are fixtures | Financial usefulness | Obtaining a confirmation from a vendor is outside the sandbox |
 | One synthetic company, sixteen documents | Financial usefulness, Integrity | Scope of a two-day build |

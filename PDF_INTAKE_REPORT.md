@@ -1,5 +1,7 @@
 # Payment Desk · PDF intake and page evidence
 
+> **Historical report, 27 November 2026, early morning.** It describes the project as it was then and is kept unchanged below. Since then: policy v7 (a document that states two payable amounts is released only by a verified vendor confirmation, never on a written statement), local inference, one stored run of the current version on a local model, and more tests. The current state is in `README.md`, `DEMO_READINESS.md` and `TEST_MATRIX.md`.
+
 27 November 2026. What was built after the release of 26 November, what was run, and what was not. No model provider was called in this pass; no credit was bought.
 
 ## A. Summary

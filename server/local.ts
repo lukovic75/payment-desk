@@ -18,7 +18,7 @@ import { DeveloperMessageItem, FunctionCallItem, FunctionCallOutputItem, InputTo
  * easily dropped by the server's parser (seen in testing: 307 tokens generated, an empty message returned).
  */
 export type ToolProtocol = "json" | "native"
-export type LocalConfig = { baseURL: string; fast: string; careful: string; maxConcurrency: number; provider: string; protocol: ToolProtocol }
+export type LocalConfig = { baseURL: string; fast: string; careful: string; maxConcurrency: number; provider: string; protocol: ToolProtocol; /** Whether list-length limits of a tool's schema are part of what the server is asked to enforce. */ listLimits?: boolean }
 export type Inference =
 	| { kind: "scripted"; provider: string; endpoint: null }
 	| { kind: "cloud"; provider: string; endpoint: null }
@@ -41,7 +41,7 @@ export function localConfig(env: NodeJS.ProcessEnv): LocalConfig | null {
 	if (!Number.isInteger(n) || n < 1 || n > 8) throw new Error("LOCAL_MAX_CONCURRENCY must be a whole number from 1 to 8.")
 	const protocol = (env.LOCAL_TOOL_PROTOCOL ?? "json").toLowerCase()
 	if (protocol !== "json" && protocol !== "native") throw new Error("LOCAL_TOOL_PROTOCOL must be json or native.")
-	return { baseURL, fast, careful, maxConcurrency: n, protocol, provider: env.LOCAL_MODEL_PROVIDER ?? (/:11434\b/.test(baseURL) ? "Ollama" : "local model server") }
+	return { baseURL, fast, careful, maxConcurrency: n, protocol, listLimits: (env.LOCAL_SCHEMA_LIMITS ?? "on").toLowerCase() !== "off", provider: env.LOCAL_MODEL_PROVIDER ?? (/:11434\b/.test(baseURL) ? "Ollama" : "local model server") }
 }
 
 /** What the server shows as the model of a loop in local mode: the model's own name, and where it ran. */
@@ -70,24 +70,29 @@ export const localStats = (): LocalStats => ({ ...stats })
 // ───────── the "json" protocol: tool calls as schema-constrained JSON ─────────
 
 type Json = Record<string, unknown>
-const DROP = new Set(["default", "maxLength", "minLength", "maxItems", "minItems", "pattern", "format", "$schema", "description", "title"])
+const DROP = new Set(["default", "maxLength", "minLength", "pattern", "format", "$schema", "description", "title"])
+const LIST_LIMITS = new Set(["maxItems", "minItems"])
 const allowsNull = (s: Json): boolean => s.type === "null" || (Array.isArray(s.type) && s.type.includes("null")) || (Array.isArray(s.anyOf) && (s.anyOf as Json[]).some(allowsNull)) || s.const === null
 /**
  * The schema the server is asked to enforce. Every property becomes required, and one that was optional may be null
- * instead: the usual "strict" form for constrained output, where a model cannot silently leave a field out. Annotations a
- * grammar cannot enforce are dropped; the desk's own validation of the tool arguments still applies afterwards, in full.
+ * instead: the usual "strict" form for constrained output, where a model cannot silently leave a field out. Text-length
+ * and pattern annotations are dropped; the desk's own validation of the tool arguments still applies afterwards, in full.
+ *
+ * List limits (maxItems, minItems) are kept, so the server's grammar cannot produce a list the desk will then refuse.
+ * They used to be dropped: in the stored run of 27 November the Investigator returned more than ten facts twice and its
+ * loop was closed. `listLimits: false` (LOCAL_SCHEMA_LIMITS=off) restores the old form for a server that rejects them.
  */
-export function strictSchema(schema: unknown): unknown {
-	if (Array.isArray(schema)) return schema.map(strictSchema)
+export function strictSchema(schema: unknown, listLimits = true): unknown {
+	if (Array.isArray(schema)) return schema.map((s) => strictSchema(s, listLimits))
 	if (!schema || typeof schema !== "object") return schema
 	const src = schema as Json
 	const out: Json = {}
-	for (const [k, v] of Object.entries(src)) if (!DROP.has(k)) out[k] = k === "properties" || k === "required" ? v : strictSchema(v)
+	for (const [k, v] of Object.entries(src)) if (!DROP.has(k) && (listLimits || !LIST_LIMITS.has(k))) out[k] = k === "properties" || k === "required" ? v : LIST_LIMITS.has(k) ? v : strictSchema(v, listLimits)
 	if (src.properties && typeof src.properties === "object") {
 		const required = new Set(Array.isArray(src.required) ? (src.required as string[]) : [])
 		const props: Json = {}
 		for (const [k, v] of Object.entries(src.properties as Json)) {
-			const inner = strictSchema(v) as Json
+			const inner = strictSchema(v, listLimits) as Json
 			props[k] = required.has(k) || allowsNull(inner) ? inner : { anyOf: [inner, { type: "null" }] }
 		}
 		out.properties = props
@@ -113,11 +118,25 @@ export function pruneNulls(value: unknown, schema: unknown): unknown {
 	}
 	return value
 }
-const envelope = (tools: Tool[]) => {
-	const one = (t: Tool) => ({ type: "object", properties: { tool: { type: "string", enum: [t.name] }, arguments: strictSchema(t.parameters) }, required: ["tool", "arguments"], additionalProperties: false })
+const envelope = (tools: Tool[], listLimits = true) => {
+	const one = (t: Tool) => ({ type: "object", properties: { tool: { type: "string", enum: [t.name] }, arguments: strictSchema(t.parameters, listLimits) }, required: ["tool", "arguments"], additionalProperties: false })
 	return tools.length === 1 ? one(tools[0]!) : { anyOf: tools.map(one) }
 }
-const PROTOCOL = (tools: Tool[]) => `\n\nYou act only by calling a tool. Reply with exactly one JSON object and nothing else: {"tool": "<tool name>", "arguments": {...}}. Give every field of the arguments; use null where the document or the records give you nothing. Never invent a value.\nTools you can call:\n${tools.map((t) => `- ${t.name}: ${t.description}\n  arguments schema: ${JSON.stringify(t.parameters)}`).join("\n")}`
+/** The list limits of a tool's arguments in plain words, so a model reads them as a rule and not as a detail of a schema dump. */
+export function listLimitsOf(schema: unknown, path = ""): string[] {
+	if (!schema || typeof schema !== "object") return []
+	const s = schema as Json
+	const out: string[] = []
+	if (Array.isArray(s.anyOf)) for (const o of s.anyOf as Json[]) out.push(...listLimitsOf(o, path))
+	if (s.type === "array" && path) {
+		if (typeof s.maxItems === "number") out.push(`${path}: at most ${s.maxItems} item${s.maxItems === 1 ? "" : "s"}`)
+		if (typeof s.minItems === "number" && s.minItems > 0) out.push(`${path}: at least ${s.minItems}`)
+		out.push(...listLimitsOf(s.items, `${path}[]`))
+	}
+	if (s.properties && typeof s.properties === "object") for (const [k, v] of Object.entries(s.properties as Json)) out.push(...listLimitsOf(v, path ? `${path}.${k}` : k))
+	return [...new Set(out)]
+}
+const PROTOCOL = (tools: Tool[]) => `\n\nYou act only by calling a tool. Reply with exactly one JSON object and nothing else: {"tool": "<tool name>", "arguments": {...}}. Give every field of the arguments; use null where the document or the records give you nothing. Never invent a value.\nTools you can call:\n${tools.map((t) => { const limits = listLimitsOf(t.parameters); return `- ${t.name}: ${t.description}\n  arguments schema: ${JSON.stringify(t.parameters)}${limits.length ? `\n  list limits, a longer list is refused: ${limits.join("; ")}` : ""}` }).join("\n")}`
 
 /** Mozaik's context as chat messages for the "json" protocol: an earlier tool call is the assistant's JSON, its result a user message that names the tool. */
 export function jsonMessages(req: InferenceInput): { role: "system" | "user" | "assistant"; content: string }[] {
@@ -157,7 +176,7 @@ export function localRunner(cfg: LocalConfig, fetchImpl: typeof fetch = fetch): 
 	const viaJson = async (req: InferenceInput): Promise<InferenceOutput> => {
 		const tools = req.tools ?? []
 		const body: Json = { model: req.model, messages: jsonMessages(req), temperature: 0, seed: 7, max_tokens: req.maxOutputTokens ?? 2000, stream: false }
-		if (tools.length) body.response_format = { type: "json_schema", json_schema: { name: "tool_call", strict: true, schema: envelope(tools) } }
+		if (tools.length) body.response_format = { type: "json_schema", json_schema: { name: "tool_call", strict: true, schema: envelope(tools, cfg.listLimits !== false) } }
 		const r = await fetchImpl(`${cfg.baseURL}/chat/completions`, { method: "POST", headers: { "content-type": "application/json", authorization: "Bearer local" }, body: JSON.stringify(body) })
 		const text = await r.text()
 		if (!r.ok) throw new Error(`${r.status} from the local model server: ${text.slice(0, 300)}`)
