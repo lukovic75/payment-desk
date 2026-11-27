@@ -93,9 +93,10 @@ code, .mono { font-family: var(--font-mono); font-size: 0.93em; letter-spacing: 
 /* The bar has no material until content actually slides under it; then it frosts, with a soft lower edge instead of a rule. */
 .bar::before { content: ""; position: absolute; inset: 0 0 -16px 0; z-index: -1; pointer-events: none; opacity: 0; background: color-mix(in srgb, var(--bg) 46%, transparent); -webkit-backdrop-filter: var(--blur-2); backdrop-filter: var(--blur-2); -webkit-mask-image: linear-gradient(#000 62%, transparent); mask-image: linear-gradient(#000 62%, transparent); transition: opacity var(--d-pop) ease; }
 :root[data-scrolled] .bar::before { opacity: 1; }
-.bar-title { font-family: var(--font-display); font-size: var(--fs-15); font-weight: 600; white-space: nowrap; opacity: 0; transform: translateY(5px); transition: opacity var(--d-pop) ease, transform var(--d-pop) var(--ease-out); }
+/* The title gives way before the actions do: on a phone it shortens with an ellipsis instead of pushing the bar past the screen. */
+.bar-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-family: var(--font-display); font-size: var(--fs-15); font-weight: 600; white-space: nowrap; opacity: 0; transform: translateY(5px); transition: opacity var(--d-pop) ease, transform var(--d-pop) var(--ease-out); }
 :root[data-titled] .bar-title, .bar-title[data-pinned] { opacity: 1; transform: none; }
-.bar-actions { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; min-width: 0; }
+.bar-actions { display: flex; align-items: center; gap: var(--sp-2); margin-left: auto; flex: none; }
 .conn { display: inline-flex; align-items: center; gap: 8px; height: var(--control-h); padding: 0 10px; border-radius: var(--r-pill); font-size: var(--fs-12); font-weight: 500; color: var(--ink-2); white-space: nowrap; }
 .conn i { width: 7px; height: 7px; flex: none; border-radius: 50%; background: var(--ink-3); }
 .conn[data-state="live"] i { background: var(--good); box-shadow: 0 0 0 3px var(--good-soft); }
@@ -144,6 +145,8 @@ code, .mono { font-family: var(--font-mono); font-size: 0.93em; letter-spacing: 
 	.frame { padding-bottom: calc(var(--tab-h) + var(--sp-4) + env(safe-area-inset-bottom)); }
 	.bar { padding: 0 var(--sp-4); }
 	.bar .nav-toggle { display: none; }
+	/* Nothing may widen the page on a phone: a browser answers that by widening the whole layout, and the right side leaves the screen. */
+	.shell { overflow-x: clip; }
 	.view { padding: var(--sp-1) var(--sp-4) var(--sp-8); gap: var(--sp-5); }
 	.view.split { padding: 0 var(--sp-2) 0; height: auto; }
 	.page-head h1 { font-size: var(--fs-28); }

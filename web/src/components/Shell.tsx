@@ -111,7 +111,7 @@ export function Shell(p: ShellProps) {
 							{p.theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
 						</button>
 						<button className="btn" disabled={!p.canAct} onClick={p.onAdd}><Plus size={14} weight="bold" /><span className="wide">Document</span></button>
-						{demoHere && <a className={`btn${demoPrimary ? " btn-primary" : ""}`} href={href("showcase")}><Play size={12} weight="fill" /><span>{demo}</span></a>}
+						{demoHere && <a className={`btn${demoPrimary ? " btn-primary" : ""}`} href={href("showcase")} aria-label={demo}><Play size={12} weight="fill" /><span className="wide">{demo}</span></a>}
 					</div>
 				</header>
 				{p.children}
