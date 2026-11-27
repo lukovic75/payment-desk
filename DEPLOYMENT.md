@@ -1,14 +1,25 @@
 # Payment Desk · deployment
 
-**Status: there is no public deployment.** This page says why, what is ready, and what would have to be true before one is safe. Nothing below claims a URL that does not exist.
+**Status: the no-key scripted demo is public at https://payment-desk.onrender.com.** This page says what that deployment is, what it is not, and what a public version with real AI would still need.
 
-## Why it is not on the public internet
+## The public demo
 
-1. **One workspace, no sign-in.** The application is a single-machine sandbox: one desk, one reviewer, state in memory. On a public address every visitor would share that desk: one judge's restart would clear another judge's demo, and anyone could act as the reviewer. That is harmless with synthetic data, but it is not something to present as a multi-user product.
-2. **Real AI on a public address would spend someone's quota.** With a provider key on the server, the endpoints that start agent runs are open to whoever reaches them. There is no per-visitor budget, queue limit or upload restriction for that case. It listens on `127.0.0.1` by default for exactly this reason.
-3. **An account and its terms are the owner's decision.** Creating a hosting account, accepting a provider's terms or adding a billing method was not done on anyone's behalf.
+| | |
+|---|---|
+| Address | https://payment-desk.onrender.com |
+| Host | Render, free instance, Frankfurt, built from this repository's [`Dockerfile`](Dockerfile) |
+| Code | commit `dd768fb`, deployed 27 November 2026, 22:47 CET. It does not redeploy on its own, so later commits are not on it unless someone deploys them |
+| Mode | scripted demo: real Mozaik runtime, agents, tools, controls; predefined model answers; no provider key on the server; nothing persisted |
 
-So the three ways to evaluate the project are: run it locally (two commands), run the same thing in a container, or watch the video and read the evidence.
+Checked on the public address right after it came up: the health endpoint, the interface and its live connection, all four guided scenarios to their expected results (*Payment verified*, *Payment blocked*, *Held for a person*, *Duplicate payment blocked*), the fault-injection test in its worker process, the stored recordings, and that a state-changing request from another site is refused (403). Not checked there: the twelve stress scenarios, PDF upload, and how it behaves with several visitors at once.
+
+What a visitor should know:
+
+1. **One workspace, no sign-in.** Every visitor shares one desk: you may see another visitor's runs, **Restart** in the guided demo starts it over for everyone, and anyone can act as the reviewer. That is harmless with synthetic data, but it is a demo, not a multi-user product.
+2. **It sleeps and it restarts.** The free instance stops when idle, so the first load after a pause can take a minute, and the host may restart it at any time. State is in memory, so a restart returns it to the initial state.
+3. **No model runs there.** There is no provider key on the server, so nothing can be spent and uploads of unregistered documents are answered with "needs live AI". Real AI stays on a local machine: with a key on a public server, the endpoints that start agent runs would be open to whoever reaches them, and there is no per-visitor budget for that.
+
+If the public demo is slow, busy or down, run it locally (two commands) or in a container; the video and the evidence need nothing at all.
 
 ## What is ready and verified: the container
 
@@ -31,9 +42,9 @@ It is the **scripted demo only**: no key, no model, nothing persisted. The envir
 | Child processes and worker threads | each stress scenario and the fault-injection test runs in its own process; PDFs are parsed in a worker thread |
 | One instance | state is not shared between instances |
 
-A static host or short-lived serverless functions do not fit. A container host that keeps one instance running does. No provider's free tier was checked for this document, so none is recommended by name.
+A static host or short-lived serverless functions do not fit. A container host that keeps one instance running does; the public demo above runs on one.
 
-## If you deploy the scripted demo anyway
+## If you deploy the scripted demo yourself
 
 - Build from the `Dockerfile`; port `8799`; health check `GET /api/health`.
 - Do not add a provider key. Without one the server cannot spend anything, and it says "Scripted demo" on every page.

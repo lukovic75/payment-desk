@@ -15,15 +15,28 @@ For accounts payable teams, finance operations and finance managers: anyone who 
 
 | Start here | |
 |---|---|
-| **Open it** | There is no hosted link: it runs on your computer. `npm ci && npm run demo`, then http://localhost:8799. [Step by step below](#how-to-open-the-application) |
+| **Open it** | **https://payment-desk.onrender.com** in a browser, nothing to install. Or on your computer: `npm ci && npm run demo`, then http://localhost:8799. [Both, step by step](#how-to-open-the-application) |
 | **Watch it** | [Video, two and a half minutes](docs/demo/payment-desk-demo.mp4): the running application, captions, no narration |
 | **Judge it** | [`JUDGE_QUICKSTART.md`](JUDGE_QUICKSTART.md): ten workflows with exact steps and expected results |
 | **Check the claims** | [`ARCHITECTURE_PROOF.md`](ARCHITECTURE_PROOF.md), claim by claim with code and tests |
-| **Public deployment** | None. [`DEPLOYMENT.md`](DEPLOYMENT.md) says why, and how to run the same thing in a container |
+| **Public deployment** | https://payment-desk.onrender.com: the no-key scripted demo, one workspace shared by everyone who opens it. [`DEPLOYMENT.md`](DEPLOYMENT.md) says what that means |
 
 ## How to open the application
 
-**There is no public URL and no login.** Payment Desk runs on your own computer and you open it in your browser at **http://localhost:8799**. No API key, no account, no model, no database, no `.env` file. Most of the wait is the one-time install.
+There are two ways, and neither needs a login, an API key or an account.
+
+### In the browser, nothing to install
+
+Open **https://payment-desk.onrender.com** and press **Start demo** (the buttons are the same as in step 5 below).
+
+- It is the same no-key scripted demo, running from this repository's `Dockerfile` on a free instance.
+- The instance sleeps when nobody uses it. The first load after a pause can take a minute; after that it is fast.
+- **It is one workspace shared by everyone who opens it.** You may see another visitor's runs, and **Restart** in the guided demo starts the four scenarios over for everyone. The host may also restart it at any time, which returns it to the initial state.
+- If it is slow, busy or down, run it on your own computer: that copy is yours alone.
+
+### On your own computer
+
+Payment Desk runs locally and you open it in your browser at **http://localhost:8799**. No model, no database, no `.env` file. Most of the wait is the one-time install.
 
 ### What you need
 
@@ -207,7 +220,7 @@ Any document can then be uploaded and is read by the model. Expect about four mi
 | Real local AI | `npm run demo:local` | no | yes, on your machine | yes | verified on `qwen2.5:7b-instruct`: showcase 4 of 4, held-out 4 of 5 |
 | Real hosted AI | `npm run dev` with a provider key in `.env` | yes | yes | yes | **not verified on this version** (no provider credit) |
 | Recorded runs | in the app, guided demo opening | no | no, a stored run is replayed | no | three recordings, each labelled with model, date and code |
-| Public deployment | none | | | | not deployed: see [`DEPLOYMENT.md`](DEPLOYMENT.md) |
+| Public deployment | https://payment-desk.onrender.com | no | no | no, registered documents only | the scripted demo, checked on 27 November: see [`DEPLOYMENT.md`](DEPLOYMENT.md) |
 
 Mozaik runs for real in the first three. Only the source of the agents' words differs.
 
@@ -249,7 +262,7 @@ npm run test:browser   # 32 browser checks; needs Node 22+ and a local Chrome or
 - **A real model is slow here and raises false alarms.** About four minutes a document on a laptop. The local Auditor reported contradictions that were not ones; code removes the kinds it has seen and records that it did.
 - **Field meaning is checked by labels and a second reading, not understood by code.** One fault-injection case gets through both, and the test says so.
 - **Documents:** plain text and PDFs with a text layer. No OCR.
-- **One reviewer, no sign-in, one workspace.** It is a local sandbox, which is why there is no public deployment.
+- **One reviewer, no sign-in, one workspace.** It is a sandbox built to run locally. The public link is that same single workspace, shared by all visitors, with no model behind it.
 - **Not measured:** time or money saved. No person has been timed using it.
 
 Everything else: [`docs/REFERENCE.md`](docs/REFERENCE.md) (the full reference), [`JUDGE_QA.md`](JUDGE_QA.md) (likely questions), [`TEST_MATRIX.md`](TEST_MATRIX.md), [`HACKATHON_SCORECARD.md`](HACKATHON_SCORECARD.md) (self-assessment), [`DEMO_GUIDE.md`](DEMO_GUIDE.md).

@@ -11,7 +11,7 @@ npm ci
 npm run demo        # http://localhost:8799
 ```
 
-There is no hosted link: it runs on your computer and opens at http://localhost:8799. The README has [every step and what to do if it does not open](README.md#how-to-open-the-application).
+Or open https://payment-desk.onrender.com: the same no-key demo, nothing to install, one workspace shared by everyone who opens it (the first load after a pause can take a minute). Locally it opens at http://localhost:8799. The README has [every step and what to do if it does not open](README.md#how-to-open-the-application).
 
 Node 20.19+ or 22.12+. `npm run doctor` checks the machine if something does not start. Or, in a container: `docker build -t payment-desk . && docker run --rm -p 127.0.0.1:8799:8799 payment-desk`.
 
@@ -62,4 +62,4 @@ CI runs install, types, tests, build and the stress scenarios on Node 20 and 22.
 
 - Not a measurement of how well a language model reads invoices. The no-key demo uses predefined answers. Real-model evidence is small and all of it is in the README: three showcase runs (2, 3 and 4 of 4), five held-out invoices (4 of 5), a five-scenario benchmark.
 - Not connected to anything. Synthetic data, no bank, no supplier, no money. See [`DATA_PROVENANCE.md`](DATA_PROVENANCE.md).
-- Not deployed publicly. [`DEPLOYMENT.md`](DEPLOYMENT.md) says why.
+- Not a multi-user service. The public link is one shared demo workspace with no model behind it. [`DEPLOYMENT.md`](DEPLOYMENT.md) says what that means.
