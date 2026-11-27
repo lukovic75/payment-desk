@@ -362,8 +362,8 @@ cp .env.example .env     # only for live models
 |---|---|---|
 | `npm run demo` | builds the UI and serves the scripted showcase on http://localhost:8799 (the UI says it is scripted) | no |
 | `npm run dev` | API on :8787 and UI on http://localhost:5173 | for live agents |
-| `npm test` | 114 automated tests, scripted model | no |
-| `npm run test:browser` | 17 browser checks of the showcase, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
+| `npm test` | 130 automated tests, scripted model | no |
+| `npm run test:browser` | 22 browser checks of the showcase and PDF intake, after `npm run build`; Node 22+ and a Chrome or Chromium (`CHROME_PATH` if it is not found) | no |
 | `npm run lab` | Stress Lab in the terminal, deterministic path | no |
 | `npm run lab:live`, `npm run lab:benchmark` | Stress Lab and the benchmark with live models | yes |
 | `npm run cli` | the sixteen demo documents with live models, headless | yes |
@@ -505,5 +505,5 @@ HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 - **One sandbox workspace.** Showcase payments are ordinary demo documents on the desk and share its daily auto-approval budget. Starting the demo replaces the demo documents; a person's own documents, decisions and verifications are kept.
 - **Split-payment detection** groups by vendor and purchase order (or same invoice date) within a window; it does not look at history.
 - **Reference readings are hand-written** for the sixteen synthetic documents; field accuracy in the benchmark is measured against them and only on live runs.
-- **Browser coverage is a smoke suite** of seventeen checks on the showcase, outside `npm test` and outside CI. There is no linter.
+- **Browser coverage is a smoke suite** of twenty-two checks on the showcase and PDF intake, outside `npm test` and outside CI. There is no linter.
 - **CI covers install, types, tests, build and the Stress Lab** on Node 20 and 22 (Linux). It does not run the browser checks or anything with a live model. Its first run failed and caught a lockfile that npm 10 rejected; that run is still in the history.

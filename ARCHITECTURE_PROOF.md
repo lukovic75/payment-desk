@@ -132,13 +132,13 @@ Run on Node 20.20.2, 22.23.5 and 26.8.2 (macOS, Apple silicon), from a copy that
 |---|---|
 | `npm ci` | installs from the lockfile |
 | `npm run typecheck` | passes |
-| `npm test` | 114 of 114, nine files, about 4 seconds |
+| `npm test` | 130 of 130, ten files, about 45 seconds |
 | `npm run build` | passes |
 | `npm run lab` | 12 of 12 stress scenarios |
 | `npm run demo` | builds and serves the scripted showcase on http://localhost:8799 |
-| `npm run test:browser` | 17 of 17 (Node 22 or newer and a local Chrome or Chromium) |
+| `npm run test:browser` | 22 of 22 (Node 22 or newer and a local Chrome or Chromium) |
 
-GitHub Actions runs the first five on Node 20 and 22, on Linux ([.github/workflows/ci.yml](.github/workflows/ci.yml)); the run on commit `4c5b2ba` passed. The run before it failed at `npm ci` and is what exposed a lockfile that npm 10 rejected.
+GitHub Actions runs the first five on Node 20 and 22, on Linux ([.github/workflows/ci.yml](.github/workflows/ci.yml)); the run on commit `6ed3345` passed, as did every run since `4c5b2ba`. The run before it failed at `npm ci` and is what exposed a lockfile that npm 10 rejected.
 
 ## What is not proven here
 

@@ -57,7 +57,7 @@ The error is classified. No credit, a bad key or a missing model: not retried, a
 We have no measurement and will not invent one. The interface shows *blocked payment exposure*: the sum requested by blocked payments, each counted once. A block is not a loss prevented. The value we can state is narrower: every payment is checked against the same controls, exceptions arrive with their evidence, and every decision records who made it and on what.
 
 **Is it production ready?**
-No. It is a hackathon sandbox: synthetic data, one demo reviewer and no sign-in, state in one JSON file, text documents only, drafts as JSON rather than ISO 20022, and it listens only on the local machine. Public or production deployment is out of scope.
+No. It is a hackathon sandbox: synthetic data, one demo reviewer and no sign-in, state in one JSON file, text and text-layer PDF documents only (no OCR), drafts as JSON rather than ISO 20022, and it listens only on the local machine. Public or production deployment is out of scope.
 
 **Does it move money?**
 No. An approval creates a JSON draft marked `sandbox`. Nothing is sent anywhere.
