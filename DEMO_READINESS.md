@@ -5,11 +5,12 @@
 | | Status |
 |---|---|
 | **Scripted showcase** | **Ready.** Verified end to end in a browser and by automated checks |
-| **Live showcase** | **Blocked, not verified on this version.** The provider account has no credit; the last live call (26 Nov, 23:38 CET) was refused |
+| **Live showcase, hosted models** | **Blocked, not verified on this version.** The provider account has no credit; the last live call (26 Nov, 23:56 CET) was refused |
+| **Live showcase, local model** | **Run once on this version** (27 Nov, `gemma2:9b` through Ollama on the same laptop): 2 of 4 scenarios as expected, 2 ended as processing errors with nothing approved. Stored and replayable. Too slow to run live in a presentation (3 to 8 minutes per scenario) |
 | **PDF intake (text layer)** | **Ready in the scripted demo** for the registered synthetic PDFs: parsing, page evidence, the original page with the cited line marked. Verified by tests and in a browser. **With live models: not verified** |
 | **Recorded execution** | Available. A stored live run of an earlier version, three of five scenarios complete |
 
-**Scripted showcase ready. Current live-model execution unverified.**
+**Scripted showcase ready. A local model has run this version, with mixed results that are stored as they happened. Hosted models unverified.**
 
 ## Scripted demonstration readiness
 

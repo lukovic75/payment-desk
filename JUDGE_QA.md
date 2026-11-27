@@ -65,7 +65,10 @@ No. An approval creates a JSON draft marked `sandbox`. Nothing is sent anywhere.
 **Can I run it without an API key?**
 Yes: `npm ci && npm run demo`. That is the real Mozaik runtime, loops, tools, events, controls and enforcement with predefined model responses, and every screen says so. It shows the architecture and the workflow, not model quality.
 
-**Has it run with live models?**
+**Has this version run with a real model?**
+Yes, with a local one. On 27 November `gemma2:9b` ran the four showcase scenarios on this version, on the same laptop, through Ollama, with no cloud provider. The clean invoice was approved and the changed account was blocked; there the Policy agent recommended only "needs approval" and the controls kept it blocked. The other two scenarios ended as processing errors, with nothing approved: the small model's Investigator returned an invalid result twice, and its Auditor did not report the second amount (the control in code did). The run is stored and replays in the app. Hosted models have not been run on this version.
+
+**Has it run with hosted models?**
 An earlier version did, on 26 November 2026: 67 agent loops on 16 documents, 12 decided before the credit ran out. The five showcase documents of that run are replayable in the app (three decided). **The current version has not run with live models.** The last attempt, 26 November 22:58 CET, was refused for lack of credit.
 
 **What does the benchmark establish?**

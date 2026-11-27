@@ -30,7 +30,7 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 | Real models with no key | `LOCAL_MODEL=gemma2:9b npm run demo:local`; a stored run of this version is in the showcase | [`server/local.ts`](server/local.ts) | `local.test.ts`; *Local inference* and *Live verification* below |
 | Financial Stress Lab | Financial Stress Lab → Run all 12 | [`server/lab/`](server/lab) | `npm run lab`, `lab.test.ts` |
 | Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 142 tests, 12 lab scenarios, 24 browser checks (the browser checks run locally, not in CI) |
-| Live models on this version | Opening screen states the mode; *Watch the recorded execution* for an earlier live run | | **Not verified** (provider credit): [`DEMO_READINESS.md`](DEMO_READINESS.md), [`FINAL_RELEASE_REPORT.md`](FINAL_RELEASE_REPORT.md) |
+| Real models on this version | Showcase opening → *Watch the recorded run of this version* (a local model, 27 Nov); *Watch the recorded execution* for the earlier hosted run | [`server/data/recordings/`](server/data/recordings) | Local model: 2 of 4 scenarios as expected, 2 failed safely. Hosted models: **not verified** (provider credit). See *Live verification* |
 
 Walkthrough: [`DEMO_GUIDE.md`](DEMO_GUIDE.md). Likely questions: [`JUDGE_QA.md`](JUDGE_QA.md).
 
@@ -73,7 +73,7 @@ npm run dev              # API on :8787, UI on http://localhost:5173
 
 Open http://localhost:5173. **Start demo** then runs the same scenarios with live models and says *Live AI*; the full inbox of sixteen synthetic documents can be loaded from the overview or the demo summary; **Financial Stress Lab** runs twelve reproducible scenarios, on a deterministic path that needs no key or on live models. A provider refusal (no credit, a bad key) is shown as a failure with what to do about it. The application never switches from live to scripted by itself.
 
-**Status of live models on this version: not verified.** The provider account had no credit when it was finished. What live models returned earlier is in the app under *Watch the recorded execution* and described in *Live verification, stated plainly* below.
+**Status of real models on this version.** A local model (`gemma2:9b`) ran the four showcase scenarios on this version on 27 November: two ended as expected, two failed safely, none ended looser than expected. That run is stored and replays in the app. Hosted models (Anthropic, Google, OpenAI) have **not** been run on this version: the provider account had no credit. Details in *Live verification, stated plainly* below.
 
 ## The problem
 
@@ -438,11 +438,32 @@ What they cover from the firewall's point of view: a valid invoice is approved; 
 
 ### Live verification, stated plainly
 
+### A run of this version with a real model, 27 November 2026
+
+The four showcase scenarios were run on this version of the code with **`gemma2:9b` on the same laptop** (as `gemma2:9b-8k`, the same model with an 8k context; Ollama 0.32.5, Apple M4, 16 GB, one model request at a time, `json` tool protocol). No cloud provider was called. The cases are stored in `server/data/recordings/current.json` and replay in the app: showcase opening, *Watch the recorded run of this version*.
+
+| Scenario | Expected | What happened | Time |
+|---|---|---|---|
+| Legitimate invoice | AUTO_APPROVED | **AUTO_APPROVED.** Extractor and Auditor each read 1,415.00 EUR and the IBAN, with the exact lines; the Validator looked the vendor up and found the account on file; the Policy agent recommended approval; sandbox draft | 190 s |
+| Changed bank account | BLOCKED | **BLOCKED.** The Validator reported that the IBAN is not the one on file and the Investigator was called. **The Policy agent recommended only "needs approval"; the controls kept it blocked.** No draft | 422 s |
+| Two amounts in a PDF | NEEDS_APPROVAL or BLOCKED | **Processing error, nothing approved.** This model's Auditor did not report the second amount. The control in code did (1,890.00 against 1,980.00, challenge on record). The Investigator then twice returned a result that failed validation (more than ten facts), so its loop was closed and the payment failed | 500 s |
+| Duplicate payment | BLOCKED | **Processing error, nothing approved.** The Extractor left the currency empty; the Validator reported the duplicate and the duplicate control failed; the Investigator again returned an invalid result twice | 455 s |
+
+What this shows, and what it does not:
+
+- **Shown:** real model inference through the Mozaik runtime on the current version: 17 agent loops, each recorded with its model, its start and finish, its trigger and the token usage the server reported. The Validator and Auditor loops start from the same event and overlap; their model requests ran one after the other, because one request at a time was configured.
+- **Shown:** the reason for the architecture. In one scenario an agent recommended less than the policy requires and the code overruled it. In two, an agent failed, and the payment failed with it instead of being approved. No scenario ended looser than expected.
+- **Not shown:** that a small local model is a good Auditor or Investigator. Two of four scenarios did not reach a decision, and the Auditor missed the contradiction that the hosted model found in the earlier run. That is what this model did, stored as it happened.
+- **Not run:** the five held-out invoices (`npm run heldout`), the live Stress Lab and the single-agent benchmark. The laptop ran out of disk through swap while the model was loaded; the files and scripts are in the repository. An earlier attempt with `qwen2.5:7b` and native tool calls stopped at the Auditor: the server returned an empty message for a 307-token answer, which is why the `json` protocol exists.
+- **Not verified:** hosted models on this version. Mozaik in this repository supports `gemini-3.5-flash-lite` and `gemini-3.8-flash`, which Google listed with a free tier on 27 November 2026; with `GEMINI_API_KEY` set, `FAST_MODEL=gemini-3.5-flash-lite CAREFUL_MODEL=gemini-3.8-flash npm run dev` should use them, but no key was available and it has not been run.
+
+### The earlier run with hosted models, 26 November 2026
+
 A live run of the sixteen demo documents through the app on 26 November 2026 (Haiku 4.5 + Sonnet 5.5, 67 agent loops, about 370k tokens, 46 seconds) decided 12 of the 16 before the API account ran out of credit. Of those 12, 11 ended as `scenarios.json` expects; the twelfth was a clean invoice the Policy agent held for review because it read a not-applicable control as a failure (the control now has its own "not applicable" status and the agent's instructions say so). The remaining four stopped as processing errors with the provider's "credit balance is too low" message, and nothing was approved for them, which is the fail-closed behaviour working. Two of those four are documents whose IBAN the fast model mistyped: the Auditor read both correctly and the controls failed on both, which is why an account number is now read by code from the quoted line.
 
 The five showcase documents of that run are in the repository (`server/data/recordings/live-2026-11-26.json`) and can be replayed in the app: three reached a decision, including the live Auditor reporting both amounts of `INV-2026-1049` on its own, and two stopped when the credit ran out. They are shown as recorded, on an earlier version of the code.
 
-Everything added after that run has been verified on the deterministic path only: reading IBANs from the quoted line, the not-applicable status, shorter agent briefs, the evidence integrity gate, the Stress Lab, the single-agent baseline, the revised prompts, the cross-check protocol, the showcase and the vendor confirmation. The last attempt to reach the provider, on 26 November at 23:38 CET, was refused for lack of credit. **No live Stress Lab run and no benchmark has completed.** A live Stress Lab scenario was started and reported, correctly, that it could not be judged because the provider refused the request.
+Everything added after that run has been verified on the deterministic path only: reading IBANs from the quoted line, the not-applicable status, shorter agent briefs, the evidence integrity gate, the Stress Lab, the single-agent baseline, the revised prompts, the cross-check protocol, the showcase and the vendor confirmation. The last attempt to reach the provider, on 26 November at 23:38 CET, was refused for lack of credit. **No live Stress Lab run and no benchmark has completed**, on hosted or on local models. A live Stress Lab scenario was started and reported, correctly, that it could not be judged because the provider refused the request.
 
 One real defect was found by the Stress Lab while building it: when a document was run again after an agent failure, a loop left over from the failed attempt kept calling the model until its timeout. It now stops before its next model call, and a test covers it.
 
@@ -534,7 +555,7 @@ HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 ## Known limitations
 
 - **Sandbox only.** No bank connection, no payment execution. The payment draft is a structured JSON record, not an ISO 20022 message: producing schema-validated pain.001 XML was not practical in the time, so the app does not claim it.
-- **Live models are not verified on the current version**, and the benchmark has not been run. See *Live verification, stated plainly* and `DEMO_READINESS.md`.
+- **Hosted models are not verified on the current version**, and the benchmark has not been run. A local model ran the four showcase scenarios on it: two as expected, two failed safely. See *Live verification, stated plainly*.
 - **The scripted demo proves the workflow, not a model.** Its agent answers for the five showcase documents are predefined text, written after what the live models returned in the recorded run.
 - **A hackathon sandbox, not a production system.** It is not deployed, not hardened and not connected to anything.
 - **No authentication.** Human actions are recorded as "Demo reviewer". Permissions are enforced on the server, but there is one reviewer.
