@@ -11,6 +11,8 @@ npm ci
 npm run demo        # http://localhost:8799
 ```
 
+There is no hosted link: it runs on your computer and opens at http://localhost:8799. The README has [every step and what to do if it does not open](README.md#how-to-open-the-application).
+
 Node 20.19+ or 22.12+. `npm run doctor` checks the machine if something does not start. Or, in a container: `docker build -t payment-desk . && docker run --rm -p 127.0.0.1:8799:8799 payment-desk`.
 
 The indicator at the top right reads **Scripted demo**: the Mozaik runtime, the five agents, their tools, the shared state, the controls and the enforcement run for real; the agents' answers are predefined text. Press the indicator for the full explanation.

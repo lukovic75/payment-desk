@@ -15,13 +15,106 @@ For accounts payable teams, finance operations and finance managers: anyone who 
 
 | Start here | |
 |---|---|
-| **Run it** | `npm ci && npm run demo`, then http://localhost:8799. No API key, no model, no database |
+| **Open it** | There is no hosted link: it runs on your computer. `npm ci && npm run demo`, then http://localhost:8799. [Step by step below](#how-to-open-the-application) |
 | **Watch it** | [Video, two and a half minutes](docs/demo/payment-desk-demo.mp4): the running application, captions, no narration |
 | **Judge it** | [`JUDGE_QUICKSTART.md`](JUDGE_QUICKSTART.md): ten workflows with exact steps and expected results |
 | **Check the claims** | [`ARCHITECTURE_PROOF.md`](ARCHITECTURE_PROOF.md), claim by claim with code and tests |
 | **Public deployment** | None. [`DEPLOYMENT.md`](DEPLOYMENT.md) says why, and how to run the same thing in a container |
 
+## How to open the application
+
+**There is no public URL and no login.** Payment Desk runs on your own computer and you open it in your browser at **http://localhost:8799**. No API key, no account, no model, no database, no `.env` file. Most of the wait is the one-time install.
+
+### What you need
+
+| | |
+|---|---|
+| **Node.js** | 20.19 or newer in the 20 line, or 22.12 or newer. Check with `node -v`. npm comes with it |
+| **The code** | `git clone`, or on GitHub **Code → Download ZIP** and unpack it |
+| **A browser** | Chrome, Edge or another Chromium browser is what the automated checks ran in |
+| **Internet** | once, for `npm ci`. After that nothing leaves your machine |
+| **System** | macOS or Linux. On Windows use WSL, or the Docker option below: the npm scripts set environment variables the POSIX way |
+
+### Steps
+
+**1. Get the code**
+
+```bash
+git clone https://github.com/lukovic75/payment-desk.git
+cd payment-desk
+```
+
+**2. Install**
+
+```bash
+npm ci
+```
+
+**3. Start**
+
+```bash
+npm run demo
+```
+
+This builds the interface and starts the server. It is ready when the terminal prints these two lines:
+
+```text
+Payment Desk API on http://localhost:8799  (scripted model: real orchestration, predefined model responses)
+Open http://localhost:8799/#/showcase
+```
+
+Leave that terminal open: closing it stops the application. A build notice about chunk size just above those lines is harmless.
+
+**4. Open http://localhost:8799 in your browser**
+
+You see the Overview, with the indicator **Scripted demo** at the top right:
+
 ![The first screen: what the product is, who it is for and one way into the demo](docs/evidence/01-overview-empty.jpg)
+
+**5. Run the demo**
+
+1. Press **Start demo**. The guided demo opens.
+2. Press **Start demo** again on that screen. The first invoice is processed and ends in *Payment verified*.
+3. Continue with **Next: Changed account**, **Next: Agents disagree** and **Next: Duplicate payment**.
+
+In this mode each scenario is processed within seconds; allow about a minute to read each result. [`JUDGE_QUICKSTART.md`](JUDGE_QUICKSTART.md) lists ten workflows with the exact buttons and the result to expect from each.
+
+**6. Stop and reset**
+
+Press `Ctrl+C` in the terminal to stop. Nothing is saved to disk in this mode, so `npm run demo` always starts from the same clean state. **Restart** at the top of the guided demo starts the four scenarios over without stopping the server.
+
+### If it does not open
+
+Run `npm run doctor` first: it checks Node, the install, the dataset and the port, and says what is missing.
+
+| What you see | What it means | What to do |
+|---|---|---|
+| `Error: listen EADDRINUSE: address already in use 127.0.0.1:8799` | Another program uses port 8799, or the demo is already running in another terminal | Open http://localhost:8799 to see whether it is already there. Otherwise stop the other program, or use another port (below) |
+| The browser cannot connect | The two ready lines have not been printed yet, or the terminal was closed | Wait for them, or run `npm run demo` again. The address starts with `http://`, not `https://` |
+| It opens on this computer but not from a phone or another machine | Intended: the server answers only on the machine it runs on, because there is no login | Open it on the same computer |
+| `npm ci` warns about the engine, or the build fails | Node is probably too old | `node -v`, then install Node 20.19+ or 22.12+ |
+| On Windows, the start command fails at `DESK_SCRIPTED=1` | The Windows shell does not set variables that way (not tested on Windows) | Use WSL or Docker |
+
+On another port, here 8800 (then open http://localhost:8800):
+
+```bash
+npm run build && API_PORT=8800 DESK_SCRIPTED=1 DESK_PERSIST=off MOZAIK_CREDENTIALS_FILE=/nonexistent npx tsx server/index.ts
+```
+
+### Without Node: Docker
+
+```bash
+docker build -t payment-desk .
+docker run --rm -p 127.0.0.1:8799:8799 payment-desk
+```
+
+Then open the same address, http://localhost:8799. It is the same no-key demo; `Ctrl+C` stops it. The container prints one extra line saying it listens on `0.0.0.0`: that is inside the container, and the `127.0.0.1:` in the command keeps it reachable from your machine only.
+
+### Without running anything
+
+[The video](docs/demo/payment-desk-demo.mp4) shows the running application in two and a half minutes, and [`docs/evidence/`](docs/evidence) holds twelve current screenshots.
+
+## What it looks like
 
 ![A changed bank account: the account on the invoice beside the one on file, each opening its source; blocked by a control in code](docs/evidence/02-changed-account.jpg)
 
@@ -91,24 +184,9 @@ Each row is a different kind of evidence. They are never added into one figure.
 
 The details, including everything that went wrong, are in [`docs/REFERENCE.md`](docs/REFERENCE.md#real-model-runs-of-this-version-27-november-2026). Three stored runs replay in the app from the opening screen of the guided demo.
 
-## Quickstart
+## What you are running
 
-```bash
-git clone https://github.com/lukovic75/payment-desk.git
-cd payment-desk
-npm ci           # Node 20.19+ or 22.12+
-npm run demo     # builds the UI, serves it on http://localhost:8799
-```
-
-Press **Start demo**. No API key, no model, no database, no `.env`. `npm run doctor` checks the machine first if something does not start.
-
-This is the **scripted demo**: the Mozaik runtime, the five agent loops, their tools, the shared state, the controls and the enforcement run for real. What the agents answer is predefined text, and the indicator at the top of every page says so. It shows how the system behaves; it does not show how well a model reads an invoice, and it interprets only its registered synthetic documents.
-
-The same thing in a container, if you prefer:
-
-```bash
-docker build -t payment-desk . && docker run --rm -p 127.0.0.1:8799:8799 payment-desk
-```
+`npm run demo` ([how to open it](#how-to-open-the-application)) starts the **scripted demo**: the Mozaik runtime, the five agent loops, their tools, the shared state, the controls and the enforcement run for real. What the agents answer is predefined text, and the indicator at the top of every page says so. It shows how the system behaves; it does not show how well a model reads an invoice, and it interprets only its registered synthetic documents.
 
 ### Real AI on your own machine, still without a key
 
