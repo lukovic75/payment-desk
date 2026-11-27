@@ -69,6 +69,16 @@ export function checkIntegrity(c: PaymentCase, ctx: FirewallContext): IntegrityR
 			flag("broken_reference", subject, ref, e.doc.lineStart == null ? "The quoted text was not found in the document." : `The quoted text is not at line ${e.doc.lineStart} of the document.`, critical)
 			return values.push({ subject, ref, critical, present: false, correct: false })
 		}
+		// For a PDF, the line has to be in the source map and on the page the ledger says. A page number alone proves nothing.
+		const src = ctx.documents.get(c.id)?.source
+		if (src && e.doc.lineStart != null) {
+			const at = src.lines[e.doc.lineStart - 1]
+			const bad = !at ? `Line ${e.doc.lineStart} is not in the source map of the PDF.` : !src.pages.some((p) => p.n === at.page) ? `The source map places the line on page ${at.page}, which the PDF does not have.` : e.doc.page != null && e.doc.page !== at.page ? `The reference says page ${e.doc.page}, but that line of the document is on page ${at.page}.` : null
+			if (bad) {
+				flag("broken_reference", subject, ref, bad, critical)
+				return values.push({ subject, ref, critical, present: false, correct: false })
+			}
+		}
 		const supported = excerptSupports(field, value, e.doc.excerpt)
 		const normalised = normalisedCorrectly(field, value, e.doc)
 		if (supported === false) flag("unsupported_claim", subject, ref, `The quoted line does not contain the value ${e.doc.normalized ?? String(value)}.`, critical)

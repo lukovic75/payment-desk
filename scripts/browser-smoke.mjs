@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Browser smoke test for the interactive showcase. No test framework and no extra dependency: it starts the scripted
- * server, opens a headless Chrome over the DevTools protocol and walks the demo the way a judge would.
+ * Browser smoke test for the interactive showcase and for PDF intake. No test framework and no extra dependency: it
+ * starts the scripted server, opens a headless Chrome over the DevTools protocol and walks the demo the way a judge would.
  *
  *   npm run build && npm run test:browser
  *
@@ -161,6 +161,24 @@ await check("a figure opens at its source line", async () => {
 	await page(`$(".drawer[data-open=true] [aria-label=Close]").click()`)
 	await until(`$(".drawer[data-open=true]") == null`, "the drawer to close")
 })
+/** The marker over a cited line: inside the page, with a size, and over a canvas that has something drawn on it. */
+const MARKED = (scope) => `(() => { const h = $("${scope} .pdf-hl"), s = $("${scope} .pdf-sheet"), c = $("${scope} .pdf canvas"); if (!h || !s || !c || $("${scope} .pdf-frame")?.dataset.state !== "ready") return false; const a = h.getBoundingClientRect(), b = s.getBoundingClientRect(); if (!(a.width > 20 && a.height > 3 && a.left >= b.left && a.right <= b.right + 1 && a.top >= b.top && a.bottom <= b.bottom + 1)) return false; const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data; let ink = 0; for (let i = 0; i < d.length; i += 64) if (d[i] < 160) ink++; return ink > 20 })()`
+await check("the same figures open on their page of the original PDF, each marked where the parser found it", async () => {
+	await until(`txt(".sc-evidence")?.includes("INV-2026-1049.pdf") || $$(".panel-head .right").some((r) => r.textContent.includes("INV-2026-1049.pdf · PDF, 2 pages"))`, "the scenario document named as a two-page PDF")
+	await until(`$$(".compare .k").map((k) => k.textContent.trim()).join("|") === "Page 1, line 5 of the PDF|Page 2, line 12 of the PDF"`, "each amount labelled with its page and line")
+	await page(`$$(".compare .evchip")[0].click()`)
+	await until(`$(".drawer[data-open=true]")?.hasAttribute("data-wide") && txt(".drawer[data-open=true] .pdf-page") === "Page 1 of 2"`, "the evidence drawer on page 1 of 2")
+	await until(MARKED(".drawer[data-open=true]"), "the page drawn and the line marked inside it", 15_000)
+	await page(`$(".drawer[data-open=true] [aria-label=Close]").click()`)
+	await until(`$(".drawer[data-open=true]") == null`, "the drawer to close")
+	await page(`$$(".compare .evchip")[1].click()`)
+	await until(`txt(".drawer[data-open=true] .pdf-page") === "Page 2 of 2" && $(".drawer[data-open=true] .ln.hl")?.textContent.includes("TOTAL EUR 1,890.00")`, "page 2 of 2 and the total line quoted")
+	await until(MARKED(".drawer[data-open=true]"), "the total marked on page 2", 15_000)
+	await page(`$(".drawer[data-open=true] [aria-label='Previous page']").click()`)
+	await until(`txt(".drawer[data-open=true] .pdf-page") === "Page 1 of 2" && $(".drawer[data-open=true] .pdf-frame")?.dataset.state === "ready" && $(".drawer[data-open=true] .pdf-hl") == null`, "no marker on a page the evidence is not on")
+	await page(`$(".drawer[data-open=true] [aria-label=Close]").click()`)
+	await until(`$(".drawer[data-open=true]") == null`, "the drawer to close")
+})
 await check("the agent challenge is inspectable, with both sides and its status", async () => {
 	await click("Inspect agent challenge")
 	await until(`(() => { const x = txt(".drawer[data-open=true] .xcheck"); return x && x.includes("1980.00") && x.includes("1890.00") && x.includes("Needs a person") && x.includes("raised by the Auditor") })()`, "the cross-check with 1980.00 against 1890.00, raised by the Auditor, waiting for a person")
@@ -225,6 +243,51 @@ await check("the recorded execution is labelled as recorded and offers nothing t
 	await page(`$$(".sc-step")[2].click()`)
 	await until(`txt(".verdict .what") === "Held for a person" && $$(".sc-runs .runs li").length === 5`, "the recorded outcome and its five agent loops")
 	await until(`$$(".sc-runs .runs li").every((l) => /claude-/.test(l.textContent) && /tokens/.test(l.textContent))`, "live model names and reported token usage on every recorded loop")
+})
+
+// ───────── document intake: PDFs are parsed here, shown as they are, and processed only when asked ─────────
+const openIntake = async () => {
+	await page(`$$(".bar-actions .btn").find((b) => (b.getAttribute("aria-label") || b.textContent).includes("ocument")).click()`)
+	await until(`txt("dialog[open] h2") === "Add documents"`, "the Add documents dialog")
+}
+const queue = `$$("dialog[open] .queue-row").map((r) => r.textContent.replace(/\\s+/g, " ").trim())`
+const onDesk = async (id) => (await (await fetch(`${base}/api/state`)).json()).cases.some((c) => c.id === id)
+await check("Add documents: a sample PDF is validated and parsed, previewed as the original, and nothing runs until Process", async () => {
+	await open(`${base}/#/inbox`)
+	await openIntake()
+	await until(`txt("dialog[open] .drop-copy")?.includes("there is no OCR")`, "the supported formats and the absence of OCR stated")
+	await click("Valid invoice")
+	await until(`${queue}.length === 1 && /^INV-2026-1062\\.pdf\\s*PDF · \\d+ kB · 1 page · \\d+ lines of text\\s*Ready/.test(${queue}[0])`, "the sample in the queue as a parsed one-page PDF, ready", 15_000)
+	if (await onDesk("INV-2026-1062")) throw new Error("the document was processed before anyone asked")
+	await page(`$("dialog[open] .queue-row .queue-act .btn").click()`)
+	await until(`txt("dialog[open] .pdf-page") === "Page 1 of 1" && $("dialog[open] .pdf-frame")?.dataset.state === "ready"`, "the original page in the preview", 15_000)
+})
+await check("a file that is not a document is refused, and one that is not a registered fixture is parsed but not interpreted", async () => {
+	await page(`(() => { const dt = new DataTransfer(); dt.items.add(new File([new Uint8Array([0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0])], "setup.exe", { type: "application/octet-stream" })); dt.items.add(new File(["%PDF-1.4\\nnot a document"], "broken.pdf", { type: "application/pdf" })); dt.items.add(new File(["Invoice 77 from Somebody Ltd\\nTotal EUR 12.00\\nIBAN: GB00 TEST"], "note.txt", { type: "text/plain" })); const i = $("dialog[open] input[type=file]"); i.files = dt.files; i.dispatchEvent(new Event("change", { bubbles: true })); return true })()`)
+	await until(`${queue}.some((r) => r.startsWith("setup.exe") && r.includes("Not accepted") && r.includes("not a text document or a PDF"))`, "the executable refused, with the reason", 15_000)
+	await until(`${queue}.some((r) => r.startsWith("broken.pdf") && r.includes("Not accepted") && r.includes("could not be parsed as a valid PDF"))`, "the broken PDF refused, with the reason", 15_000)
+	await until(`${queue}.some((r) => r.startsWith("note.txt") && r.includes("Parsed, not processable here") && r.includes("Live AI access is required to interpret this invoice because it is not a registered scripted fixture."))`, "the unregistered document parsed and honestly not interpreted", 15_000)
+	await until(`txt("dialog[open] .btn-primary") === "Process document" && !$("dialog[open] .btn-primary").disabled`, "one document offered for processing, not four")
+})
+await check("processing the sample PDF runs the workflow, and its evidence opens on the page", async () => {
+	await page(`$("dialog[open] .btn-primary").click()`)
+	await until(`${queue}.some((r) => r.startsWith("INV-2026-1062.pdf") && r.includes("Approved") && r.endsWith("Open"))`, "the sample processed and approved by the controls", 20_000)
+	if (await onDesk("note") || (await (await fetch(`${base}/api/state`)).json()).cases.some((c) => /setup|broken|note/.test(c.fileName ?? ""))) throw new Error("a refused or uninterpreted file became a payment")
+	await page(`$$("dialog[open] .queue-row").find((r) => r.textContent.includes("INV-2026-1062")).querySelector(".queue-act .btn").click()`)
+	await until(`location.hash === "#/inbox/INV-2026-1062" && $("dialog[open]") == null`, "the payment opened in the workspace")
+	await page(`$$("[role=tab]").find((b) => b.textContent.startsWith("Evidence")).click()`)
+	await until(`$$(".doc-switch .seg button").map((b) => b.textContent.trim()).join("|") === "Original PDF|Extracted text" && $(".ev-doc .pdf-frame")?.dataset.state === "ready"`, "the original PDF beside the evidence ledger", 15_000)
+	await page(`$$(".ledger-row").find((b) => b.textContent.startsWith("Gross amount as read by the Extractor")).click()`)
+	await until(`/^page 1, line \\d+$/.test(txt(".ev-doc .block-h .right") ?? "")`, "the cited page and line named")
+	await until(MARKED(".ev-doc"), "the gross amount marked on the page", 15_000)
+	await page(`$$(".doc-switch .seg button")[1].click()`)
+	await until(`$(".ev-doc .pdf") == null && $(".ev-doc .ln.hl")?.textContent.includes("1,005.00")`, "the same line in the extracted text")
+})
+await check("the same PDF again is reported as a duplicate before it is processed", async () => {
+	await openIntake()
+	await click("Valid invoice")
+	await until(`${queue}.some((r) => r.includes("Duplicate detected") && r.includes("The same file is already on the desk as INV-2026-1062"))`, "the duplicate named, with the payment it repeats", 15_000)
+	await page(`$("dialog[open] [aria-label=Close]").click()`)
 })
 
 // ───────── a provider that refuses every call (fault injection, labelled as such) ─────────

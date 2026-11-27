@@ -1,0 +1,90 @@
+[
+  {
+    "docId": "INV-2026-1041",
+    "file": "INV-2026-1041.pdf",
+    "label": null,
+    "sample": false,
+    "size": 2969,
+    "pages": 1,
+    "lines": 18,
+    "fileHash": "165037cd7f6e95d79efd29843912e0beb57eba48b98007488674e069cc40dcf7",
+    "textHash": "c7b87ab3767aace95bc5ce4362f0c15157aa52823e101bd61fdbb24614046ad5"
+  },
+  {
+    "docId": "INV-ES-55820",
+    "file": "INV-ES-55820.pdf",
+    "label": null,
+    "sample": false,
+    "size": 2993,
+    "pages": 1,
+    "lines": 17,
+    "fileHash": "b60c5fa85dbc0f22c1da546aecc55cd3f7b70b6ebb9b72752cdadd0987320979",
+    "textHash": "dcead092b79389a28457e595288d43797c11a1d89593f2cb397f46dfd1b85331"
+  },
+  {
+    "docId": "INV-2026-1049",
+    "file": "INV-2026-1049.pdf",
+    "label": null,
+    "sample": false,
+    "size": 3950,
+    "pages": 2,
+    "lines": 25,
+    "fileHash": "79cd084837d58c8debcb98c1738eef294fde384d6eb645ac61eab19fc4a8de49",
+    "textHash": "84bcda4ef5864cbcdc84e391672cba9b217c543420015aa5f7ee1bdae2e70e95"
+  },
+  {
+    "docId": "INV-7701-rappel",
+    "file": "INV-7701-rappel.pdf",
+    "label": null,
+    "sample": false,
+    "size": 2511,
+    "pages": 1,
+    "lines": 15,
+    "fileHash": "2909284b861b3958b9d8e481bff91c5a53b665019f41d2610f6314cf1318c552",
+    "textHash": "6f77242fe0deda41cd7d786985527dc14dff43bb4604ec707e10089916f43a5d"
+  },
+  {
+    "docId": "INV-BP-2291",
+    "file": "INV-BP-2291.pdf",
+    "label": null,
+    "sample": false,
+    "size": 2755,
+    "pages": 1,
+    "lines": 16,
+    "fileHash": "084ad0aba04cd6580859c290ac7320e492461b9d2b7857a1d619cc5b0ac5bc8c",
+    "textHash": "5e032d245188feecb1de9b1da007e6b5facf92176e61e3d6988b9592c0772405"
+  },
+  {
+    "docId": "INV-2026-1062",
+    "file": "INV-2026-1062.pdf",
+    "label": "Valid invoice",
+    "sample": true,
+    "size": 2967,
+    "pages": 1,
+    "lines": 18,
+    "fileHash": "ba792d8e8e49bed2d34d51143aca639bd0c39a3ac9ee089d3694fd736baa9fe7",
+    "textHash": "dacc68733ddfd83447fbaf654870423f57d7158156801cd207a004a2873675cd"
+  },
+  {
+    "docId": "FACTURA-56012",
+    "file": "FACTURA-56012.pdf",
+    "label": "Changed bank details",
+    "sample": true,
+    "size": 2749,
+    "pages": 1,
+    "lines": 16,
+    "fileHash": "a53170161470bce2d63fb22b458d0cdb7d951e49ed8c3ca8a9a7a8235002cbdf",
+    "textHash": "88a78ebf3bca6bfa8c81441633675fd321a6d0fbfe943b78622a296937af7e84"
+  },
+  {
+    "docId": "INV-2026-1064",
+    "file": "INV-2026-1064.pdf",
+    "label": "Conflicting amounts, two pages",
+    "sample": true,
+    "size": 3937,
+    "pages": 2,
+    "lines": 25,
+    "fileHash": "fa94594430461504cdb5781f5e9154c434c0daa86fb3abb70db014db7904c86c",
+    "textHash": "f2efd7b88386c3894142a59e4ccb10aec0552ff46787b94d35d202deb390808c"
+  }
+]

@@ -1,6 +1,6 @@
 # Payment Desk · test matrix
 
-Status of each behaviour as of 26 November 2026. PASS means the named test or check was run and passed. "Scripted" means the real Mozaik runtime with fixed agent output. "Browser" means a scripted headless-browser check against the built app on the scripted server; these are not part of `npm test`.
+Status of each behaviour as of 27 November 2026. PASS means the named test or check was run and passed. "Scripted" means the real Mozaik runtime with fixed agent output. "Browser" means a scripted headless-browser check against the built app on the scripted server; these are not part of `npm test`.
 
 Run everything automated with `npm test`; run one file with `node --import tsx --test server/test/<file>`.
 
@@ -90,7 +90,32 @@ Run everything automated with `npm test`; run one file with `node --import tsx -
 | I-07 | Path traversal against the static server | Nothing outside the built UI is served | PASS | `api.test.ts` |
 | I-08 | Model key in any response | Absent | PASS | `api.test.ts` |
 | I-09 | Live Stress Lab run without confirmation | Never started | PASS | `api.test.ts` |
-| I-10 | PDF or image upload | Refused with a plain explanation | PASS | Browser |
+| I-10 | Image or executable upload, also when named `.pdf` | Refused with a plain explanation; no case created | PASS | `pdf.test.ts`, browser |
+
+## PDF intake and page evidence
+
+| ID | Scenario | Expected | Status | Where |
+|---|---|---|---|---|
+| P-01 | The eight synthetic PDFs regenerated from their descriptions | Byte for byte the files in the repository; manifest hashes match | PASS | `pdf.test.ts` |
+| P-02 | One-page and two-page PDFs | Lines in reading order, each with page, line on the page and a box inside the page | PASS | `pdf.test.ts` |
+| P-03 | Accents, currency signs, European number formats (1.234,56), IBAN spacing, negative amounts; a page rotated by 90 degrees | Read as written; on the rotated page the lines are in reading order and every box is inside the page | PASS | `pdf.test.ts` |
+| P-04 | Empty, executable, PNG, text named `.pdf`, corrupted, truncated | Refused with the reason; nothing stored | PASS | `pdf.test.ts` |
+| P-05 | Over 2 MB, over 10 pages, over 20,000 characters | Refused with the limit named | PASS | `pdf.test.ts` |
+| P-06 | Image-only PDF | Refused: no extractable text, no OCR | PASS | `pdf.test.ts` |
+| P-07 | Encrypted PDF | Refused | PASS | `pdf.test.ts` |
+| P-08 | A parse that exceeds the time limit; eight parses requested at once (two run at a time) | Stopped and reported as a timeout; all eight answered correctly | PASS | `pdf.test.ts` |
+| P-09 | Five invoices as text and as PDF | The same stage, the same blocking controls, the same amount and IBAN | PASS | `pdf.test.ts` |
+| P-10 | Located evidence on a PDF | Page and page line added by code, consistent with the source map | PASS | `pdf.test.ts`, `showcase.test.ts` |
+| P-11 | A reference moved to another page, or to a line that is not in the map | Integrity verifier reports a broken reference | PASS | `pdf.test.ts` |
+| P-12 | The same PDF under another name; the same text in another file; the same obligation in another document | Three different findings, each reported for what it is; none paid twice | PASS | `pdf.test.ts` |
+| P-13 | Changed IBAN, wrong arithmetic, zero amount, missing IBAN, unknown vendor, instruction-like text, an invented value, a failing agent, all on PDFs | Never auto-approved; the same controls as for text | PASS | `pdf.test.ts` |
+| P-14 | Sample → inspect → process → source map → original file, over HTTP | Nothing runs before process; the file is served with `nosniff` and a sandboxing policy | PASS | `pdf.test.ts` |
+| P-15 | A document that is not a registered fixture, on the scripted server | Parsed; processing answered 409 with the "needs live AI" message; no case | PASS | `pdf.test.ts`, browser |
+| P-16 | Restart with persistence; original file removed afterwards | Source map and file survive; without the file the text and references remain and the file answers 404 | PASS | `pdf.test.ts` |
+| P-17 | Evidence opened in the browser | The original page drawn, the cited line marked inside it, no marker on another page, the marker scales with zoom | PASS | browser (`npm run test:browser`; zoom by hand) |
+| P-18 | Add documents in the browser | Sample parsed and previewed; processed only on request; refusals with reasons; duplicate named before processing | PASS | browser (`npm run test:browser`) |
+| P-19 | A PDF that is not a fixture, with live models | Interpreted by the live agents | **NOT RUN** (provider credit) | |
+| P-20 | Multi-column or otherwise complex layouts | | **NOT TESTED**; no claim is made | |
 
 ## Interface
 

@@ -832,3 +832,51 @@ button.linkish:disabled { opacity: 0.5; cursor: not-allowed; }
 .fine button.linkish { font-size: inherit; }
 .sc-act { padding: 0; border-top: 0; }
 .sc-resolve-state { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--sp-3); padding: var(--sp-3) var(--sp-4); border-radius: var(--r-lg); background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); }
+
+/* ───────── original documents: a PDF page on paper, with a marker over the cited line ───────── */
+.pdf { display: grid; gap: var(--sp-2); min-width: 0; margin: 0; }
+.pdf-bar { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-12); color: var(--ink-2); }
+.pdf-page, .pdf-zoom { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pdf-zoom { min-width: 4ch; text-align: center; }
+.pdf-frame { position: relative; overflow: auto; overscroll-behavior: contain; max-height: min(68dvh, 720px); border-radius: var(--r-lg); background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); }
+.pdf-frame:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.pdf-sheet { position: relative; background: var(--doc-paper); min-height: 120px; }
+.pdf-sheet canvas { display: block; }
+.pdf-hl { position: absolute; background: var(--doc-hl); box-shadow: 0 0 0 1.5px var(--doc-hl-edge); border-radius: 3px; mix-blend-mode: multiply; pointer-events: none; animation: pdf-hl-in var(--d-layout) var(--ease-out) both; }
+@keyframes pdf-hl-in { from { opacity: 0.2; transform: scaleX(0.96); } to { opacity: 1; transform: none; } }
+.pdf-msg { position: absolute; inset: 0; display: grid; place-items: center; padding: var(--sp-6); text-align: center; color: var(--ink-3); font-size: var(--fs-12); }
+.pdf-frame[data-state="error"] { min-height: 120px; }
+.pdf-frame[data-state="error"] .pdf-msg { color: var(--ink-2); }
+.pdf-note { max-width: 70ch; }
+.drawer[data-wide] { width: min(var(--drawer-w-wide), calc(100vw - var(--nav-gap) * 2)); }
+.doc-switch { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+
+/* ───────── document intake: a drop zone, a queue, a preview ───────── */
+dialog.sheet.intake { width: min(var(--sheet-w-wide), calc(100vw - 32px)); max-height: min(880px, calc(100dvh - 32px)); }
+.drop-lg { padding: var(--sp-5); gap: var(--sp-4); border-radius: var(--r-xl); align-items: center; }
+.drop-ico { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: var(--r-lg); color: var(--accent-text); background: var(--accent-soft); transition: transform var(--d-pop) var(--ease-out); }
+.drop-lg.over .drop-ico { transform: translateY(-2px); }
+.drop-copy { display: grid; gap: 2px; flex: 1 1 240px; min-width: 0; }
+.drop-copy b { font-family: var(--font-display); font-size: var(--fs-15); letter-spacing: var(--track-title); color: var(--ink); }
+.drop-copy span { line-height: 1.5; }
+.queue { display: grid; border-radius: var(--r-lg); background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); }
+.queue-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 2px var(--sp-3); align-items: center; padding: 10px var(--sp-4); animation: rise var(--d-layout) var(--ease-out) both; }
+.queue-row + .queue-row { border-top: 1px solid var(--line); }
+.queue-ico { display: grid; place-items: center; width: 32px; height: 32px; border-radius: var(--r-md); color: var(--ink-2); background: var(--raised); }
+.queue-row[data-status="failed"] .queue-ico { color: var(--bad); }
+.queue-main { display: grid; min-width: 0; }
+.queue-main b { font-weight: 600; font-size: var(--fs-13); }
+.queue-state { justify-self: end; }
+.queue-act { display: flex; gap: var(--sp-1); justify-self: end; min-width: 86px; justify-content: flex-end; }
+.queue-more { grid-column: 2 / -1; line-height: 1.5; }
+.queue-row[data-status="failed"] .queue-more { color: var(--bad); }
+.queue-preview { display: grid; }
+.intake-paste > summary { min-height: 32px; font-size: var(--fs-13); }
+.intake-paste-body { display: grid; gap: var(--sp-3); padding-top: var(--sp-2); }
+.intake .sheet-body textarea { min-height: 150px; }
+@media (max-width: 599.98px) {
+	.queue-row { grid-template-columns: auto minmax(0, 1fr) auto; }
+	.queue-state { grid-column: 2 / -1; justify-self: start; }
+	.queue-act { grid-row: 1; grid-column: 3; min-width: 0; }
+	.drop-lg { flex-wrap: wrap; }
+}

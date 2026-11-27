@@ -104,7 +104,7 @@ export function App() {
 					)}
 				</div>
 			</Shell>
-			<AddDocument open={adding} onClose={() => setAdding(false)} onAdded={(id) => { setAdding(false); go("inbox", id) }} />
+			<AddDocument open={adding} onClose={() => setAdding(false)} onAdded={(id) => { setAdding(false); go("inbox", id) }} snapshot={snapshot} health={health} />
 		</>
 	)
 }

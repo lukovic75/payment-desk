@@ -190,8 +190,11 @@ export function evaluate(c: PaymentCase, ctx: FirewallContext): Evaluation {
 	const original = others.filter((o) => o.hash === c.hash && earlier(o)).sort(byReceived)[0]
 	if (original) {
 		const ox = original.extraction.result
-		const ref = record(`D:same:${original.id}`, "source_document", `Identical document already in the inbox`, "content hash (SHA-256 of the normalised text)", original.id, { document: original.fileName, hash: c.hash.slice(0, 16) + "…", received: original.receivedAt })
-		add("duplicate", "Duplicate payment request", "R7", "fail", "block", `This file has exactly the same content as ${original.fileName}, received earlier. It is the same request under another name.`, [ref])
+		// Two different facts: the same file (same bytes), or another file whose text is the same. Both are the same request.
+		const mine = ctx.documents.get(c.id)?.source, theirs = ctx.documents.get(original.id)?.source
+		const sameFile = mine != null && theirs != null && mine.fileHash === theirs.fileHash
+		const ref = record(`D:same:${original.id}`, "source_document", `Identical document already in the inbox`, sameFile ? "file hash (SHA-256 of the original file)" : "content hash (SHA-256 of the normalised text)", original.id, { document: original.fileName, match: sameFile ? "identical file" : "identical text", hash: (sameFile ? mine.fileHash : c.hash).slice(0, 16) + "…", received: original.receivedAt })
+		add("duplicate", "Duplicate payment request", "R7", "fail", "block", sameFile ? `This is byte for byte the same file as ${original.fileName}, received earlier. It is the same request under another name.` : mine || theirs ? `The text of this document is exactly the text of ${original.fileName}, received earlier, although the files differ. It is the same request in another file.` : `This file has exactly the same content as ${original.fileName}, received earlier. It is the same request under another name.`, [ref])
 		const exposure = ox?.gross != null && ox.currency ? { minor: ox.gross, currency: ox.currency, ref } : null
 		return { controls, entries, floor: "BLOCKED", investigate: false, exposure }
 	}

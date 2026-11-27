@@ -62,20 +62,22 @@ In scripted mode a run takes about a quarter of a second, so it is played back o
 - **Deterministic financial controls.** **Open the payment** → *Verification*. A blocked payment has no approve action. Approving scenario 3 is refused as it stands; citing the line that states the amount is not enough, because that shows the amount is in the document, not that it is the amount owed.
 - **Resolution with independent evidence.** In scenario 3, under *Resolve it with independent evidence*, enter `VC-2026-1126-03`: refused, the record is unverified. Enter `VC-2026-1126-02`: refused, it belongs to another vendor. Enter `VC-2026-1126-01` and press **Verify payable amount**: the cross-check becomes *matched to a trusted record*, **Approve payment** appears, and approving creates a sandbox draft that cites the confirmation. The scenario's result does not change: it stays what the workflow decided.
 - **Final disposition.** The summary lists, per scenario, what was expected and what the controls enforced.
+- **The original document.** Scenario 3 runs on a two-page PDF. Select `p. 1, line 5` or `p. 2, line 12` under *Check it at the source*: the page opens with the cited line marked. The cover note on page one asks for 1,980.00; the invoice on page two totals 1,890.00.
+- **Your own upload.** **Document** in the top bar → *Try a sample invoice* → **Process document**. The queue shows what was read before anything runs. One document opens as a payment once it is processing; with several, the dialog stays and each row gets **Open**. The payment's *Evidence* tab has the original PDF beside the ledger. Drop any other PDF: it is parsed and previewed, and the scripted demo says it needs live AI to interpret it.
 
 ## Other checks
 
 ```bash
-npm test                 # 114 tests on the real Mozaik runtime with a scripted model
+npm test                 # 130 tests on the real Mozaik runtime with a scripted model
 npm run lab              # 12 stress scenarios, deterministic path
-npm run test:browser     # 17 browser checks of the showcase (after npm run build; needs Node 22+ and a Chrome or Chromium)
+npm run test:browser     # 22 browser checks of the showcase and PDF intake (after npm run build; needs Node 22+ and a Chrome or Chromium)
 ```
 
 ## Limits to know
 
 - **Synthetic data only.** Vendors, accounts, invoices and the payment history are invented. No customer data, no real accounts.
 - **Sandbox payment drafts.** An approval creates a JSON draft marked sandbox. No money moves and nothing reaches a bank.
-- **Plain-text documents.** PDF and images are not parsed.
+- **Text and text-layer PDF.** A PDF up to 2 MB and 10 pages is parsed on this machine. Scanned PDFs and images are refused: there is no OCR. The scripted demo interprets only its registered synthetic documents.
 - **One demo reviewer.** There is no sign-in; human actions are recorded as "Demo reviewer".
 - **One sandbox workspace.** The scenario payments are ordinary demo documents on the desk. Starting the demo replaces the demo documents; documents you add yourself are kept.
 - **Trusted records are fixtures.** The desk matches a callback reference to a record in `server/data/callbacks.json` and a vendor confirmation to one in `server/data/confirmations.json`. It does not call or write to anyone.

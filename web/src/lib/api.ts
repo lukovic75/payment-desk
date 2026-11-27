@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from "react"
+import type { DocumentSource } from "../../../server/domain"
 import type { AgentRun, Challenge, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, Recording, ReviewEntry, Scenario, Showcase, ShowcaseKey, ShowcaseStep, TimelineEntry, Vendor } from "../../../server/domain"
 
 export type { AgentRun, Challenge, Control, DeskSnapshot, EvidenceEntry, PaymentCase, Policy, Recording, ReviewEntry, Scenario, Showcase, ShowcaseKey, ShowcaseStep, TimelineEntry, Vendor }
 export type Tokens = Record<string, { input: number; output: number; calls: number }>
-export type Health = { ok: boolean; hasModelKey: boolean; hasLiveKey: boolean; mode: "live" | "scripted"; models: { fast: string; careful: string } }
+export type Limits = { pdfBytes: number; pages: number; textChars: number; parseMs: number; batch: number; concurrent: number }
+export type Health = { ok: boolean; hasModelKey: boolean; hasLiveKey: boolean; mode: "live" | "scripted"; models: { fast: string; careful: string }; limits?: Limits }
+/** How a document's text maps back to its original file. A text document has no pages; a PDF has pages and, per line, a page and usually a box. */
+export type DocSource = { format: "text"; fileName: string } | (DocumentSource & { available: boolean })
+/** A document that the server has validated and parsed, and that waits for "Process". Nothing has run on it yet. */
+export type Inspected = { token: string; fileName: string; format: "pdf" | "text"; size: number; chars: number; lines: number; pages: number | null; fileHash: string | null; textHash: string; parser: string | null; warnings: string[]; same: { id: string; fileName: string; match: "file" | "text" } | null; interpretable: boolean; note: string | null }
+export type Sample = { file: string; label: string; pages: number; size: number }
 export type Link = { state: "connecting" | "live" | "reconnecting"; attempts: number }
 export type Action = "approve" | "reject" | "request_verification" | "verify_beneficiary" | "verify_amount" | "reprocess"
 
@@ -100,6 +107,15 @@ export const fetchRecording = async (): Promise<Recording | null> => (await expe
 export const act = async (id: string, action: Action, input: { reason?: string; callbackRef?: string; confirmationRef?: string; resolutions?: { challengeId: string; chosenRef: string }[] } = {}): Promise<PaymentCase> =>
 	expectOk(await post(`/api/cases/${encodeURIComponent(id)}/actions`, { action, ...input }))
 export const addDocument = async (name: string, text: string): Promise<PaymentCase> => expectOk(await post("/api/documents", { name, text }))
+export const inspectDocument = async (doc: { name: string; text: string } | { name: string; pdf: string }): Promise<Inspected> => expectOk(await post("/api/documents/inspect", doc))
+export const processPending = async (token: string): Promise<PaymentCase> => expectOk(await post("/api/documents", { token }))
+export const dropPending = (token: string) => { void fetch(`/api/pending/${encodeURIComponent(token)}`, { method: "DELETE" }).catch(() => {}) }
+export const fetchSamples = async (): Promise<Sample[]> => expectOk(await fetch("/api/samples"))
+export const sampleUrl = (file: string) => `/api/samples/${encodeURIComponent(file)}`
+export const pendingFileUrl = (token: string) => `/api/pending/${encodeURIComponent(token)}/file`
+export const fetchPending = async (token: string): Promise<{ text: string; source: DocSource }> => expectOk(await fetch(`/api/pending/${encodeURIComponent(token)}/text`))
+export const documentFileUrl = (id: string) => `/api/documents/${encodeURIComponent(id)}/file`
+export const fetchSource = async (id: string): Promise<DocSource> => expectOk(await fetch(`/api/documents/${encodeURIComponent(id)}/source`))
 export const draftUrl = (id: string) => `/api/cases/${encodeURIComponent(id)}/draft`
 
 /** The source text of a document on the desk, or (recorded) of a document in the stored execution. */

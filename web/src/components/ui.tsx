@@ -67,7 +67,7 @@ export function Tabs<T extends string>({ value, onChange, tabs, label }: { value
  * A floating panel beside the work, not over it: no scrim on a wide screen, so the page stays readable while a
  * source or an agent is inspected. It leaves the way it came, and can be reopened mid-close without a jump.
  */
-export function Drawer({ open, onClose, title, kicker, label, children }: { open: boolean; onClose: () => void; title: ReactNode; kicker?: ReactNode; label: string; children: ReactNode }) {
+export function Drawer({ open, onClose, title, kicker, label, children, wide }: { open: boolean; onClose: () => void; title: ReactNode; kicker?: ReactNode; label: string; children: ReactNode; wide?: boolean }) {
 	const ref = useRef<HTMLElement>(null)
 	const close = useRef(onClose)
 	close.current = onClose
@@ -98,7 +98,7 @@ export function Drawer({ open, onClose, title, kicker, label, children }: { open
 	return createPortal(
 		<>
 			<div className="drawer-scrim" data-open={open} aria-hidden />
-			<aside className="drawer" ref={ref} data-open={open} inert={!open} aria-label={label}>
+			<aside className="drawer" ref={ref} data-open={open} data-wide={wide ? "" : undefined} inert={!open} aria-label={label}>
 				<div className="drawer-head">
 					<h2 className="grow">{shown?.kicker && <span className="kicker">{shown.kicker}</span>}{shown?.title}</h2>
 					<button type="button" className="btn btn-ghost btn-icon btn-round" aria-label="Close" data-autofocus onClick={() => close.current()}><X size={16} /></button>

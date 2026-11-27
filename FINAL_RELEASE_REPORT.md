@@ -2,6 +2,8 @@
 
 26 November 2026, late evening CET. This report is part of the release committed on top of `0a0fec6`. Everything marked as run was run in this pass; nothing is carried over from earlier reports without being re-run.
 
+> **Added on 27 November 2026.** This report describes the release of 26 November. After it, text-layer PDF intake with page-level evidence was built; where this report says PDF intake was not built, test counts are 114 and browser checks are 17, read `PDF_INTAKE_REPORT.md` for the current state (130 tests, 22 browser checks). Live models remain unverified.
+
 ## A. Summary
 
 | | Status | Evidence |

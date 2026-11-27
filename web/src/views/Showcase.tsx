@@ -351,12 +351,12 @@ function Result({ step, c, mode, snapshot, onRetry, canAct, stage, note, next }:
 			{step.result !== "failed" && (
 				<div className="sc-grid">
 					<section className="panel">
-						<div className="panel-head"><h2>Check it at the source</h2><span className="right">select a reference to open the line or the record</span></div>
+						<div className="panel-head"><h2>Check it at the source</h2><span className="right">{c.pdf ? `${c.fileName} · PDF, ${c.pdf.pages} ${c.pdf.pages === 1 ? "page" : "pages"} · select a reference to open the page` : "select a reference to open the line or the record"}</span></div>
 						<div className="panel-body sc-evidence">
 							{step.key === "beneficiary" && <Compare c={c} chip={ev.chip} />}
 							{(step.key === "challenge") && (amounts || conflict) && (
 								<div className="compare">
-									{amounts ? [amounts.challenged, amounts.observed].map((s, i) => { const e = entry(s.ref); return <div key={i}><span className="k">{e?.doc?.lineStart ? `Line ${e.doc.lineStart} of the document` : s.by}</span><span className="mono v">{s.value}</span><span className="s">{ev.chip(s.ref)} {e?.doc?.excerpt ? <span className="truncate">“{e.doc.excerpt.trim()}”</span> : s.by}</span></div> })
+									{amounts ? [amounts.challenged, amounts.observed].map((s, i) => { const e = entry(s.ref); return <div key={i}><span className="k">{e?.doc?.page != null ? `Page ${e.doc.page}, line ${e.doc.pageLine} of the PDF` : e?.doc?.lineStart ? `Line ${e.doc.lineStart} of the document` : s.by}</span><span className="mono v">{s.value}</span><span className="s">{ev.chip(s.ref)} {e?.doc?.excerpt ? <span className="truncate">“{e.doc.excerpt.trim()}”</span> : s.by}</span></div> })
 										: conflict!.values.slice(0, 2).map((val, i) => { const e = entry(conflict!.refs[i]); return <div key={i}><span className="k">{e?.doc?.lineStart ? `Line ${e.doc.lineStart} of the document` : "Document"}</span><span className="mono v">{val}</span><span className="s">{ev.chip(conflict!.refs[i] ?? null)} {e?.doc?.excerpt ? <span className="truncate">“{e.doc.excerpt.trim()}”</span> : "as reported by the Auditor"}</span></div> })}
 								</div>
 							)}

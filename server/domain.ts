@@ -41,7 +41,28 @@ export type Callback = { ref: string; vendorId: string; iban: string; confirmedA
  */
 export type AmountConfirmation = { ref: string; vendorId: string; invoiceNumber: string; payableAmount: Minor; currency: string; status: "verified" | "unverified"; confirmedAt: string; method: string; confirmedBy: string; version: number }
 
-export type SourceDocument = { id: string; fileName: string; text: string; hash: string; receivedAt: string }
+/**
+ * Where the text of a document comes from when it was not text to begin with. For a PDF: the original file's identity,
+ * its pages, and for every line of the extracted text the page it is on and, where the parser could establish it, the
+ * box it occupies on that page (in page units at scale 1, origin top-left). `box: null` means the page is known and the
+ * exact position is not; nothing is ever estimated.
+ */
+export type SourceLine = { page: number; line: number; box: [number, number, number, number] | null }
+export type DocumentSource = {
+	format: "pdf"
+	fileName: string
+	mime: "application/pdf"
+	size: number
+	/** SHA-256 of the original file. Two files with this hash are the same file whatever they are called. */
+	fileHash: string
+	pages: { n: number; w: number; h: number; rotate: number }[]
+	/** One entry per line of the document text, in order: line n of the text is lines[n - 1]. */
+	lines: SourceLine[]
+	warnings: string[]
+	parser: string
+}
+/** `hash` is over the normalised text, as it always was; `source` is present only for a document that arrived as a PDF. */
+export type SourceDocument = { id: string; fileName: string; text: string; hash: string; receivedAt: string; source?: DocumentSource }
 
 // ───────── evidence ledger ─────────
 
@@ -56,7 +77,10 @@ export type EvidenceEntry = {
 	doc?: {
 		docId: string
 		field: string
-		/** 1-based line range in the plain-text document; null when the quote could not be located. */
+		/** For a PDF: the page the cited line is on and its line number on that page. Set by code from the source map. */
+		page?: number
+		pageLine?: number
+		/** 1-based line range in the document text; null when the quote could not be located. */
 		lineStart: number | null
 		lineEnd: number | null
 		excerpt: string
@@ -275,6 +299,8 @@ export type PaymentCase = {
 	id: string
 	origin: "demo" | "user"
 	fileName: string
+	/** Present when the document arrived as a PDF: enough to show what it is without fetching the source map. */
+	pdf?: { pages: number; size: number; fileHash: string }
 	hash: string
 	receivedAt: string
 	/** Bumped on every write, so a reader can tell two snapshots apart. */

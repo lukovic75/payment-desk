@@ -1,12 +1,13 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { ArrowLeft, ArrowRight, ArrowsClockwise, Bank, CaretRight, CheckCircle, ClockCounterClockwise, DownloadSimple, FileText, Function as Fn, Hourglass, PhoneCall, Prohibit, Scales, SealCheck, ShieldWarning, User, Warning, XCircle } from "@phosphor-icons/react"
-import { act, draftUrl, fetchDocument, type Action, type Challenge, type Control, type DeskSnapshot, type EvidenceEntry, type PaymentCase } from "../lib/api"
+import { act, draftUrl, fetchDocument, type Action, type Challenge, type Control, type DeskSnapshot, type EvidenceEntry, type PaymentCase, documentFileUrl, fetchSource, type DocSource } from "../lib/api"
 import { flagged, isBlocking, isRunning, loopsOf, outcomeOf, titleOf, type AgentName } from "../lib/derive"
 import { cap, clock, day, dueLabel, fieldLabel, iban as fmtIban, money, plain, reduceMotion, words } from "../lib/format"
 import { href, type View } from "../lib/router"
 import { DispositionTag, Prov, Spinner, StageStatus, StatusIcon, dispositionLabel, issueLine } from "./bits"
 import { Timeline } from "./Timeline"
-import { Clamp, Drawer, Figure, Long, Tabs } from "./ui"
+import { Clamp, Drawer, Figure, Long, Tabs, Seg } from "./ui"
+import { PdfView } from "./PdfView"
 
 type Props = { c: PaymentCase; snapshot: DeskSnapshot; view: View; onDecided?: (c: PaymentCase) => void }
 type ChipFn = (id: string | null | undefined) => ReactNode
@@ -34,6 +35,30 @@ const ALWAYS = new Set(["creditorName", "gross", "currency", "iban"])
 
 const docCache = new Map<string, Promise<string>>()
 /** The original text of a document, fetched once per document and shared by every view that shows it. */
+const srcCache = new Map<string, Promise<DocSource>>()
+/** How a document's text maps to its original file, fetched once per document. A recorded case is always text. */
+export function useSource(id: string, recorded = false): DocSource | null {
+	const [src, setSrc] = useState<{ id: string; value: DocSource | null }>({ id, value: null })
+	useEffect(() => {
+		if (recorded) return setSrc({ id, value: { format: "text", fileName: `${id}.txt` } })
+		let gone = false
+		let p = srcCache.get(id)
+		if (!p) { p = fetchSource(id); srcCache.set(id, p); p.catch(() => srcCache.delete(id)) }
+		p.then((value) => !gone && setSrc({ id, value })).catch(() => !gone && setSrc({ id, value: null }))
+		return () => { gone = true }
+	}, [id, recorded])
+	return src.id === id ? src.value : null
+}
+/** Where one piece of evidence sits in a PDF: its page and, when the parser measured it, the box of its line. */
+export function placeOf(src: DocSource | null, e: EvidenceEntry | undefined): { page: number; box: [number, number, number, number] | null } | null {
+	if (!src || src.format !== "pdf" || !e?.doc?.located || e.doc.lineStart == null) return null
+	const first = src.lines[e.doc.lineStart - 1], last = src.lines[(e.doc.lineEnd ?? e.doc.lineStart) - 1]
+	if (!first) return null
+	// a quote that runs over several lines of one page is highlighted as one region; across pages, by page only
+	const box = first.box && last?.box && last.page === first.page ? [Math.min(first.box[0], last.box[0]), first.box[1], Math.max(first.box[2], last.box[2]), last.box[3]] as [number, number, number, number] : first.box
+	return { page: first.page, box: last && last.page !== first.page ? null : box }
+}
+
 export function useDocument(id: string, recorded = false): { text: string | null; error: string | null } {
 	const key = `${recorded ? "rec:" : ""}${id}`
 	const [doc, setDoc] = useState<{ key: string; text: string | null; error: string | null }>({ key, text: null, error: null })
@@ -58,6 +83,7 @@ export function useEvidence(c: PaymentCase) {
 }
 
 export function chipLabel(e: EvidenceEntry): string {
+	if (e.doc?.located && e.doc.page != null) return `p. ${e.doc.page}, line ${e.doc.pageLine}`
 	if (e.doc) return !e.doc.located ? "no source" : e.doc.lineStart === e.doc.lineEnd ? `line ${e.doc.lineStart}` : `lines ${e.doc.lineStart}-${e.doc.lineEnd}`
 	if (e.calc) return "calculation"
 	if (e.id === "P:limit") return "limit"
@@ -87,7 +113,7 @@ export function Inspector({ e, c, chip }: { e: EvidenceEntry; c: PaymentCase; ch
 				<>
 					{e.doc.excerpt ? <blockquote className="quote">{e.doc.excerpt}</blockquote> : <p className="muted">The agent gave no quote for this value.</p>}
 					<dl className="kv">
-						<div><dt>Location</dt><dd>{e.doc.located ? <>{e.doc.docId === c.id ? "this document" : <span className="mono">{e.doc.docId}</span>}, {e.doc.lineStart === e.doc.lineEnd ? `line ${e.doc.lineStart}` : `lines ${e.doc.lineStart} to ${e.doc.lineEnd}`}</> : <span style={{ color: "var(--bad)" }}>the quote was not found in the document</span>}</dd></div>
+						<div><dt>Location</dt><dd>{e.doc.located ? <>{e.doc.docId === c.id ? "this document" : <span className="mono">{e.doc.docId}</span>}, {e.doc.page != null ? `page ${e.doc.page}, line ${e.doc.pageLine} of the PDF` : e.doc.lineStart === e.doc.lineEnd ? `line ${e.doc.lineStart}` : `lines ${e.doc.lineStart} to ${e.doc.lineEnd}`}</> : <span style={{ color: "var(--bad)" }}>the quote was not found in the document</span>}</dd></div>
 						{e.doc.original != null && <div><dt>As written</dt><dd className="mono">{e.doc.original}</dd></div>}
 						{e.doc.normalized != null && <div><dt>Normalised</dt><dd className="mono">{e.doc.normalized}</dd></div>}
 						{e.doc.retypedFrom && <div><dt>Agent typed</dt><dd><span className="mono">{e.doc.retypedFrom}</span> <span style={{ color: "var(--warn)" }}>which is not what the line says. The desk read the account number from the quoted line itself.</span></dd></div>}
@@ -133,10 +159,19 @@ function Excerpt({ text, from, to }: { text: string; from: number; to: number })
 export function EvidenceDrawer({ c, sel, open, onClose, chip, onFullDocument, recorded }: { c: PaymentCase; sel: string | null; open: boolean; onClose: () => void; chip: ChipFn; onFullDocument?: () => void; recorded?: boolean }) {
 	const e = sel ? c.ledger[sel] : undefined
 	const doc = useDocument(c.id, recorded)
+	const src = useSource(c.id, recorded)
 	const here = e?.doc && e.doc.located && e.doc.docId === c.id
+	const place = here ? placeOf(src, e) : null
+	const pdf = src?.format === "pdf" ? src : null
 	return (
-		<Drawer open={open && e != null} onClose={onClose} label="Evidence" kicker={e ? CATEGORY[e.category] : ""} title={e?.label ?? ""}>
+		<Drawer open={open && e != null} onClose={onClose} label="Evidence" kicker={e ? CATEGORY[e.category] : ""} title={e?.label ?? ""} wide={pdf != null && place != null}>
 			{e && <Inspector e={e} c={c} chip={chip} />}
+			{pdf && place && (pdf.available ? (
+				<>
+					<p className="fine pdf-note">{place.box ? <>Highlighted on page {place.page} of <span className="mono">{pdf.fileName}</span>, where the parser found this line.</> : <>On page {place.page} of <span className="mono">{pdf.fileName}</span>. The exact position on the page could not be established, so nothing is highlighted; the line is quoted below.</>}</p>
+					<PdfView url={documentFileUrl(c.id)} pages={pdf.pages} page={place.page} highlight={place.box} label={`Original document ${pdf.fileName}`} />
+				</>
+			) : <p className="fine pdf-note">The original PDF is no longer available on this desk. The extracted text and this reference are kept; nothing is shown in its place.</p>)}
 			{here && doc.text != null && <Excerpt text={doc.text} from={e!.doc!.lineStart!} to={e!.doc!.lineEnd ?? e!.doc!.lineStart!} />}
 			{here && doc.error && <p className="fine">The source lines could not be loaded: {doc.error}</p>}
 			{here && onFullDocument && <button type="button" className="btn" style={{ justifySelf: "start" }} onClick={onFullDocument}><FileText size={14} /> Show in the full document</button>}
@@ -167,6 +202,9 @@ export function PaymentDetail({ c, snapshot, view, onDecided }: Props) {
 	const [tab, setTab] = useState<Tab>("overview")
 	const ev = useEvidence(c)
 	const doc = useDocument(c.id)
+	const source = useSource(c.id)
+	const pdfSrc = source?.format === "pdf" ? source : null
+	const [docView, setDocView] = useState<"pdf" | "text">("pdf")
 	const docRef = useRef<HTMLPreElement>(null)
 	const { sel, chip, chips } = ev
 
@@ -443,8 +481,17 @@ export function PaymentDetail({ c, snapshot, view, onDecided }: Props) {
 								</div>
 							</section>
 							<section className="block ev-doc">
-								<div className="block-h"><FileText size={15} /><h3>Source document</h3><span className="right">{hl ? (hl.from === hl.to ? `line ${hl.from}` : `lines ${hl.from} to ${hl.to}`) : cited.size ? `${cited.size} lines cited` : c.fileName}</span></div>
-								<div className="docbox">
+								<div className="block-h"><FileText size={15} /><h3>Source document</h3><span className="right">{hl && entry?.doc?.page != null ? `page ${entry.doc.page}, line ${entry.doc.pageLine}` : hl ? (hl.from === hl.to ? `line ${hl.from}` : `lines ${hl.from} to ${hl.to}`) : cited.size ? `${cited.size} lines cited` : c.fileName}</span></div>
+								{pdfSrc && (
+									<div className="doc-switch">
+										<Seg value={docView} onChange={setDocView} label="How to show the document" options={[{ value: "pdf", label: "Original PDF" }, { value: "text", label: "Extracted text" }]} />
+										<span className="fine">{pdfSrc.pages.length} {pdfSrc.pages.length === 1 ? "page" : "pages"} · {Math.max(1, Math.round(pdfSrc.size / 1000))} kB · read by {pdfSrc.parser}</span>
+									</div>
+								)}
+								{pdfSrc && docView === "pdf" && (pdfSrc.available
+									? <PdfView url={documentFileUrl(c.id)} pages={pdfSrc.pages} page={placeOf(pdfSrc, entry)?.page ?? 1} highlight={placeOf(pdfSrc, entry)?.box ?? null} label={`Original document ${pdfSrc.fileName}`} />
+									: <p className="fine">The original PDF is no longer available on this desk. The extracted text is kept.</p>)}
+								<div className="docbox" hidden={pdfSrc != null && docView === "pdf"}>
 									{doc.error && <div className="errbox" style={{ margin: 12 }}>{doc.error}</div>}
 									{doc.text == null && !doc.error && <div style={{ display: "grid", gap: 8, padding: 14 }}><div className="skel" style={{ height: 13, width: "70%" }} /><div className="skel" style={{ height: 13, width: "92%" }} /><div className="skel" style={{ height: 13, width: "54%" }} /></div>}
 									{doc.text != null && (
@@ -458,7 +505,7 @@ export function PaymentDetail({ c, snapshot, view, onDecided }: Props) {
 											</span>
 										</pre>
 									)}
-									<div className="doc-foot">Untrusted content. Hash <span className="mono">{c.hash.slice(0, 16)}…</span></div>
+									<div className="doc-foot">Untrusted content. {pdfSrc ? "Text hash" : "Hash"} <span className="mono">{c.hash.slice(0, 16)}…</span>{pdfSrc && <> · file hash <span className="mono">{pdfSrc.fileHash.slice(0, 16)}…</span></>}</div>
 								</div>
 							</section>
 						</div>

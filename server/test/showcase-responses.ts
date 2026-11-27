@@ -52,7 +52,7 @@ export const SHOWCASE_RESPONSES: Pick<Script, "audits" | "validations" | "invest
 				{ text: "The IBAN on the document is the one on file for vendor V-001.", refs: ["X:iban", "V:V-001"] },
 				{ text: "The amount is under the 2,500.00 limit for automatic approval, so the limit is not the reason this is held.", refs: ["C:limit"] },
 			],
-			conflictingEvidence: [{ text: "The cover text (line 7) asks for EUR 1,980.00. The invoice total (line 23) is EUR 1,890.00. The difference is 90.00.", refs: ["A:conflict:1:1", "A:conflict:1:2", "D:stated:7", "X:gross"] }],
+			conflictingEvidence: [{ text: "The covering note asks for EUR 1,980.00. The invoice total is EUR 1,890.00. The difference is 90.00.", refs: ["A:conflict:1:1", "A:conflict:1:2", "X:gross"] }],
 			explanation: "The document states two different payable amounts. The invoice figure agrees with its line items; the cover text does not. Nothing in the trusted records says which amount the vendor is owed.",
 			unknowns: ["Which amount the vendor is owed. The document alone cannot settle it.", "Why the cover text differs. No record says why."],
 			recommendedSteps: ["Ask the vendor for a corrected document, or a written confirmation of the amount due.", "Do not pay either amount on the strength of this document alone."],

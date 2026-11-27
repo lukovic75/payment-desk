@@ -1,6 +1,6 @@
 # Hackathon scorecard
 
-A self-assessment of Payment Desk against the four judging criteria of the JigJoy Black Friday AI Hackathon, track *Agents in Finance*. Written by the team, on 26 November 2026, and revised for the final release.
+A self-assessment of Payment Desk against the four judging criteria of the JigJoy Black Friday AI Hackathon, track *Agents in Finance*. Written by the team, on 26 November 2026, revised for the final release and again on 27 November for PDF intake.
 
 **This is not an official score.** The points in the "Self-assessment" lines are our own estimate of where we stand, given to make the gaps visible. The jury decides.
 
@@ -11,8 +11,8 @@ Every claim below names the file that implements it and the evidence that it wor
 | Check | Result |
 |---|---|
 | `npm run typecheck` (server and UI) | passes |
-| `npm test` | 114 of 114 pass, about 4 seconds, nine files, on Node 20.20.2, 22.23.5 and 26.8.2 (see `QA_REPORT.md`, `AGENT_INTELLIGENCE_REPORT.md` and `TEST_MATRIX.md` for what they cover) |
-| `npm run test:browser` | 17 of 17 browser checks of the interactive showcase, headless Chrome against the scripted server |
+| `npm test` | 130 of 130 pass, about 45 seconds, ten files, on Node 20.20.2, 22.23.5 and 26.8.2 (see `QA_REPORT.md`, `AGENT_INTELLIGENCE_REPORT.md` and `TEST_MATRIX.md` for what they cover) |
+| `npm run test:browser` | 22 of 22 browser checks of the interactive showcase and PDF intake, headless Chrome against the scripted server |
 | Clean copy of the repository files | `npm ci` (npm 10.8.2 and 11.19.1), typecheck, tests, build, lab, `npm run demo` and the browser checks all pass with no `.env`, no saved state and no build output |
 | GitHub Actions | `.github/workflows/ci.yml`, Node 20 and 22 on Linux: **passed** on commit `4c5b2ba`. The first run failed at `npm ci` and exposed a lockfile that npm 10 rejected; that run is in the history |
 | Scripted showcase (`npm run demo`) | four scenarios, each ending as `scenarios.json` expects; looked at in dark and light, phone to wide desktop |
@@ -34,15 +34,16 @@ Every claim below names the file that implements it and the evidence that it wor
 - Human review that is enforced on the server: approve, reject, request verification, verify a beneficiary change against a callback record, settle a conflicting amount with a vendor confirmation, run again. A blocked payment cannot be approved.
 - Resolution, not only detection: a document that states two amounts is settled by a trusted record that is independent of the document, matched to the vendor, the invoice, the currency and the amount. A record that states the other amount blocks the payment. A reviewer's statement without a record is accepted and labelled as not verified.
 - A guided showcase that tells this as one story in four scenarios, with no key (`npm run demo`).
+- Document intake for text and text-layer PDF: several files at once, validated and parsed on this machine, previewed as the original, processed only on request. Every located figure carries its page and line and opens the original page with the cited line marked.
 - Exposure reporting that does not overclaim: "blocked payment exposure" per currency, never "money saved".
 
 **Where**: `server/desk.ts` (workflow, human actions), `server/firewall.ts` (controls), `server/draft.ts`, `web/src/components/PaymentDetail.tsx`, `web/src/views/Overview.tsx`.
 
-**Evidence**: `server/test/workflow.test.ts` tests 1 to 18b; `server/test/http.test.ts` drives the ten workflow stages over HTTP; `server/test/resolution.test.ts` (twelve tests on resolving with a record and on what cannot stand in for one); stress scenarios S01 to S09 and S12; the browser checks walk the four scenarios and the resolution.
+**Evidence**: `server/test/workflow.test.ts` tests 1 to 18b; `server/test/http.test.ts` drives the ten workflow stages over HTTP; `server/test/resolution.test.ts` (twelve tests on resolving with a record and on what cannot stand in for one); stress scenarios S01 to S09 and S12; the browser checks walk the four scenarios, the resolution and PDF intake; `server/test/pdf.test.ts` (sixteen tests: parsing, refusals, the same decision for five invoices as text and as PDF, the financial controls on PDFs).
 
-**Limitations**: sandbox only; the draft is JSON, not ISO 20022; plain-text documents, no PDF or OCR; one reviewer, no roles or four-eyes; vendor matching is token overlap; sixteen synthetic documents, one synthetic company; callback and confirmation records are fixtures, so the step of actually obtaining them from a vendor is outside the application. No measured saving of time or money exists, and none is claimed.
+**Limitations**: sandbox only; the draft is JSON, not ISO 20022; text and text-layer PDF only, no OCR, simple reading order, and PDFs outside the synthetic set never run through live models; one reviewer, no roles or four-eyes; vendor matching is token overlap; sixteen synthetic documents, one synthetic company; callback and confirmation records are fixtures, so the step of actually obtaining them from a vendor is outside the application. No measured saving of time or money exists, and none is claimed.
 
-**Self-assessment: 24 of 30.** The workflow and the controls are real and complete for the scope. What holds it back is distance from a real finance stack: no ERP or bank connection, no document parsing beyond text.
+**Self-assessment: 25 of 30** (24 before PDF intake). The workflow and the controls are real and complete for the scope, and an invoice can now arrive the way invoices do. What holds it back is distance from a real finance stack: no ERP or bank connection, no scanned documents, and PDF interpretation shown only on synthetic fixtures.
 
 ## 2. Multi-agent architecture on Mozaik — 30 points
 
@@ -70,7 +71,7 @@ Every claim below names the file that implements it and the evidence that it wor
 **What is implemented**
 
 - Runs from the README: `npm ci` and `npm run demo` for the guided showcase with no key, `npm test` and `npm run lab`, or `.env` plus `npm run dev` for live agents. `DEMO_GUIDE.md` is a ten-minute walkthrough.
-- 114 automated tests in nine files: unit, workflow on the real runtime, financial safety at the edges, malformed and wrong model output, provider failures, cross-agent challenges, the showcase and its isolation, resolution with trusted records, Stress Lab, and the real server over HTTP under normal and hostile use. Seventeen browser checks of the showcase. A CI workflow for Node 20 and 22.
+- 130 automated tests in ten files: unit, workflow on the real runtime, financial safety at the edges, malformed and wrong model output, provider failures, cross-agent challenges, the showcase and its isolation, resolution with trusted records, Stress Lab, and the real server over HTTP under normal and hostile use. Sixteen of them on PDF intake. Twenty-two browser checks of the showcase and PDF intake. A CI workflow for Node 20 and 22.
 - The server listens on the local machine only and refuses requests from other sites, so a page open in the same browser cannot start a run that spends model credit.
 - A deterministic path that needs no credentials and a live path, labelled apart in the UI, the CLI, the API and the reports.
 - Failure handling: bounded retries, loop timeouts, fail-closed stages, recoverable cases, persistence across restarts, a heartbeat on the event stream, honest error states in the UI.
@@ -106,11 +107,11 @@ Every claim below names the file that implements it and the evidence that it wor
 
 ## Self-assessment total
 
-**A. On what is verified today: 82 of 100, self-assessed, not an official score** (24 + 25 + 20 + 13).
+**A. On what is verified today: 83 of 100, self-assessed, not an official score** (25 + 25 + 20 + 13). One point more than before PDF intake, in criterion 1.
 
-**B. If the current version runs cleanly with live models and the benchmark completes: perhaps 86 to 90.** The range, not a number, because it depends on what those runs show. A clean live showcase and Stress Lab would mostly lift criteria 2 and 3 (to about 27 and 22). The benchmark can go either way: if one agent does as well as five on these scenarios, criterion 2 does not move, and the honest argument becomes independence and auditability rather than accuracy.
+**B. If the current version runs cleanly with live models and the benchmark completes: perhaps 87 to 91.** The range, not a number, because it depends on what those runs show. A clean live showcase and Stress Lab would mostly lift criteria 2 and 3 (to about 27 and 22). The benchmark can go either way: if one agent does as well as five on these scenarios, criterion 2 does not move, and the honest argument becomes independence and auditability rather than accuracy.
 
-What keeps it from full marks under either reading: text documents only and fixture records (criterion 1), no measured advantage of the architecture (criterion 2), no live observation of the final version (2 and 3), and values that code cannot check mechanically (4). The spread is deliberate: the points we do not give ourselves are almost all for things that are built but not yet observed against live models.
+What keeps it from full marks under either reading: no scanned documents, PDF interpretation shown only on synthetic fixtures, and fixture records (criterion 1), no measured advantage of the architecture (criterion 2), no live observation of the final version (2 and 3), and values that code cannot check mechanically (4). The spread is deliberate: the points we do not give ourselves are almost all for things that are built but not yet observed against live models.
 
 ## What could make a knowledgeable judge deduct points
 
@@ -118,7 +119,7 @@ What keeps it from full marks under either reading: text documents only and fixt
 |---|---|---|
 | No run with live models on the final version; no live Stress Lab | Multi-agent, Working implementation | Provider credit. The scripted demo proves orchestration and controls, not model behaviour |
 | The benchmark has never completed, so the value of five agents over one is argued, not measured | Multi-agent | Same blocker |
-| Text documents only | Financial usefulness | PDF intake was left out of the final sprint on purpose |
+| PDF support is text layer only, and shown on synthetic single-column invoices | Financial usefulness | No OCR in this build; interpreting an arbitrary PDF needs live models, which are blocked |
 | Trusted records for resolution are fixtures | Financial usefulness | Obtaining a confirmation from a vendor is outside the sandbox |
 | One synthetic company, sixteen documents | Financial usefulness, Integrity | Scope of a two-day build |
 | CI is one workflow without the browser checks | Working implementation | The browser suite was not tried on a runner |
@@ -130,7 +131,7 @@ What keeps it from full marks under either reading: text documents only and fixt
 | 1 | Top up API credit; run the demo documents, `npm run lab:live` and `npm run lab:benchmark`; put the recorded results in the README | It converts "built" into "observed" for three of the four criteria, and the benchmark answers the question a jury will ask about multi-agent | blocked on credit; needs no code |
 | 2 | Act on what the benchmark shows, whichever way it goes | If one agent does as well, say so and argue the case on independence and auditability; if not, the numbers make the argument | after 1 |
 | 3 | Rehearse the three-minute demonstration against live models | Timings in the walkthrough are estimates | after 1 |
-| 4 | Automated browser tests beyond the showcase | The showcase has a smoke suite of seventeen checks; the rest of the UI is checked by hand | partly done |
-| 5 | Schema-validated ISO 20022 output; roles and four-eyes approval; PDF input | Distance from a real finance stack | out of scope for the hackathon |
+| 4 | Automated browser tests beyond the showcase | The showcase and PDF intake have a smoke suite of twenty-two checks; the rest of the UI is checked by hand | partly done |
+| 5 | Schema-validated ISO 20022 output; roles and four-eyes approval; OCR for scanned documents | Distance from a real finance stack | out of scope for the hackathon |
 
 Implemented in this round from the previous version of this list: evidence integrity verification with a blocking gate; the Stress Lab with isolated execution; the single-agent baseline and benchmark arithmetic; execution ids and a per-scenario execution record; audit report export; the first-visit guide; an HTTP end-to-end test; the fix for leftover loops.

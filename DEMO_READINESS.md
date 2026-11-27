@@ -6,6 +6,7 @@
 |---|---|
 | **Scripted showcase** | **Ready.** Verified end to end in a browser and by automated checks |
 | **Live showcase** | **Blocked, not verified on this version.** The provider account has no credit; the last live call (26 Nov, 23:38 CET) was refused |
+| **PDF intake (text layer)** | **Ready in the scripted demo** for the registered synthetic PDFs: parsing, page evidence, the original page with the cited line marked. Verified by tests and in a browser. **With live models: not verified** |
 | **Recorded execution** | Available. A stored live run of an earlier version, three of five scenarios complete |
 
 **Scripted showcase ready. Current live-model execution unverified.**
@@ -23,7 +24,7 @@ npm run demo             # builds the UI, serves it on http://localhost:8799
 |---|---|---|---|---|
 | Legitimate invoice | `INV-2026-1041` | AUTO_APPROVED | AUTO_APPROVED, sandbox draft | test, browser |
 | Changed account | `INV-ES-55820` | BLOCKED | BLOCKED, challenge against the vendor master | test, browser |
-| Agents disagree | `INV-2026-1049` | NEEDS_APPROVAL or BLOCKED | NEEDS_APPROVAL, one cross-check raised by the Auditor, Investigator called | test, browser |
+| Agents disagree | `INV-2026-1049`, as a two-page PDF | NEEDS_APPROVAL or BLOCKED | NEEDS_APPROVAL, one cross-check raised by the Auditor, Investigator called | test, browser |
 | …resolved with a vendor confirmation | `VC-2026-1126-01` | | cross-check matched to a trusted record, a person approves, sandbox draft citing the record | test, browser |
 | Duplicate payment | `INV-7701-rappel` | BLOCKED | BLOCKED, cites payment `H-0001` | test, browser |
 | Prompt injection (optional) | `INV-ADR-0101` | NEEDS_APPROVAL | NEEDS_APPROVAL | test |
@@ -31,10 +32,10 @@ npm run demo             # builds the UI, serves it on http://localhost:8799
 | Check | Result |
 |---|---|
 | `npm run typecheck` | pass |
-| `npm test` | 114 of 114, nine files, about 4 seconds; also on Node 20.20.2 and 22.23.5 |
+| `npm test` | 130 of 130, ten files, about 45 seconds (the PDF tests parse real files); also on Node 20.20.2 and 22.23.5 |
 | `npm run lab` | 12 of 12 scenarios |
 | `npm run build` | pass |
-| `npm run test:browser` | 17 of 17: startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
+| `npm run test:browser` | 22 of 22: PDF evidence on its page with the line marked, document intake (sample parsed, previewed, processed on request; refusals; an unregistered document; a duplicate), and startup, navigation, one entry point, mode labelling, four scenarios, evidence at its source line, the agent challenge, resolution with a vendor confirmation, summary, no approve action on a blocked payment, execution proof, exit, appearance, recorded view, provider failure |
 | Looked at in a browser | Opening, each scenario, both drawers, summary, recorded view and failure state; dark and light; 375, 768, 1024, 1280, 1440 and 1920 px wide with no horizontal overflow; reduced motion |
 
 What the scripted demonstration does not show: anything about a language model. The agents' answers are fixed text.
@@ -82,7 +83,8 @@ It is evidence that the workflow ran with live models once. It is not verificati
 - **Local only.** The server listens on 127.0.0.1, refuses requests from other sites and foreign hostnames, and has no sign-in. Hosting it publicly is out of scope.
 - **Browser checks are a smoke suite**, run with `npm run test:browser`, not part of `npm test` or of CI.
 - **CI** passed on commit `4c5b2ba` (Node 20 and 22, Linux): install, types, tests, build, Stress Lab. Its first run failed at `npm ci` and found a lockfile that npm 10 rejected, which is fixed. They need Node 22 or newer and a local Chrome or Chromium.
-- No sign-in; text documents only; one JSON state file; drafts are JSON, not ISO 20022.
+- **PDF: text layer only, no OCR.** Reading order is top to bottom; a multi-column layout can be read interleaved. The marker covers a line, where the parser measured one. Interpreting a PDF that is not a registered fixture needs live models and is unverified.
+- No sign-in; one JSON state file; drafts are JSON, not ISO 20022.
 
 ## Recommended sequence
 

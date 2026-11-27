@@ -23,6 +23,7 @@ const { scriptedModel } = await import("./scripted.js")
 const { READINGS } = await import("./fixtures.js")
 const { SHOWCASE_RESPONSES } = await import("./showcase-responses.js")
 
+await desk.prepare() // the third scenario runs on its PDF, as it does on the server
 const DOCS = Object.fromEntries(loadDocuments().map((d) => [d.id, d]))
 const scripted = (extra: Record<string, unknown> = {}) => scriptedModel({ readings: READINGS, policy: "AUTO_APPROVED", ...SHOWCASE_RESPONSES, ...extra })
 const fresh = (extra: Record<string, unknown> = {}) => { desk.resetDesk(); desk.setModelRunner(scripted(extra), "scripted") }
@@ -54,6 +55,10 @@ test("the four scenarios run one at a time and each result is the outcome the co
 	const amounts = desk.peek("INV-2026-1049").challenges!.filter((k) => k.category === "document_contradiction")
 	assert.deepEqual(amounts.map((k) => [k.raisedBy, k.challenged.value, k.observed.value, k.status]), [["Auditor", "1980.00", "1890.00", "requires_human_verification"]])
 	assert.ok(desk.peek("INV-2026-1049").runs.some((r) => r.agent === "Investigator"), "the disagreement reached the Investigator")
+	const third = desk.peek("INV-2026-1049")
+	assert.deepEqual([third.fileName, third.pdf?.pages], ["INV-2026-1049.pdf", 2], "the scenario ran on the two-page PDF")
+	assert.deepEqual(amounts.map((k) => [third.ledger[k.challenged.ref!]!.doc!.page, third.ledger[k.observed.ref!]!.doc!.page]), [[1, 2]], "each amount is cited on its own page")
+	assert.equal(desk.peek("INV-2026-1041").pdf, undefined, "the other scenarios are text documents")
 	const dup = desk.peek("INV-7701-rappel").controls.find((k) => k.id === "duplicate")!
 	assert.equal(dup.status, "fail")
 	assert.ok(dup.refs.includes("H:H-0001"), "the duplicate cites the payment history record")

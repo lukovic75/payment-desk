@@ -1,0 +1,125 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 2124 >>
+stream
+0.2 g
+0 836 595 6 re f
+0.1 g
+BT /F2 15 Tf 56.00 768 Td (NORDLICHT LOGISTIK GmbH) Tj ET
+0.35 g
+BT /F1 9 Tf 56.00 750 Td (Hafenstraﬂe 12, 20457 Hamburg, Germany) Tj ET
+0.35 g
+BT /F1 9 Tf 56.00 737 Td (VAT ID: DE811234567) Tj ET
+0.1 g
+BT /F2 15 Tf 474.85 768 Td (INVOICE) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 678 Td (Invoice number:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 678 Td (INV-2026-1041) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 662 Td (Invoice date:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 662 Td (18 November 2026) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 646 Td (Due date:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 646 Td (18 December 2026) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 630 Td (Customer:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 630 Td (Kestrel Retail d.o.o., Belgrade) Tj ET
+0.93 g
+56 585 483 20 re f
+0.1 g
+BT /F2 9 Tf 64.00 592 Td (Description) Tj ET
+0.1 g
+BT /F2 9 Tf 355.50 592 Td (Qty) Tj ET
+0.1 g
+BT /F2 9 Tf 426.00 592 Td (Unit) Tj ET
+0.1 g
+BT /F2 9 Tf 503.50 592 Td (Total) Tj ET
+0.1 g
+BT /F1 10 Tf 64.00 568 Td (Freight Hamburg -> Belgrade, 3 pallets) Tj ET
+0.1 g
+BT /F1 10 Tf 366.44 568 Td (3) Tj ET
+0.1 g
+BT /F1 10 Tf 417.42 568 Td (410.00) Tj ET
+0.1 g
+BT /F1 10 Tf 492.08 568 Td (1,230.00) Tj ET
+0.88 G
+0.5 w
+56 561 m 539 561 l S
+0.1 g
+BT /F1 10 Tf 64.00 547 Td (Customs handling) Tj ET
+0.1 g
+BT /F1 10 Tf 366.44 547 Td (1) Tj ET
+0.1 g
+BT /F1 10 Tf 417.42 547 Td (185.00) Tj ET
+0.1 g
+BT /F1 10 Tf 500.42 547 Td (185.00) Tj ET
+0.88 G
+0.5 w
+56 540 m 539 540 l S
+0.1 g
+BT /F1 10 Tf 338.00 516 Td (Net) Tj ET
+0.1 g
+BT /F1 10 Tf 492.08 516 Td (1,415.00) Tj ET
+0.1 g
+BT /F1 10 Tf 338.00 499 Td (VAT 0% \(reverse charge\)) Tj ET
+0.3 G
+0.5 w
+330 495 m 539 495 l S
+0.1 g
+BT /F2 11 Tf 338.00 482 Td (TOTAL EUR) Tj ET
+0.1 g
+BT /F2 11 Tf 488.19 482 Td (1,415.00) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 442 Td (Please pay to:) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 426 Td (IBAN: DE89 3704 0044 0532 0130 00) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 410 Td (BIC: COBADEFFXXX) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 394 Td (Payment reference: INV-2026-1041) Tj ET
+0.75 G
+0.5 w
+56 52 m 539 52 l S
+0.5 g
+BT /F1 8 Tf 56.00 36 Td (Synthetic document for the Payment Desk sandbox. Not a real invoice.) Tj ET
+
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Title (INV-2026-1041 \(synthetic\)) /Producer (Payment Desk synthetic fixture) >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000320 00000 n 
+0000002496 00000 n 
+0000002632 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R /Info 7 0 R >>
+startxref
+2733
+%%EOF

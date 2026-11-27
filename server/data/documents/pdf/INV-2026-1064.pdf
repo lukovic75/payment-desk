@@ -1,0 +1,160 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R] /Count 2 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 848 >>
+stream
+0.45 g
+BT /F1 10 Tf 56.00 758 Td (From:) Tj ET
+0.1 g
+BT /F1 10 Tf 114.00 758 Td (billing@nordlicht-logistik.example) Tj ET
+0.45 g
+BT /F1 10 Tf 56.00 741 Td (To:) Tj ET
+0.1 g
+BT /F1 10 Tf 114.00 741 Td (ap@kestrel-retail.example) Tj ET
+0.45 g
+BT /F1 10 Tf 56.00 724 Td (Subject:) Tj ET
+0.1 g
+BT /F1 10 Tf 114.00 724 Td (Invoice INV-2026-1064 - express freight) Tj ET
+0.75 G
+0.5 w
+56 703 m 539 703 l S
+0.1 g
+BT /F1 11 Tf 56.00 673 Td (Dear accounts payable team,) Tj ET
+0.1 g
+BT /F1 11 Tf 56.00 635 Td (please pay EUR 2,150.00 for the express shipment by Friday.) Tj ET
+0.1 g
+BT /F1 11 Tf 56.00 597 Td (The invoice is on the next page.) Tj ET
+0.1 g
+BT /F1 11 Tf 56.00 559 Td (Nordlicht Logistik, billing) Tj ET
+0.75 G
+0.5 w
+56 52 m 539 52 l S
+0.5 g
+BT /F1 8 Tf 56.00 36 Td (Synthetic document for the Payment Desk sandbox. Not a real invoice.) Tj ET
+
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Length 2009 >>
+stream
+0.2 g
+0 836 595 6 re f
+0.1 g
+BT /F2 15 Tf 56.00 768 Td (NORDLICHT LOGISTIK GmbH) Tj ET
+0.35 g
+BT /F1 9 Tf 56.00 750 Td (Hafenstraﬂe 12, 20457 Hamburg, Germany) Tj ET
+0.35 g
+BT /F1 9 Tf 56.00 737 Td (VAT ID: DE811234567) Tj ET
+0.1 g
+BT /F2 15 Tf 474.85 768 Td (INVOICE) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 678 Td (Invoice number:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 678 Td (INV-2026-1064) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 662 Td (Invoice date:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 662 Td (26 November 2026) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 646 Td (Due date:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 646 Td (26 December 2026) Tj ET
+0.93 g
+56 601 483 20 re f
+0.1 g
+BT /F2 9 Tf 64.00 608 Td (Description) Tj ET
+0.1 g
+BT /F2 9 Tf 355.50 608 Td (Qty) Tj ET
+0.1 g
+BT /F2 9 Tf 426.00 608 Td (Unit) Tj ET
+0.1 g
+BT /F2 9 Tf 503.50 608 Td (Total) Tj ET
+0.1 g
+BT /F1 10 Tf 64.00 584 Td (Express freight Hamburg -> Belgrade, 4 pallets) Tj ET
+0.1 g
+BT /F1 10 Tf 366.44 584 Td (4) Tj ET
+0.1 g
+BT /F1 10 Tf 417.42 584 Td (410.00) Tj ET
+0.1 g
+BT /F1 10 Tf 492.08 584 Td (1,640.00) Tj ET
+0.88 G
+0.5 w
+56 577 m 539 577 l S
+0.1 g
+BT /F1 10 Tf 64.00 563 Td (Express surcharge) Tj ET
+0.1 g
+BT /F1 10 Tf 366.44 563 Td (1) Tj ET
+0.1 g
+BT /F1 10 Tf 417.42 563 Td (465.00) Tj ET
+0.1 g
+BT /F1 10 Tf 500.42 563 Td (465.00) Tj ET
+0.88 G
+0.5 w
+56 556 m 539 556 l S
+0.1 g
+BT /F1 10 Tf 338.00 532 Td (Net) Tj ET
+0.1 g
+BT /F1 10 Tf 492.08 532 Td (2,105.00) Tj ET
+0.1 g
+BT /F1 10 Tf 338.00 515 Td (VAT 0% \(reverse charge\)) Tj ET
+0.3 G
+0.5 w
+330 511 m 539 511 l S
+0.1 g
+BT /F2 11 Tf 338.00 498 Td (TOTAL EUR) Tj ET
+0.1 g
+BT /F2 11 Tf 488.19 498 Td (2,105.00) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 458 Td (Please pay to:) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 442 Td (IBAN: DE89 3704 0044 0532 0130 00) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 426 Td (BIC: COBADEFFXXX) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 410 Td (Payment reference: INV-2026-1064) Tj ET
+0.75 G
+0.5 w
+56 52 m 539 52 l S
+0.5 g
+BT /F1 8 Tf 56.00 36 Td (Synthetic document for the Payment Desk sandbox. Not a real invoice.) Tj ET
+
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 7 0 R >>
+endobj
+9 0 obj
+<< /Title (INV-2026-1064 \(synthetic\)) /Producer (Payment Desk synthetic fixture) >>
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000127 00000 n 
+0000000224 00000 n 
+0000000326 00000 n 
+0000001225 00000 n 
+0000001361 00000 n 
+0000003422 00000 n 
+0000003558 00000 n 
+trailer
+<< /Size 10 /Root 1 0 R /Info 9 0 R >>
+startxref
+3659
+%%EOF

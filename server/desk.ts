@@ -11,7 +11,7 @@
  *
  * Nobody calls an agent in sequence. Each agent is a Mozaik participant that reacts to semantic events.
  */
-import { randomUUID } from "node:crypto"
+import { createHash, randomUUID } from "node:crypto"
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs"
 import { homedir } from "node:os"
 import { dirname, join as joinPath } from "node:path"
@@ -27,8 +27,9 @@ import type {
 	Reading, ReviewEntry, SourceDocument, TimelineEntry, Validation,
 } from "./domain.js"
 import { emptyStep, nowIso, outcomeOf } from "./domain.js"
-import type { OutputCheck, ProviderBlock, Recording, Resolution, Showcase } from "./domain.js"
-import { contentHash, countInboxFiles, locate, loadCallbacks, loadConfirmations, loadDocuments, loadHistory, loadPolicy, loadPurchaseOrders, loadScenarios, loadVendors } from "./data.js"
+import type { DocumentSource, OutputCheck, ProviderBlock, Recording, Resolution, Showcase } from "./domain.js"
+import { LIMITS, parsePdf } from "./pdf.js"
+import { DATA_DIR, contentHash, countInboxFiles, locate, loadCallbacks, loadConfirmations, loadDocuments, loadHistory, loadPolicy, loadPurchaseOrders, loadScenarios, loadVendors } from "./data.js"
 import { buildDraft } from "./draft.js"
 import { STRICTNESS, alnum, buildReading, evaluate, matchVendor, stricter, type FirewallContext, type ReadingInput } from "./firewall.js"
 import { checkIntegrity } from "./integrity.js"
@@ -45,7 +46,7 @@ export const REVIEWER = "Demo reviewer"
 const LOOP_TIMEOUT_MS = Number(process.env.AGENT_TIMEOUT_MS ?? 90_000)
 const MAX_RETRIES = 1
 const RETRY_DELAY_MS = Number(process.env.DESK_RETRY_DELAY_MS ?? 800)
-const MAX_DOCUMENT_CHARS = 20_000
+const MAX_DOCUMENT_CHARS = LIMITS.textChars
 
 export class DeskError extends Error {
 	constructor(readonly status: number, message: string) { super(message) }
@@ -87,12 +88,21 @@ function emit(type: string, payload: unknown) {
 	const e = { type, at: nowIso(), payload }
 	for (const l of listeners) l(e)
 }
+/** Marks every located document reference with the page and page line it is on, read from the document's own source map. */
+function annotate(c: PaymentCase) {
+	for (const e of Object.values(c.ledger)) {
+		if (!e.doc?.located || e.doc.lineStart == null) continue
+		const at = state.documents.get(e.doc.docId)?.source?.lines[e.doc.lineStart - 1]
+		if (at) { e.doc.page = at.page; e.doc.pageLine = at.line }
+	}
+}
 let lastDailyTotal = -1
 /** The guided demo, when one has been started. Its scenario documents are ordinary demo cases; this only remembers which were run. */
 let showcase: Showcase | null = null
 const showcaseView = (): Showcase | null => showcase && { ...showcase, steps: refreshSteps(showcase.steps, (id) => state.cases.get(id)) }
 function touch(c: PaymentCase) {
 	c.version += 1
+	annotate(c)
 	// a challenge's status follows the case: open while the agents work, then whatever the outcome makes it
 	if (c.challenges?.length) c.challenges = deriveChallenges(c)
 	emit("case.updated", c)
@@ -297,6 +307,7 @@ function assess(c: PaymentCase) {
 	const ev = evaluate(c, ctx)
 	for (const id of Object.keys(c.ledger)) if (!id.startsWith("X:") && !id.startsWith("A:")) delete c.ledger[id]
 	for (const e of ev.entries) c.ledger[e.id] = e
+	annotate(c)
 	c.controls = ev.controls
 	c.exposure = ev.exposure
 	c.challenges = deriveChallenges(c)
@@ -943,6 +954,77 @@ export function snapshot(): DeskSnapshot {
 }
 
 export const getDocumentText = (id: string): string | null => state.documents.get(id)?.text ?? null
+
+// ───────── original files ─────────
+// The bytes of an uploaded PDF are kept apart from the case state: in memory, and beside the state file when the desk
+// persists. They are addressed by their own SHA-256, so a file can never be swapped for another one of the same name.
+const files = new Map<string, Buffer>()
+const FILES_DIR = `${STATE_FILE}.files`
+function storeFile(hash: string, bytes: Buffer) {
+	files.set(hash, bytes)
+	if (!PERSIST) return
+	try { mkdirSync(FILES_DIR, { recursive: true }); const p = joinPath(FILES_DIR, `${hash}.pdf`); if (!existsSync(p)) writeFileSync(p, bytes) } catch (err) { console.error("could not store the original file:", err) }
+}
+function loadFile(hash: string): Buffer | null {
+	const held = files.get(hash)
+	if (held) return held
+	if (!/^[0-9a-f]{64}$/.test(hash)) return null
+	try {
+		const p = joinPath(FILES_DIR, `${hash}.pdf`)
+		if (!PERSIST || !existsSync(p)) return null
+		const bytes = readFileSync(p)
+		// the file on disk is used only if it is still the file that was hashed
+		if (createHash("sha256").update(bytes).digest("hex") !== hash) return null
+		files.set(hash, bytes)
+		return bytes
+	} catch { return null }
+}
+/** How a document's text maps to its original: nothing for plain text, pages and line boxes for a PDF. */
+export function getDocumentSource(id: string): { format: "text"; fileName: string } | (DocumentSource & { available: boolean }) | null {
+	const d = state.documents.get(id)
+	if (!d) return null
+	return d.source ? { ...d.source, available: loadFile(d.source.fileHash) != null } : { format: "text", fileName: d.fileName }
+}
+/** The original file of a document on the desk, exactly as it was received. Null when it is not a PDF or the file is gone. */
+export function getDocumentFile(id: string): { bytes: Buffer; fileName: string } | null {
+	const s = state.documents.get(id)?.source
+	const bytes = s ? loadFile(s.fileHash) : null
+	return s && bytes ? { bytes, fileName: s.fileName } : null
+}
+
+// ───────── synthetic PDF fixtures ─────────
+export type PdfFixtureInfo = { docId: string; file: string; label: string | null; sample: boolean; size: number; pages: number; lines: number; fileHash: string; textHash: string }
+const PDF_DIR = joinPath(DATA_DIR, "documents", "pdf")
+export const pdfFixtures = (): PdfFixtureInfo[] => { try { return JSON.parse(readFileSync(joinPath(PDF_DIR, "manifest.json"), "utf8")) } catch { return [] } }
+export function pdfFixtureBytes(file: string): Buffer | null {
+	const f = pdfFixtures().find((k) => k.file === file)
+	try { return f ? readFileSync(joinPath(PDF_DIR, f.file)) : null } catch { return null }
+}
+/** The showcase documents that exist as PDF, parsed once when the server starts. A scenario uses its PDF when it is ready. */
+const showcasePdf = new Map<string, { doc: SourceDocument; bytes: Buffer }>()
+const SHOWCASE_PDF = ["INV-2026-1049"]
+let preparing: Promise<void> | null = null
+/** Parses the showcase PDFs once. The server waits for this before it listens; a test that wants the PDF waits for it too. */
+export const prepare = (): Promise<void> => (preparing ??= (async () => {
+	for (const id of SHOWCASE_PDF) {
+		try {
+			const info = pdfFixtures().find((k) => k.docId === id)
+			const bytes = info && pdfFixtureBytes(info.file)
+			if (!info || !bytes) continue
+			const parsed = await parsePdf(bytes)
+			const text = loadDocuments().find((d) => d.id === id)
+			showcasePdf.set(id, { bytes, doc: { id, fileName: info.file, text: parsed.text, hash: contentHash(parsed.text), receivedAt: text?.receivedAt ?? nowIso(), source: { ...parsed.source, fileName: info.file } } })
+		} catch (err) { console.error(`could not prepare the PDF of ${id}; the scenario will use its text version:`, err) }
+	}
+})())
+/** A document already on the desk that is the same file, or has the same text. Looked up before anything is processed. */
+export function findSame(textHash: string, fileHash: string | null): { id: string; fileName: string; match: "file" | "text" } | null {
+	for (const d of state.documents.values()) {
+		if (fileHash && d.source?.fileHash === fileHash) return { id: d.id, fileName: d.fileName, match: "file" }
+	}
+	for (const d of state.documents.values()) if (d.hash === textHash) return { id: d.id, fileName: d.fileName, match: "text" }
+	return null
+}
 export const modelModeNow = (): "live" | "scripted" => modelMode
 /** The stored execution of an earlier live run. Read-only: nothing here touches the desk. */
 export const recordingView = (): Recording | null => loadRecording(state.scenarios)
@@ -966,6 +1048,7 @@ export function whenSettled(timeoutMs = 240_000): Promise<void> {
 function newCase(d: SourceDocument, origin: PaymentCase["origin"]): PaymentCase {
 	return {
 		id: d.id, origin, fileName: d.fileName, hash: d.hash, receivedAt: d.receivedAt, version: 0, attempt: 1, stage: "received",
+		...(d.source ? { pdf: { pages: d.source.pages.length, size: d.source.size, fileHash: d.source.fileHash } } : {}),
 		extraction: emptyStep(), validation: emptyStep(), audit: emptyStep(), investigation: emptyStep(), decision: emptyStep(),
 		controls: [], ledger: {}, exposure: null, verificationRequested: false, review: [], draft: null, runs: [], timeline: [],
 		...(configuration === "single" ? { mode: "single" as const } : {}),
@@ -1062,8 +1145,11 @@ export function runShowcaseStep(key: string): DeskSnapshot {
 		return snapshot()
 	}
 	if (existing) throw new DeskError(409, `A document with the id ${step.docId} is already on the desk, so this scenario cannot use it. Remove that document or reset the demo documents.`)
-	const d = loadDocuments().find((x) => x.id === step.docId)
+	// A scenario whose document exists as a PDF runs on the PDF: the same intake, with pages and positions for its evidence.
+	const pdf = showcasePdf.get(step.docId)
+	const d = pdf?.doc ?? loadDocuments().find((x) => x.id === step.docId)
 	if (!d) throw new DeskError(500, `The scenario document ${step.docId} is missing from server/data/documents.`)
+	if (pdf) storeFile(pdf.doc.source!.fileHash, pdf.bytes)
 	unblock()
 	if (!state.startedAt) state.startedAt = nowIso()
 	state.documents.set(d.id, d)
@@ -1087,14 +1173,20 @@ export function resetDesk() {
 }
 export const setPolicy = (patch: Partial<DeskState["policy"]>) => { state.policy = { ...state.policy, ...patch } }
 
-export function addDocument(name: string, text: string, origin: PaymentCase["origin"] = "user", receivedAt = nowIso()): PaymentCase {
+/**
+ * Adds a document to the desk and starts the workflow on it. `text` is what the agents read: the pasted or uploaded text,
+ * or the text layer of a PDF that `parsePdf` has already validated. For a PDF, `original` carries the file and its source map.
+ */
+export function addDocument(name: string, text: string, origin: PaymentCase["origin"] = "user", receivedAt = nowIso(), original?: { fileName: string; bytes: Buffer; source: Omit<DocumentSource, "fileName"> }): PaymentCase {
 	if (typeof text !== "string" || text.trim().length < 20) throw new DeskError(400, "Paste the text of a document first (at least a few lines).")
 	if (text.length > MAX_DOCUMENT_CHARS) throw new DeskError(413, `That document is too long for the desk (${text.length} characters; the limit is ${MAX_DOCUMENT_CHARS}).`)
 	if (/\u0000/.test(text)) throw new DeskError(415, "That does not look like a text document.")
 	const base = (name || "pasted").replace(/\.[A-Za-z0-9]+$/, "").replace(/[^A-Za-z0-9_-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 32) || "pasted"
 	let id = base
 	for (let n = 2; state.cases.has(id); n++) id = `${base}-${n}`
-	const d: SourceDocument = { id, fileName: `${id}.txt`, text, hash: contentHash(text), receivedAt }
+	const safeName = (original?.fileName ?? "").replace(/[^\p{L}\p{N} ._()-]+/gu, "_").slice(-80) || `${id}.pdf`
+	const d: SourceDocument = original ? { id, fileName: safeName, text, hash: contentHash(text), receivedAt, source: { ...original.source, fileName: safeName } } : { id, fileName: `${id}.txt`, text, hash: contentHash(text), receivedAt }
+	if (original) storeFile(original.source.fileHash, original.bytes)
 	if (origin === "user") unblock()
 	if (!state.startedAt) { state.startedAt = nowIso(); emit("desk.started", snapshot()) }
 	state.documents.set(id, d)

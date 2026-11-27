@@ -101,14 +101,23 @@ Investigated from the stored execution records of the live run of 26 November, 1
 | `showcase.test.ts` (showcase pass) | real runtime, scripted model, and the real server in scripted and in keyless live mode | 10 of 10 |
 | `resolution.test.ts` (final release pass) | vendor confirmation, callback, currency; in process and over HTTP | 12 of 12 |
 | `api.test.ts`, one test added for PD-17 | | 10 of 10 |
-| **`npm test` total** | | **114 of 114**, about 4 s; also on Node 20.20.2 and 22.23.5 |
-| `npm run test:browser` | headless Chrome against the scripted server, in the repository | 17 of 17 |
+| `pdf.test.ts` (PDF intake pass, 27 Nov) | parser, limits, refusals, text/PDF equivalence, page evidence, integrity, duplicates, financial controls on PDFs, HTTP, persistence | 16 of 16 |
+| **`npm test` total** | | **130 of 130**, about 45 s (the PDF tests parse real files); also on Node 20.20.2 and 22.23.5 |
+| `npm run test:browser` | headless Chrome against the scripted server, in the repository | 22 of 22, three consecutive runs |
 | Live Stress Lab, one scenario, 26 Nov 22:58 CET | | **BLOCKED** again (provider credit) |
 | `npm run lab` | 12 scenarios, scripted | 12 of 12, 87 checks |
 | Live Stress Lab, one scenario | genuine Mozaik with live models | **BLOCKED** (provider credit) |
 | Benchmark, single agent against multi-agent | live only | **BLOCKED**, never run |
 
 Browser checks, run with a scripted headless Chromium against the built app on the scripted server (not part of `npm test`): 21 flows, all passing after the fixes. They cover a live run followed in Agent Activity, replay with seek and payment switch, the agent inspector by pointer and keyboard, reduced motion, the resolution rule in the UI, limit-only approval, rejection of a blocked payment, overview figures compared with server state on a page open during the run, the firewall comparison and evidence drawer, the audit trail and scenario check, a Stress Lab run, appearance, back and forward, rapid selection of 48 rows with no identity mismatch, upload validation (empty, short, 30 kB, a PDF), and the server stopped and started under an open page. Separately: no horizontal overflow on ten routes at nine widths from 390 to 1920 px, and text contrast measured from pixels on seven pages in both appearances.
+
+## PDF intake pass, 27 November
+
+Added: text-layer PDF intake (`server/pdf.ts`, `server/pdf-worker.mjs`), page-aware evidence, the original page in the browser with the cited line marked, and a new *Add documents* dialog with a queue. `PDF_INTAKE_REPORT.md` has the detail. No provider call was made in this pass.
+
+Found and corrected while testing it, before anything was committed: the scripted investigation text for the showcase document cited text line numbers that are different in the PDF version (now it cites no line numbers; the references carry them); the intake duplicate message did not tell "the same file" from "another file with the same text" (now it does); a refused executable was listed as "Text" in the queue (now "File"); the cited-lines label of a PDF said `line 13` without its page.
+
+Not verified in this pass: any PDF with live models; layouts other than the single-column synthetic invoices; Safari and Firefox (the browser checks use Chromium).
 
 ## Not tested, or tested only in part
 

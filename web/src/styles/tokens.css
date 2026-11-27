@@ -84,6 +84,12 @@
 	--page-w: 1200px;
 	--control-h: 32px;
 	--control-h-lg: 40px;
+	/* an original document is paper: it stays white in both appearances, and its highlight is a marker on paper */
+	--doc-paper: #ffffff;
+	--doc-hl: rgb(255 206 60 / 0.42);
+	--doc-hl-edge: rgb(214 148 0 / 0.9);
+	--drawer-w-wide: 680px;
+	--sheet-w-wide: 820px;
 
 	/* environment */
 	--bg: light-dark(#edf2f8, #080d16);

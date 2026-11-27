@@ -72,7 +72,10 @@ An earlier version did, on 26 November 2026: 67 agent loops on 16 documents, 12 
 Nothing yet: it has never completed. The method and the code exist (one agent on the stronger model against the five-agent workflow, same documents, records, controls and enforcement, with raw recommendations counted apart from enforced outcomes). If it runs, it will say how often each configuration recommends something unsafe or misses a discrepancy on ten synthetic scenarios, which is too few for statistical claims.
 
 **Does it read PDFs?**
-No. Plain-text documents only. Text-layer PDF support was considered for the final sprint and left out: it would add a parser and a new evidence-location problem (pages, reading order) with no time to test it properly.
+Yes, PDFs with a text layer, up to 2 MB and 10 pages. The file is validated by its signature and parsed on this machine in a worker thread; the agents get the extracted text only. Every located reference carries its page and line (`p. 2, line 12`), opens the original page, and is marked there when the parser measured a box for that line. Scanned PDFs are refused: there is no OCR. In the scripted demo only the registered synthetic PDFs are interpreted; another PDF is parsed and shown and says it needs live AI, which has not been verified on this version.
+
+**How do you know the highlight is in the right place?**
+It is not drawn from anything a model said. The parser measures a box for each line of text; an agent's quote is located in the text by code; the marker is that line's box, scaled with the page. Where there is no box (rotated text, a quote across two pages) there is no marker, and the interface says so. It marks the line, not the single value.
 
 **Which parts are solid and which are sandbox only?**
 Solid within its scope: the deterministic controls, exact money arithmetic, evidence location and re-verification, the server-side decision rules, the orchestration. Sandbox only: the data, the trusted records (fixtures), the reviewer (one, no sign-in), storage (one JSON file), the payment draft (JSON, not a bank format), and hosting (local machine only).
@@ -81,4 +84,4 @@ Solid within its scope: the deterministic controls, exact money arithmetic, evid
 The authority boundary, and that it can be checked. Agents investigate and explain; code decides, and the code path is the same whether the model is live, scripted or wrong. A judge can verify it without an API key: script the Policy agent to approve everything and the controls still hold, which is what most of the workflow tests do.
 
 **What would the next commercial step be?**
-A pilot with one accounts payable team on their own approval policy: PDF intake, the vendor master and payment history from their ERP, named reviewers with four-eyes approval, and ISO 20022 output for the bank. None of that exists today.
+A pilot with one accounts payable team on their own approval policy: scanned documents (OCR), the vendor master and payment history from their ERP, named reviewers with four-eyes approval, and ISO 20022 output for the bank. None of that exists today.

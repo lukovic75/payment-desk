@@ -82,6 +82,14 @@ The guided demo is a view of the same application, not a presentation layered on
 - **Replay is labelled.** A scripted run finishes in a fraction of a second, so it is played back once from its own timestamps, marked *Replay*, with a line saying when the decision was really made. With reduced motion nothing plays by itself.
 - **Results are statuses, not celebrations.** Confirmed, unexpected, failed, not executed: an icon and a label each. A failure shows the provider's own error text and what can be done.
 
+## Original documents (`web/src/components/PdfView.tsx`, `AddDocument.tsx`)
+
+- **A page is paper.** A PDF page keeps its own white in both appearances (`--doc-paper`); the interface around it changes, the document does not.
+- **One marker.** The cited line is covered by a translucent marker (`--doc-hl`, `--doc-hl-edge`) placed from the box the parser measured. It is the only colour introduced for documents. No box, no marker: a sentence says why.
+- **The drawer widens for a page** (`--drawer-w-wide`) and the intake dialog is wider than other sheets (`--sheet-w-wide`), because a page has to be legible.
+- **Intake is a queue.** Each file is a row that states what it is and what happened to it, in the same status vocabulary as payments. Refusals are sentences in the row, not toasts.
+- **On a phone** the queue row stacks (status under the name), the page fits the width and zoom scrolls inside its frame.
+
 ## Motion
 
 | What | How | Why |
@@ -94,6 +102,7 @@ The guided demo is a view of the same application, not a presentation layered on
 | Interactive glass | A faint reflection follows the pointer (one delegated listener, one frame per move) | Feedback on what is pressable |
 | Running agent | The node's dot breathes and the connection feeding it flows; both stop when the loop ends | Real activity |
 | Changed figure | The new value settles in once; no count-up through values that never existed | State change |
+| Evidence marker on a PDF page | Fades in and widens slightly once when the page is ready (280 ms); under reduced motion it is simply there | State: this is the line the figure came from |
 | Ambient light | Three fields drift over 34 to 48 s. Paused while the tab is hidden; off under reduced motion; can be switched off in Settings | Depth. This is the one decorative loop, kept at the edge of perception and under the person's control |
 
 Keyboard-driven changes skip entrance motion. `prefers-reduced-motion` keeps colour and opacity changes and drops movement.

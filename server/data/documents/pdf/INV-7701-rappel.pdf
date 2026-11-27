@@ -1,0 +1,106 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Length 1664 >>
+stream
+0.2 g
+0 836 595 6 re f
+0.1 g
+BT /F2 15 Tf 56.00 768 Td (ATELIER LUMIÈRE SAS) Tj ET
+0.35 g
+BT /F1 9 Tf 56.00 750 Td (14 rue des Arts, 69001 Lyon, France) Tj ET
+0.35 g
+BT /F1 9 Tf 56.00 737 Td (TVA: FR12345678901) Tj ET
+0.1 g
+BT /F2 15 Tf 337.32 768 Td (FACTURE N° 7701 \(RAPPEL\)) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 678 Td (Date:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 678 Td (12/10/2026) Tj ET
+0.35 g
+BT /F1 10 Tf 56.00 662 Td (Échéance:) Tj ET
+0.1 g
+BT /F1 10 Tf 174.00 662 Td (26/11/2026) Tj ET
+0.93 g
+56 617 483 20 re f
+0.1 g
+BT /F2 9 Tf 64.00 624 Td (Désignation) Tj ET
+0.1 g
+BT /F2 9 Tf 328.01 624 Td (Quantité) Tj ET
+0.1 g
+BT /F2 9 Tf 423.50 624 Td (PU HT) Tj ET
+0.1 g
+BT /F2 9 Tf 490.00 624 Td (Total HT) Tj ET
+0.1 g
+BT /F1 10 Tf 64.00 600 Td (Lampe de table "Brume") Tj ET
+0.1 g
+BT /F1 10 Tf 366.44 600 Td (8) Tj ET
+0.1 g
+BT /F1 10 Tf 417.42 600 Td (140.00) Tj ET
+0.1 g
+BT /F1 10 Tf 492.08 600 Td (1,120.00) Tj ET
+0.88 G
+0.5 w
+56 593 m 539 593 l S
+0.1 g
+BT /F1 10 Tf 338.00 569 Td (Total HT) Tj ET
+0.1 g
+BT /F1 10 Tf 492.08 569 Td (1,120.00) Tj ET
+0.1 g
+BT /F1 10 Tf 338.00 552 Td (TVA 0% \(livraison intracommunautaire\)) Tj ET
+0.3 G
+0.5 w
+330 548 m 539 548 l S
+0.1 g
+BT /F2 11 Tf 338.00 535 Td (NET À PAYER EUR) Tj ET
+0.1 g
+BT /F2 11 Tf 488.19 535 Td (1,120.00) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 495 Td (Coordonnées bancaires:) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 479 Td (IBAN: FR76 3000 6000 0112 3456 7890 189) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 463 Td (BIC: AGRIFRPPXXX) Tj ET
+0.1 g
+BT /F1 10 Tf 56.00 447 Td (Référence: 7701) Tj ET
+0.75 G
+0.5 w
+56 52 m 539 52 l S
+0.5 g
+BT /F1 8 Tf 56.00 36 Td (Synthetic document for the Payment Desk sandbox. Not a real invoice.) Tj ET
+
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents 5 0 R >>
+endobj
+7 0 obj
+<< /Title (INV-7701-rappel \(synthetic\)) /Producer (Payment Desk synthetic fixture) >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000218 00000 n 
+0000000320 00000 n 
+0000002036 00000 n 
+0000002172 00000 n 
+trailer
+<< /Size 8 /Root 1 0 R /Info 7 0 R >>
+startxref
+2275
+%%EOF

@@ -23,11 +23,12 @@ Built for the JigJoy Black Friday AI Hackathon, track *Agents in Finance*, 26-27
 | Parallel execution | Any scenario → *How the agents worked* → *Execution record* | two handlers on one event, [`server/desk.ts`](server/desk.ts#L876) | `workflow.test.ts`: recorded intervals overlap |
 | Cross-agent challenges | Scenario 3 → **Inspect agent challenge** | [`server/challenges.ts`](server/challenges.ts) | `intelligence.test.ts`, `resolution.test.ts` |
 | Deterministic firewall | Scenario 2: blocked, no approve action | [`server/firewall.ts`](server/firewall.ts), `enforce` in [`server/desk.ts`](server/desk.ts#L796) | `workflow.test.ts`, `api.test.ts` |
-| Source-backed figures | Select any `line N` reference | [`server/integrity.ts`](server/integrity.ts) | `lab.test.ts`: each kind of broken evidence is caught |
+| Source-backed figures | Select any `line N` reference, or `p. N, line M` on a PDF | [`server/integrity.ts`](server/integrity.ts) | `lab.test.ts`: each kind of broken evidence is caught |
 | Evidence-backed resolution | Scenario 3 → *Resolve it with independent evidence* | `verify_amount` in [`server/desk.ts`](server/desk.ts#L1118) | `resolution.test.ts` |
 | Reproducible showcase | `npm ci && npm run demo` | [`server/showcase.ts`](server/showcase.ts) | `showcase.test.ts`, `npm run test:browser` |
+| PDF intake with page evidence | **Add documents** → a sample PDF; showcase scenario 3 runs on a two-page PDF | [`server/pdf.ts`](server/pdf.ts), [`server/pdf-worker.mjs`](server/pdf-worker.mjs) | `pdf.test.ts`, `npm run test:browser` |
 | Financial Stress Lab | Financial Stress Lab → Run all 12 | [`server/lab/`](server/lab) | `npm run lab`, `lab.test.ts` |
-| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 114 tests, 12 lab scenarios, 17 browser checks |
+| Automated evidence | | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | 130 tests, 12 lab scenarios, 22 browser checks (the browser checks run locally, not in CI) |
 | Live models on this version | Opening screen states the mode; *Watch the recorded execution* for an earlier live run | | **Not verified** (provider credit): [`DEMO_READINESS.md`](DEMO_READINESS.md), [`FINAL_RELEASE_REPORT.md`](FINAL_RELEASE_REPORT.md) |
 
 Walkthrough: [`DEMO_GUIDE.md`](DEMO_GUIDE.md). Likely questions: [`JUDGE_QA.md`](JUDGE_QA.md).
@@ -50,9 +51,9 @@ Open http://localhost:8799 and press **Start demo**: four synthetic scenarios, o
 This is the **scripted demo: real orchestration, predefined model responses**. The Mozaik runtime, the agent loops, the evidence checks, the controls and the enforcement run for real; the agents' answers are fixed text, and every screen says so. It shows the architecture and the workflow, not the quality of a language model.
 
 ```bash
-npm test                 # 114 automated tests on the real Mozaik runtime with a scripted model, about 4 seconds
+npm test                 # 130 automated tests on the real Mozaik runtime with a scripted model, under a minute
 npm run lab              # the 12 stress scenarios from the terminal, scripted model, a few seconds
-npm run test:browser     # 17 browser checks of the showcase (needs Node 22+ and a local Chrome or Chromium)
+npm run test:browser     # 22 browser checks of the showcase and PDF intake (needs Node 22+ and a local Chrome or Chromium)
 ```
 
 With a model key, for live agents:
@@ -281,6 +282,38 @@ npm run lab:benchmark            # live models only
 
 **Status: the benchmark has not been run.** The API account used for development ran out of credit before it could be. The benchmark page shows an empty state, and no figure appears in this README in its place. The baseline's workflow and the metric arithmetic are covered by tests on the scripted model; what the two configurations actually score against live models is unknown.
 
+## Documents: plain text and text-layer PDF
+
+**Add documents** takes several files at once, by drag and drop or from a file picker, and offers three synthetic sample PDFs. Each file is validated and parsed first and waits in a queue with what was found (pages, lines of text, a duplicate already on the desk). Nothing reaches an agent until **Process** is pressed.
+
+| | |
+|---|---|
+| Formats | Plain text (`.txt`, `.eml`, `.md`, or pasted) and PDF with a text layer |
+| Limits | A PDF: 2 MB, 10 pages, 8 seconds to parse. Any document: 20,000 characters of text. The dialog takes 8 documents at a time |
+| Where a PDF is read | On this machine, in a worker thread, with `pdfjs-dist` 5.4.624. The file is not sent anywhere. The agents receive the extracted text and nothing else |
+| Refused, with the reason | Scanned or image-only PDFs (**there is no OCR**), encrypted PDFs, a file that is not a PDF whatever its name says, a broken or truncated PDF, anything over a limit |
+| Never used | Links, forms, attachments and scripts inside a PDF. The page is drawn to a canvas and that is all |
+
+How a PDF becomes evidence:
+
+1. **Validate.** Size and the `%PDF-` signature, not the file name or the declared type. Page count before any page is read.
+2. **Parse** ([`server/pdf-worker.mjs`](server/pdf-worker.mjs), [`server/pdf.ts`](server/pdf.ts)). Text is grouped into lines per page, top to bottom. Every line keeps its page, its number on that page and, when the text is horizontal and inside the page, the box around it.
+3. **One text, one workflow.** The lines joined together are the document the five agents and the controls work on, exactly as for a text document. A PDF invoice and the same invoice as text reach the same decision; `pdf.test.ts` compares five of them.
+4. **Evidence carries the page.** An agent quotes; code finds the quote in the text and code adds the page and the line on that page. A reference reads `p. 2, line 12`. The integrity verifier fails a reference whose line is not in the source map or whose page does not match.
+5. **Show it.** A reference opens the original page with a marker over the cited line, placed from the box the parser measured, at any zoom. When there is no box (rotated text, a quote that crosses pages) nothing is marked and the interface says so; the line is still quoted. The marker covers the line, not the single value in it.
+
+The original file is kept by its SHA-256 (in memory, and beside the state file when persistence is on). If it is gone, the extracted text and its references remain and the interface says the original is unavailable. A second copy of the same file is reported as the same file; a different file with the same text is reported as that.
+
+**In the scripted demo** only registered synthetic documents are interpreted: the sixteen text documents and eight PDFs, recognised by the hash of their extracted text, never by name. Any other document is validated, parsed and shown, and then answered with: *"The document was parsed successfully. Live AI access is required to interpret this invoice because it is not a registered scripted fixture."* The scripted model does not guess at a document it has no answer for.
+
+**With live models** any supported PDF goes through the same agents as a text document. This path is **not verified on this version**: the provider account had no credit.
+
+The sample PDFs are in [`server/data/documents/pdf/`](server/data/documents/pdf), written by `npm run fixtures:pdf` from the descriptions in [`server/test/pdf-specs.ts`](server/test/pdf-specs.ts). A test regenerates them and compares byte for byte.
+
+![A figure opened on page two of the original PDF, with the cited line marked](docs/pdf-evidence.jpg)
+
+![Add documents: three synthetic PDFs parsed and waiting, one previewed as the original](docs/pdf-intake.jpg)
+
 ## The demo dataset
 
 `server/data/documents/` holds sixteen synthetic documents; `server/data/scenarios.json` states the expected outcome of each. Trusted records are in `vendors.json`, `history.json`, `purchase-orders.json`, `callbacks.json` and `confirmations.json`. Nothing needs to be generated or seeded: the files are the dataset. **Start demo** runs four of them one at a time (`INV-2026-1041`, `INV-ES-55820`, `INV-2026-1049`, `INV-7701-rappel`, and optionally `INV-ADR-0101`); *load all sixteen* on the overview runs the whole inbox.
@@ -303,7 +336,7 @@ npm run lab:benchmark            # live models only
 | `INV-ADR-0102`, `INV-ADR-0103` | Two invoices on PO-7781, 3,550.00 together | NEEDS_APPROVAL (possible split) |
 | `MSG-newsletter` | A newsletter | NOT_A_PAYMENT |
 
-**Add document** also offers four examples. *Changed bank details* is an invoice from vendor V-001 with a new IBAN: it is blocked, and entering callback reference `CB-2026-1125-01` (from `callbacks.json`) under **Verify beneficiary change** moves it to "needs approval". Any other reference is refused.
+**Add documents** offers three sample PDFs (a valid invoice, changed bank details, conflicting amounts on two pages), which the scripted demo can process, and four text examples under *Paste text instead*, which need live models. Among the text examples, *Changed bank details* is an invoice from vendor V-001 with a new IBAN: it is blocked, and entering callback reference `CB-2026-1125-01` (from `callbacks.json`) under **Verify beneficiary change** moves it to "needs approval". Any other reference is refused.
 
 ## Install, configure, run
 
@@ -342,7 +375,7 @@ There is no linter in the project; the type checker and the tests are the gates.
 
 ## Tests
 
-`npm test` runs 114 tests in nine files with Node's test runner, in about four seconds, with no API key. `AGENT_INTELLIGENCE_REPORT.md` describes the agents, how they check each other and what is verified. `QA_REPORT.md` lists the defects the stabilisation pass found and fixed, `TEST_MATRIX.md` maps each behaviour to its test, and `DEMO_READINESS.md` says what is and is not verified.
+`npm test` runs 130 tests in ten files with Node's test runner, in under a minute (the PDF tests parse real files), with no API key. `AGENT_INTELLIGENCE_REPORT.md` describes the agents, how they check each other and what is verified. `QA_REPORT.md` lists the defects the stabilisation pass found and fixed, `TEST_MATRIX.md` maps each behaviour to its test, and `DEMO_READINESS.md` says what is and is not verified.
 
 - `server/test/firewall.test.ts`: money parsing, IBAN, instruction detection, per-currency totals. No runtime.
 - `server/test/workflow.test.ts`: the whole workflow on the **real Mozaik runtime** with a **scripted model**. Loops, tools, events, the firewall, enforcement and human actions are the real code; only the model's words are fixed. In most tests the scripted Policy agent recommends approval for everything, so a pass means the deterministic layer held by itself.
@@ -351,12 +384,13 @@ There is no linter in the project; the type checker and the tests are the gates.
 - `server/test/intelligence.test.ts`: malformed model output in ten forms (never an approval), well-formed but wrong output, invented rules and citations, provider failures by kind (no retry on an empty account, one retry on an outage), the cross-agent challenge protocol, and what a person's approval of a challenge does and does not establish.
 - `server/test/showcase.test.ts`: the interactive showcase. Each scenario's result is the outcome the controls enforced; a scenario cannot run twice and two cannot run at once; a failed scenario is failed, never confirmed, and can be run again; an unexpected outcome is reported as unexpected; the demo leaves a person's own documents, decisions and callback verifications alone; the recorded execution is served as stored and cannot be acted on; a scripted server says it is scripted, and a live server without a key runs nothing and substitutes nothing.
 - `server/test/resolution.test.ts`: how a held or blocked payment is resolved with a trusted record, and what cannot stand in for one. A verified vendor confirmation for the right vendor, invoice and amount settles a contradiction and a person still approves; no reference, an unknown one, another vendor's, another invoice's, an unverified one and malformed input are refused; a confirmation that states the other amount blocks the payment; readers that disagree are not settled by it; a callback clears only its own vendor and account and never changes the vendor master; missing and contradictory currency.
+- `server/test/pdf.test.ts`: PDF intake. The fixtures regenerate byte for byte; one and two pages; European number and date formats; a rotated page; refusals (empty, executable, image, text named `.pdf`, corrupted, truncated, too large, too many pages, too much text, image-only, encrypted); the parse timeout and eight parses requested at once; five invoices reaching the same decision as text and as PDF; page and line on every located reference; the integrity verifier on a tampered page reference; three kinds of duplicate (the same file under another name, the same text in another file, the same obligation in another document); the financial controls on PDFs (changed IBAN, arithmetic, zero amount, missing IBAN, unknown vendor, instruction-like text, an invented value, a failing agent); the HTTP flow from sample to processed payment; the scripted server refusing to interpret an unregistered document; persistence across a restart, and honesty when the original file is gone.
 - `server/test/api.test.ts`: the real server under hostile and careless use: malformed bodies and addresses, bad uploads, path traversal, a run started twice, conflicting amounts approved without a resolution, approvals that race, reprocessing a decided payment, an open page compared with server state, a server killed straight after a decision, and requests from another site or under a foreign hostname (refused; the server listens on this machine only).
 - `server/test/http.test.ts`: the real server process driven over HTTP the way the UI drives it: run the inbox, approve, refuse approval of a blocked payment, export a draft, reject, a wrong callback reference, add a document, run the Stress Lab, export an audit report.
 
 What they cover from the firewall's point of view: a valid invoice is approved; a changed IBAN cannot be approved whatever the Policy agent says; an invalid IBAN; a duplicate is not authorised twice; a renamed duplicate; arithmetic; unknown vendor; missing evidence and missing IBAN; the per-payment limit; the daily limit, including decisions that land together; a double approval; prompt injection, alone and on top of a changed IBAN; Extractor and Auditor disagreeing; a Validator report that contradicts the records; a failed Auditor and a failed Policy agent; a superseded loop that must stop; idempotent reprocessing; no draft for a blocked payment; every reported amount resolving to a ledger entry; mixed currencies; and all sixteen demo documents ending where `scenarios.json` says.
 
-**Browser checks.** `npm run test:browser` (`scripts/browser-smoke.mjs`, no extra dependency) starts the scripted server, drives a headless Chrome over the DevTools protocol and walks the showcase: one entry point, the mode labelled as scripted and never as live, the four scenarios and their enforced outcomes, a figure opened at its source line, the agent challenge, the summary, no approve action on a blocked payment, the execution proof, exit, the appearance switch, the recorded view, and a provider that refuses every call (banner shown, scenario failed, nothing confirmed). Seventeen checks, including the resolution of the held payment with a vendor confirmation; every wait is a condition on the page. It is a smoke suite, not full interface coverage, and is not part of `npm test`.
+**Browser checks.** `npm run test:browser` (`scripts/browser-smoke.mjs`, no extra dependency) starts the scripted server, drives a headless Chrome over the DevTools protocol and walks the showcase: one entry point, the mode labelled as scripted and never as live, the four scenarios and their enforced outcomes, a figure opened at its source line and on its page of the original PDF with the line marked, the agent challenge, the summary, no approve action on a blocked payment, the execution proof, exit, the appearance switch, the recorded view, document intake (a sample PDF parsed, previewed and processed only when asked; an executable and a broken PDF refused; an unregistered document parsed but not interpreted; evidence marked on the page in the payment workspace; a duplicate named before processing), and a provider that refuses every call (banner shown, scenario failed, nothing confirmed). Twenty-two checks, including the resolution of the held payment with a vendor confirmation; every wait is a condition on the page. It is a smoke suite, not full interface coverage, and is not part of `npm test`.
 
 **What these tests are not.** They are not live-model tests. Passing tests show that the workflow and the controls behave as specified with fixed agent output. They do not show how a model behaves.
 
@@ -378,6 +412,7 @@ One real defect was found by the Stress Lab while building it: when a document w
 | **Overview** | What the product does in one line, four figures (pending review, approved, blocked exposure per currency and never called "money saved", auto-approval limit used), the three most serious payments each with its issue in one sentence, the five agents at a glance, and an optional first-visit guide. |
 | **Payments / Review Queue** | A list beside the selected payment. Search, a status filter, sort, keyboard navigation. The queue holds what is blocked or needs approval, the most serious first. |
 | **Payment workspace** | Four tabs. *Overview*: the decision in one sentence, each reason with the values it rests on and their sources, the actions the server allows, and the payment facts; how it was decided is folded beneath. A payment with a discrepancy (conflicting amounts, readings that disagree, a possible split) is not approved by a click: the server refuses the approval until a verified vendor confirmation is attached or the reviewer states in writing how it was resolved, and the primary action is to request verification. A payment that is only above a limit is approved directly. *Verification*: every control with its evidence, the investigation, both agents' readings side by side. *Evidence*: the whole ledger beside the source document. *Activity*: this payment's agent timeline, review history and log. Any reference opens an evidence inspector with the cited lines. |
+| **Add documents** | Drag and drop or choose several files, or try a synthetic sample PDF. A queue shows what each file is and what was read from it; a PDF is previewed as the original. Refusals say why. Processing starts only when asked. |
 | **Payment Firewall** | Every payment a control stopped or flagged: the exception in one sentence, the trusted record beside the incoming document, what each agent found, and the decision. |
 | **Agent Activity** | *Workspace*: five glass agents and two code gates in one composition, drawn from recorded state. An agent leans toward its input while its loop runs, a capsule travels a connection at the moment the receiving loop starts, and the conditional route to the Investigator lights only on a real exception. It follows a live run, and it replays any finished payment from the stored start and finish times (pause, seek, 8 s, 16 s or real time) without calling an agent. *Execution details*: every loop on one clock, concurrency figures, and a table with model, retries, tokens and trigger. |
 | **Evidence & Audit** | Evidence integrity across the desk, every agent step, firewall decision and human action (by time or by payment, with filter, search and export), and the scenario check: expected against actual for all sixteen documents. |
@@ -403,7 +438,7 @@ With a key and credit (live agents):
 5. **Add document → Changed bank details.** Blocked. Enter `CB-2026-1125-01` under *Verify beneficiary change*: it moves to "needs approval", with the callback in the ledger. Approve it: a sandbox draft appears and the review history records who, when and why.
 6. **Financial Stress Lab → Run all 12 scenarios** on the deterministic path: seconds, in isolated processes. Open S08 to see three concurrent decisions held under the daily budget, and S10 to see a labelled fault injection caught by the comparison of the two readings.
 
-Without a key: `npm test`, `npm run lab`, then `npm run demo`, load the sixteen documents on http://localhost:8799 and follow steps 2, 3, 4 and 6 (the banner says the demo is scripted; *Add document* is not meaningful there because the scripted model only knows the dataset).
+Without a key: `npm test`, `npm run lab`, then `npm run demo`, load the sixteen documents on http://localhost:8799 and follow steps 2, 3, 4 and 6 (the banner says the demo is scripted). **Add documents** there processes the three sample PDFs; any other document is parsed and shown, and says it needs live AI.
 
 ## Project layout
 
@@ -412,6 +447,8 @@ server/
   desk.ts          Mozaik runtime: shared state, the agents, bound tools, event reactions, enforcement, human actions, persistence
   firewall.ts      every deterministic control, the evidence builders, the reading comparison (no model)
   integrity.ts     independent re-verification of the evidence ledger (no model)
+  pdf.ts           PDF validation, limits, the parse with a timeout, canonical text and its source map (no model)
+  pdf-worker.mjs   the PDF parser, in a worker thread: text lines with page, line and box
   money.ts         integer minor units: parsing, formatting, per-currency sums
   lib/iban.ts      normalisation, country lengths, mod-97, reading IBANs from text
   draft.ts         sandbox payment draft (JSON)
@@ -428,13 +465,15 @@ server/
     metrics.ts     benchmark arithmetic and metric definitions
     cli.ts         the lab from the terminal
   data/            policy, vendors, history, purchase orders, callbacks, scenarios, documents (all synthetic)
+    documents/pdf/ eight synthetic PDF invoices and their manifest (regenerate with npm run fixtures:pdf)
     recordings/    stored execution records of one live run, for replay only
-  test/            scripted model, fixtures, predefined showcase responses, and the nine test files
+  test/            scripted model, fixtures, predefined showcase responses, the PDF writer and specs, and the ten test files
 scripts/
-  browser-smoke.mjs  the browser checks of the showcase (npm run test:browser)
+  browser-smoke.mjs  the browser checks of the showcase and PDF intake (npm run test:browser)
+  make-pdf-fixtures.ts  writes the synthetic PDFs from their descriptions (npm run fixtures:pdf)
 web/src/
   views/           Showcase, Overview, Payments (inbox + queue), Firewall, Activity, Lab, Audit, Settings
-  components/      Shell, LivingWorkspace, PaymentList, PaymentDetail, Timeline, AddDocument, ui
+  components/      Shell, LivingWorkspace, PaymentList, PaymentDetail, Timeline, AddDocument, PdfView, ui
   lib/             api (one EventSource), lab, derive (pure functions over state), format, router
   styles/          tokens.css, base.css, views.css
 ARCHITECTURE_PROOF.md    eight architectural claims, each with its code and its test
@@ -453,7 +492,10 @@ HACKATHON_SCORECARD.md   self-assessment against the four judging criteria
 - **The scripted demo proves the workflow, not a model.** Its agent answers for the five showcase documents are predefined text, written after what the live models returned in the recorded run.
 - **A hackathon sandbox, not a production system.** It is not deployed, not hardened and not connected to anything.
 - **No authentication.** Human actions are recorded as "Demo reviewer". Permissions are enforced on the server, but there is one reviewer.
-- **Plain text documents.** PDF and image parsing are out of scope; line references are real because the documents are text. Text-layer PDF intake was considered for the final release and left out: it needs a parser and page-aware evidence locations that there was no time to test properly.
+- **Text and text-layer PDF only. No OCR.** A scanned or image-only PDF is refused. Encrypted PDFs are refused. Images are not read.
+- **PDF reading order is simple.** Lines are read top to bottom by baseline. A multi-column page can come out interleaved, and a table is read row by row. The synthetic fixtures are single-column invoices; nothing is claimed about arbitrary layouts.
+- **The marker covers a line.** It is drawn only where the parser measured a box, and it marks the cited line, not the single value. Rotated text and a quote that crosses pages get the page without a marker.
+- **Arbitrary PDFs need live models, and that is not verified here.** The scripted demo interprets only its registered synthetic documents; with no provider credit, a PDF outside that set has never been run through live agents on this version.
 - **Models are non-deterministic.** The same document can be worded differently between runs, and an agent may be stricter than the controls require. It can never be looser.
 - **Heuristics are labelled as such.** Instruction-like content and "another payable amount in the document" are pattern matches that send a case to review; vendor matching is token overlap on names.
 - **One process for the inbox.** State is one JSON file and the concurrency guarantees are those of a single Node process. Stress Lab runs are separate processes. A person's decision is written to the file before the request returns; agent progress within a second.
